@@ -481,7 +481,7 @@ def give_me_question_2_for_markers(first_word, second_word):
     """
     return f'Is it possible that the start time of entity [E2] {second_word} [/E2]' \
            f' is before the start time of entity [E1] {first_word} [/E1] in the timeline of the text?'
-def train_TRE_New_questions_wit_markers(model, args, train_dataloader, tokenizer, num_epochs=1):
+def train_TRE_New_questions_with_markers(model, args, train_dataloader, tokenizer, num_epochs=1):
 
     print('training TRE with markers')
     model.train()
@@ -490,7 +490,7 @@ def train_TRE_New_questions_wit_markers(model, args, train_dataloader, tokenizer
 
     # Create the learning rate scheduler.
     total_steps = len(train_dataloader) * num_epochs
-    scheduler = get_linear_schedule_with_warmup(optim, num_warmup_steps=0, num_training_steps=total_steps)
+    scheduler = get_linear_schedule_with_warmup(optim, num_warmup_steps=500, num_training_steps=total_steps)
 
     print_every = 50
     t = time.time()
@@ -509,24 +509,35 @@ def train_TRE_New_questions_wit_markers(model, args, train_dataloader, tokenizer
             first_words, second_words, word_labels  = instances[1][0], instances[1][1], instances[1][4]
 
             for passage, first_word, second_word, Label in zip(passages, first_words, second_words, word_labels):
-                if (Label.strip() == 'EQUAL'):
-                    continue
 
-                question_before = give_me_before_question_for_markers(first_word, second_word) + tokenizer.sep_token
-                question_after = give_me_after_question_for_markers(first_word, second_word) + tokenizer.sep_token
-                # question_equal = give_me_equal_question_for_markers(first_word, second_word) + tokenizer.sep_token
-                question_vague = give_me_vague_question_for_markers(first_word, second_word) + tokenizer.sep_token
+                question_1 = give_me_question_1_for_markers(first_word, second_word) + tokenizer.sep_token
+                question_2 = give_me_question_2_for_markers(first_word, second_word) + tokenizer.sep_token
 
+                questions_list = [('question_1', question_1), ('question_2', question_2)]
 
-                questions_list = [question_before, question_after, question_vague]
-                label_list = ['BEFORE', 'AFTER', 'VAGUE']
+                for question_name, question in questions_list:
 
-                for question_name, question in zip(label_list, questions_list):
+                    if question_name == 'question_1':
 
-                    if question_name == Label.strip():
-                        label = 1
-                    else:
-                        label = 0
+                        if Label.strip() == 'BEFORE':
+                            label = 1
+                        elif Label.strip() == 'AFTER':
+                            label = 0
+                        elif Label.strip() == 'VAGUE':
+                            label = 1
+                        elif Label.strip() == 'EQUAL':
+                            label = 0
+
+                    elif question_name == 'question_2':
+
+                        if Label.strip() == 'BEFORE':
+                            label = 0
+                        elif Label.strip() == 'AFTER':
+                            label = 1
+                        elif Label.strip() == 'VAGUE':
+                            label = 1
+                        elif Label.strip() == 'EQUAL':
+                            label = 0
 
                     # tokenize question and text as a pair, Roberta
                     encodings = tokenizer(question, passage, max_length=args.Max_Len, padding='max_length', truncation=True)
@@ -579,8 +590,8 @@ def train_TRE_New_questions_wit_markers(model, args, train_dataloader, tokenizer
                       f' Epoch percent: {round((instances_counter / len(train_dataloader)) * 100, 2)} %\n')
                 LOSS = 0
 
-        torch.save(model.state_dict(), Path(f'models/model_with_markers_Aq_Timebank_Before_after_vague_epoch_{6+e}_.pt'))
-def eval_TRE_New_questions_wit_markers(model, args, test_dataloader, tokenizer):
+        torch.save(model.state_dict(), Path(f'models/model_with_markers_epoch_{1+e}_.pt'))
+def eval_TRE_New_questions_with_markers(model, args, test_dataloader, tokenizer):
     model.eval()
     print_every = 10
     right, wrong = 0, 0

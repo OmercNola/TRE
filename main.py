@@ -22,7 +22,7 @@ import boolq
 from boolq import train_boolq, eval_boolq
 from data_preprocess import TRE_validation_data, TRE_training_data, TRE_test_data, TRE_training_data_with_markers, TRE_test_data_with_markers
 from data_preprocess import TRE_training_data_for_vague, TRE_training_data_for_equal, percents_equal, percents_vague
-from TRE_base_on_boolq import train_TRE, eval_TRE, train_TRE_with_markers, eval_TRE_with_markers
+from TRE_base_on_boolq import train_TRE, eval_TRE, train_TRE_with_markers, eval_TRE_with_markers, train_TRE_New_questions_with_markers
 from TRE_base_on_boolq_4_different_models import train_TRE_diff_models, eval_TRE_one_model, eval_TRE_diff_models
 from pathlib import Path
 
@@ -42,7 +42,7 @@ parser.add_argument('--dropout_p', type=float, default=0.1,
                     help='dropout_p (default: 0.1)')
 parser.add_argument('--Max_Len', type=int, default=4096,
                     help='Max_Len (default: 4096)')
-parser.add_argument('--batch_size', type=int, default=6,
+parser.add_argument('--batch_size', type=int, default=8,
                     help='batch_size (default: 2)')
 parser.add_argument('--Size_of_longfor', type=str, default='base',
                     help='Size_of_longformer (default: "base")')
@@ -115,17 +115,16 @@ if __name__ == '__main__':
         model = Longformer(model_, args.output_size, args.dropout_p, args.Size_of_longfor, args.Max_Len).to(args.device)
         model = nn.DataParallel(model)
         # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
-        PATH = Path('models/model_with_markers_Aq_Timebank_Before_after_vague_epoch_11_.pt')
+        PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
         model.load_state_dict(torch.load(PATH))
 
         train_dataloader = DataLoader(TRE_training_data_with_markers, batch_size=args.batch_size, shuffle=True)
-
         # val_dataloader = DataLoader(TRE_validation_data, batch_size=2, shuffle=True)
-        test_dataloader = DataLoader(TRE_test_data_with_markers, batch_size=4, shuffle=False)
+        # test_dataloader = DataLoader(TRE_test_data_with_markers, batch_size=4, shuffle=False)
 
         # Training / evaluation:
-        # train_TRE_with_markers(model, args, train_dataloader, tokenizer, num_epochs=5)
-        eval_TRE_with_markers(model, args, test_dataloader, tokenizer)
+        train_TRE_New_questions_with_markers(model, args, train_dataloader, tokenizer, num_epochs=6)
+        # eval_TRE_with_markers(model, args, test_dataloader, tokenizer)
         "====================================================================================================="
         "TRE 4 models"
         # PATH = Path().resolve().parent / 'models/model_tre_Aq_Timebank_BEFORE_epoch_4_.pt'
