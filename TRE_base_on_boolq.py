@@ -289,7 +289,7 @@ def give_me_vague_question_for_markers(first_word, second_word):
     """
     f'Is it difficult to compare the entities [E1] {first_word} [/E1] and [E2] {second_word} [/E2] in the timeline of the text?'
     return  f'Is it not possible to know if the entity [E1] {first_word} [/E1] occurred in the timeline of the text before the entity [E2] {second_word} [/E2]?'
-def train_TRE_wit_markers(model, args, train_dataloader, tokenizer, num_epochs=1):
+def train_TRE_with_markers(model, args, train_dataloader, tokenizer, num_epochs=1):
 
     print('training TRE with markers')
     model.train()
@@ -463,7 +463,6 @@ def eval_TRE_with_markers(model, args, test_dataloader, tokenizer):
             print(f'wrong:{wrong}')
             print(f'right / (right + wrong):{right / (right + wrong)}\n')
 
-
 # New questions for markers:
 def give_me_question_1_for_markers(first_word, second_word):
     """
@@ -490,7 +489,7 @@ def train_TRE_New_questions_with_markers(model, args, train_dataloader, tokenize
 
     # Create the learning rate scheduler.
     total_steps = len(train_dataloader) * num_epochs
-    scheduler = get_linear_schedule_with_warmup(optim, num_warmup_steps=500, num_training_steps=total_steps)
+    scheduler = get_linear_schedule_with_warmup(optim, num_warmup_steps=0, num_training_steps=total_steps)
 
     print_every = 50
     t = time.time()
@@ -590,7 +589,7 @@ def train_TRE_New_questions_with_markers(model, args, train_dataloader, tokenize
                       f' Epoch percent: {round((instances_counter / len(train_dataloader)) * 100, 2)} %\n')
                 LOSS = 0
 
-        torch.save(model.state_dict(), Path(f'models/model_with_markers_epoch_{1+e}_.pt'))
+        torch.save(model.state_dict(), Path(f'models/model_with_markers_epoch_{3+e}_.pt'))
 def eval_TRE_New_questions_with_markers(model, args, test_dataloader, tokenizer):
     model.eval()
     print_every = 10
@@ -603,26 +602,14 @@ def eval_TRE_New_questions_with_markers(model, args, test_dataloader, tokenizer)
 
         for passage, first_word, second_word, Label in zip(passages, first_words, second_words, word_labels):
 
-            if (Label.strip() != 'VAGUE'):
-                continue
-            #
-            # print(Label)
+            question_1 = give_me_question_1_for_markers(first_word, second_word) + tokenizer.sep_token
+            question_2 = give_me_question_2_for_markers(first_word, second_word) + tokenizer.sep_token
 
-            question_before = give_me_before_question_for_markers(first_word, second_word) + tokenizer.sep_token
-            question_after = give_me_after_question_for_markers(first_word, second_word) + tokenizer.sep_token
-            question_equal = give_me_equal_question_for_markers(first_word, second_word) + tokenizer.sep_token
-            question_vague = give_me_vague_question_for_markers(first_word, second_word) + tokenizer.sep_token
-            questions_list = [question_before, question_after, question_vague]
-            label_list = ['BEFORE', 'AFTER', 'VAGUE']
+            questions_list = [('question_1', question_1), ('question_2', question_2)]
 
+            # 2 Questions for each instance:
             results = []
-
-            for question_name, question in zip(label_list, questions_list):
-                # if question_name != 'VAGUE':
-                #     continue
-
-                # print(question_name)
-                # print(question)
+            for question_name, question in questions_list:
 
                 # tokenize question and text as a pair, Roberta
                 encodings = tokenizer(question, passage, max_length=args.Max_Len, padding='max_length', truncation=True)
@@ -636,30 +623,36 @@ def eval_TRE_New_questions_with_markers(model, args, test_dataloader, tokenizer)
                 with torch.no_grad():
                     outputs = model(input_ids=input_ids, attention_mask=attention_mask)
 
-                # print(f'outputs:{outputs}')
-                # print(f'labels:{labels}\n')
-                # print(torch.softmax(outputs, dim=1))
-                results.append([question_name, torch.softmax(outputs, dim=1).clone().detach().cpu().numpy()[0],
-                                torch.argmax(torch.softmax(outputs, dim=1), dim=1).clone().detach().cpu().numpy()[0]])
-                # pred_lables = torch.argmax(torch.softmax(outputs, dim=1), dim=1)
+                results.append(
+                    [question_name,
+                     torch.argmax(torch.softmax(outputs, dim=1), dim=1).clone().detach().cpu().numpy()[0]]
+                )
 
-            res = 0
-            qn_res = 0
+            ans1, ans2 = results[0][1], results[1][1]
 
-            # print(results)
-            # print(Label.strip())
-            # print("")
+            if ans1 == 0 and ans2 == 0:
+                if Label.strip() == 'EQUAL':
+                    right += 1
+                else:
+                    wrong += 1
 
-            for qn, arr, argmax in results:
-                if argmax == 1:
-                    if arr[1] > res:
-                        res = arr[1]
-                        qn_res = qn
+            if ans1 == 1 and ans2 == 1:
+                if Label.strip() == 'VAGUE':
+                    right += 1
+                else:
+                    wrong += 1
 
-            if qn_res == Label.strip():
-                right += 1
-            else:
-                wrong += 1
+            if ans1 == 1 and ans2 == 0:
+                if Label.strip() == 'BEFORE':
+                    right += 1
+                else:
+                    wrong += 1
+
+            if ans1 == 0 and ans2 == 1:
+                if Label.strip() == 'AFTER':
+                    right += 1
+                else:
+                    wrong += 1
 
         if instances_counter % print_every == 0:
             print(f'right:{right}')
