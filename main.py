@@ -30,7 +30,7 @@ parser = argparse.ArgumentParser(description='TRE')
 parser.add_argument('--device', type=torch.device,
                     default=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
                     help='device type')
-parser.add_argument('--eval', type=bool, default=True,
+parser.add_argument('--eval', type=bool, default=False,
                     help='eval mode ? if False then training mode')
 parser.add_argument('--lr', type=float, default=0.00001,
                     help='learning rate (default: 0.00001)')
@@ -46,7 +46,7 @@ parser.add_argument('--dropout_p', type=float, default=0.1,
                     help='dropout_p (default: 0.1)')
 parser.add_argument('--Max_Len', type=int, default=4096,
                     help='Max_Len (default: 4096)')
-parser.add_argument('--batch_size', type=int, default=6,
+parser.add_argument('--batch_size', type=int, default=8,
                     help='batch_size (default: 2)')
 parser.add_argument('--Size_of_longfor', type=str, default='base',
                     help='Size_of_longformer (default: "base")')
@@ -114,8 +114,8 @@ if __name__ == '__main__':
         "================================================================================="
         "TRE"
         # change this path for eval:
-        # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
-        PATH = Path('models/model_with_markers_epoch_5_.pt')
+        PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
+        # PATH = Path('models/model_with_markers_epoch_8_.pt')
         model.load_state_dict(torch.load(PATH))
         # Dataloaders:
         train_dataloader = DataLoader(
@@ -137,11 +137,11 @@ if __name__ == '__main__':
         if not args.eval:
             train_tre_new_questions_with_markers(
                 model, args, train_dataloader,
-                tokenizer, num_epochs=5
+                tokenizer, num_epochs=20
             )
         # Evaluation:
         if args.eval:
             eval_tre_new_questions_with_markers(
-                model, args, val_dataloader, tokenizer
+                model, args, test_dataloader, tokenizer
             )
         "================================================================================="

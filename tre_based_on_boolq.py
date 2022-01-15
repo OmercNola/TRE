@@ -468,16 +468,20 @@ def question_1_for_markers(first_word, second_word):
     :param second_word:
     :return:
     """
-    return f'Is it possible that the start time of entity [E1] {first_word} [/E1]' \
-           f' is before the start time of entity [E2] {second_word} [/E2] in the timeline of the text?'
+    f'Is it possible that the start time of entity [E1] {first_word} [/E1]' \
+    f' is before the start time of entity [E2] {second_word} [/E2] in the timeline of the text?'
+    return f'Is it possible that the start time of entity [E1]'\
+           f' is before the start time of entity [E2]?'
 def question_2_for_markers(first_word, second_word):
     """
     :param first_word:
     :param second_word:
     :return:
     """
-    return f'Is it possible that the start time of entity [E2] {second_word} [/E2]' \
-           f' is before the start time of entity [E1] {first_word} [/E1] in the timeline of the text?'
+    f'Is it possible that the start time of entity [E2] {second_word} [/E2]' \
+    f' is before the start time of entity [E1] {first_word} [/E1] in the timeline of the text?'
+    return f'Is it possible that the start time of entity [E2]' \
+           f' is before the start time of entity [E1]?'
 def get_label(question_name, label):
     """
     :param question_name:
@@ -508,6 +512,14 @@ def get_label(question_name, label):
             res = 0
 
     return res
+def print_training_progress(
+        t, length_of_data_loader, epoch, instances_counter, total_loss):
+    """
+    """
+    print(f'Epoch:{epoch}, '
+          f' loss:{total_loss:.2f}, '
+          f'Training time:{timedelta(seconds=time.time() - t)}, '
+          f'Epoch percent: {round((instances_counter / length_of_data_loader) * 100, 2)}')
 def train_tre_new_questions_with_markers(
         model, args, train_dataloader,
         tokenizer, num_epochs=1):
@@ -629,11 +641,12 @@ def train_tre_new_questions_with_markers(
                         batch_labels = []
 
             if instances_counter % print_every == 0:
-                print(f'Epoch:{e}, loss:{round(LOSS, 2)}, Training time:{timedelta(seconds=time.time() - t)},'
-                      f' Epoch percent: {round((instances_counter / len(train_dataloader)) * 100, 2)} %\n')
+                print_training_progress(
+                    t, len(train_dataloader), e, instances_counter, LOSS
+                )
                 LOSS = 0
 
-        torch.save(model.state_dict(), Path(f'models/model_with_markers_epoch_{3+e}_.pt'))
+        torch.save(model.state_dict(), Path(f'models/model_epoch_{e}_.pt'))
 def eval_tre_new_questions_with_markers(
         model, args, test_dataloader, tokenizer):
     """
@@ -708,24 +721,28 @@ def eval_tre_new_questions_with_markers(
                     right += 1
                 else:
                     wrong += 1
+                    print(f'wrong in: {Label.strip()}')
 
             elif ans1 == 1 and ans2 == 1:
                 if Label.strip() == 'VAGUE':
                     right += 1
                 else:
                     wrong += 1
+                    print(f'wrong in: {Label.strip()}')
 
             elif ans1 == 1 and ans2 == 0:
                 if Label.strip() == 'BEFORE':
                     right += 1
                 else:
                     wrong += 1
+                    print(f'wrong in: {Label.strip()}')
 
             elif ans1 == 0 and ans2 == 1:
                 if Label.strip() == 'AFTER':
                     right += 1
                 else:
                     wrong += 1
+                    print(f'wrong in: {Label.strip()}')
 
         if instances_counter % print_every == 0:
             print(f'right:{right}')
