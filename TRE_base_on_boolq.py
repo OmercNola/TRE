@@ -400,10 +400,6 @@ def eval_TRE_with_markers(model, args, test_dataloader, tokenizer):
 
         for passage, first_word, second_word, Label in zip(passages, first_words, second_words, word_labels):
 
-            if (Label.strip() != 'VAGUE'):
-                continue
-            #
-            # print(Label)
 
             question_before = give_me_before_question_for_markers(first_word, second_word) + tokenizer.sep_token
             question_after = give_me_after_question_for_markers(first_word, second_word) + tokenizer.sep_token
@@ -464,7 +460,7 @@ def eval_TRE_with_markers(model, args, test_dataloader, tokenizer):
             print(f'right / (right + wrong):{right / (right + wrong)}\n')
 
 # New questions for markers:
-def give_me_question_1_for_markers(first_word, second_word):
+def question_1_for_markers(first_word, second_word):
     """
     :param first_word:
     :param second_word:
@@ -472,7 +468,7 @@ def give_me_question_1_for_markers(first_word, second_word):
     """
     return f'Is it possible that the start time of entity [E1] {first_word} [/E1]' \
            f' is before the start time of entity [E2] {second_word} [/E2] in the timeline of the text?'
-def give_me_question_2_for_markers(first_word, second_word):
+def question_2_for_markers(first_word, second_word):
     """
     :param first_word:
     :param second_word:
@@ -480,7 +476,21 @@ def give_me_question_2_for_markers(first_word, second_word):
     """
     return f'Is it possible that the start time of entity [E2] {second_word} [/E2]' \
            f' is before the start time of entity [E1] {first_word} [/E1] in the timeline of the text?'
-def train_TRE_New_questions_with_markers(model, args, train_dataloader, tokenizer, num_epochs=1):
+def train_tre_new_questions_with_markers(model, args, train_dataloader, tokenizer, num_epochs=1):
+    """
+    :param model:
+    :type model:
+    :param args:
+    :type args:
+    :param train_dataloader:
+    :type train_dataloader:
+    :param tokenizer:
+    :type tokenizer:
+    :param num_epochs:
+    :type num_epochs:
+    :return:
+    :rtype:
+    """
 
     print('training TRE with markers')
     model.train()
@@ -509,8 +519,8 @@ def train_TRE_New_questions_with_markers(model, args, train_dataloader, tokenize
 
             for passage, first_word, second_word, Label in zip(passages, first_words, second_words, word_labels):
 
-                question_1 = give_me_question_1_for_markers(first_word, second_word) + tokenizer.sep_token
-                question_2 = give_me_question_2_for_markers(first_word, second_word) + tokenizer.sep_token
+                question_1 = question_1_for_markers(first_word, second_word) + tokenizer.sep_token
+                question_2 = question_2_for_markers(first_word, second_word) + tokenizer.sep_token
 
                 questions_list = [('question_1', question_1), ('question_2', question_2)]
 
@@ -590,7 +600,20 @@ def train_TRE_New_questions_with_markers(model, args, train_dataloader, tokenize
                 LOSS = 0
 
         torch.save(model.state_dict(), Path(f'models/model_with_markers_epoch_{3+e}_.pt'))
-def eval_TRE_New_questions_with_markers(model, args, test_dataloader, tokenizer):
+def eval_tre_new_questions_with_markers(model, args, test_dataloader, tokenizer):
+    """
+    :param model:
+    :type model:
+    :param args:
+    :type args:
+    :param test_dataloader:
+    :type test_dataloader:
+    :param tokenizer:
+    :type tokenizer:
+    :return:
+    :rtype:
+    """
+
     model.eval()
     print_every = 10
     right, wrong = 0, 0
