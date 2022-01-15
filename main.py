@@ -22,8 +22,8 @@ import boolq
 from boolq import train_boolq, eval_boolq
 from data import TRE_training_data_with_markers, TRE_test_data_with_markers
 from data import TRE_validation_data_with_markers
-from TRE_base_on_boolq import train_tre_new_questions_with_markers
-from TRE_base_on_boolq import eval_tre_new_questions_with_markers
+from tre_based_on_boolq import train_tre_new_questions_with_markers
+from tre_based_on_boolq import eval_tre_new_questions_with_markers
 from pathlib import Path
 torch.set_printoptions(profile="full")
 parser = argparse.ArgumentParser(description='TRE')
@@ -115,7 +115,7 @@ if __name__ == '__main__':
         model = nn.DataParallel(model)
 
         # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
-        PATH = Path('models/model_with_markers_epoch_8_.pt')
+        PATH = Path('models/model_with_markers_epoch_1_.pt')
         model.load_state_dict(torch.load(PATH))
 
         train_dataloader = DataLoader(

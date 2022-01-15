@@ -22,7 +22,7 @@ import boolq
 from boolq import train_boolq, eval_boolq
 from data import TRE_validation_data, TRE_training_data, TRE_test_data, TRE_training_data_with_markers
 from data import TRE_training_data_for_vague, TRE_training_data_for_equal, percents_equal, percents_vague
-from TRE_base_on_boolq import train_TRE, eval_TRE, train_TRE_with_markers
+from tre_based_on_boolq import train_TRE, eval_TRE, train_TRE_with_markers
 from TRE_base_on_boolq_4_different_models import train_TRE_diff_models, eval_TRE_one_model, eval_TRE_diff_models
 from pathlib import Path
 
