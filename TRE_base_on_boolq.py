@@ -478,6 +478,36 @@ def question_2_for_markers(first_word, second_word):
     """
     return f'Is it possible that the start time of entity [E2] {second_word} [/E2]' \
            f' is before the start time of entity [E1] {first_word} [/E1] in the timeline of the text?'
+def get_label(question_name, label):
+    """
+    :param question_name:
+    :type question_name:
+    :param label:
+    :type label:
+    :return:
+    :rtype:
+    """
+    if question_name == 'question_1':
+        if label.strip() == 'BEFORE':
+            res = 1
+        elif label.strip() == 'AFTER':
+            res = 0
+        elif label.strip() == 'VAGUE':
+            res = 1
+        elif label.strip() == 'EQUAL':
+            res = 0
+
+    elif question_name == 'question_2':
+        if label.strip() == 'BEFORE':
+            res = 0
+        elif label.strip() == 'AFTER':
+            res = 1
+        elif label.strip() == 'VAGUE':
+            res = 1
+        elif label.strip() == 'EQUAL':
+            res = 0
+
+    return res
 def train_tre_new_questions_with_markers(
         model, args, train_dataloader,
         tokenizer, num_epochs=1):
@@ -496,8 +526,10 @@ def train_tre_new_questions_with_markers(
     :rtype:
     """
 
-    print('training TRE with markers')
+    print('training tre with markers...')
+
     model.train()
+
     optim = AdamW(model.parameters(), lr=args.lr)
     criterion = nn.CrossEntropyLoss()
 
@@ -519,38 +551,26 @@ def train_tre_new_questions_with_markers(
         for instances_counter, instances in enumerate(train_dataloader, start=1):
 
             passages = instances[0]
-            first_words, second_words, word_labels  = instances[1][0], instances[1][1], instances[1][4]
+            first_words = instances[1][0]
+            second_words = instances[1][1]
+            word_labels = instances[1][4]
 
-            for passage, first_word, second_word, Label in zip(passages, first_words, second_words, word_labels):
+            zip_object = zip(passages, first_words, second_words, word_labels)
+            for passage, first_word, second_word, Label in zip_object:
 
-                question_1 = question_1_for_markers(first_word, second_word) + tokenizer.sep_token
-                question_2 = question_2_for_markers(first_word, second_word) + tokenizer.sep_token
+                question_1 = question_1_for_markers(
+                    first_word, second_word) + tokenizer.sep_token
+                question_2 = question_2_for_markers(
+                    first_word, second_word) + tokenizer.sep_token
 
-                questions_list = [('question_1', question_1), ('question_2', question_2)]
+                questions_list = [
+                    ('question_1', question_1),
+                    ('question_2', question_2)
+                ]
 
                 for question_name, question in questions_list:
 
-                    if question_name == 'question_1':
-
-                        if Label.strip() == 'BEFORE':
-                            label = 1
-                        elif Label.strip() == 'AFTER':
-                            label = 0
-                        elif Label.strip() == 'VAGUE':
-                            label = 1
-                        elif Label.strip() == 'EQUAL':
-                            label = 0
-
-                    elif question_name == 'question_2':
-
-                        if Label.strip() == 'BEFORE':
-                            label = 0
-                        elif Label.strip() == 'AFTER':
-                            label = 1
-                        elif Label.strip() == 'VAGUE':
-                            label = 1
-                        elif Label.strip() == 'EQUAL':
-                            label = 0
+                    label = get_label(question_name, Label)
 
                     # tokenize question and text as a pair, Roberta
                     encodings = tokenizer(question, passage, max_length=args.Max_Len, padding='max_length', truncation=True)
