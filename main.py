@@ -74,6 +74,12 @@ if __name__ == '__main__':
         tokenizer.add_special_tokens(special_tokens_dict)
         print(f'len of tokenizer after adding new tokens: {len(tokenizer)}')
         model_ = AutoModel.from_pretrained("allenai/longformer-base-4096")
+        model_.resize_token_embeddings(len(tokenizer))
+        model = Longformer(
+            model_, args.output_size, args.dropout_p,
+            args.Size_of_longfor, args.Max_Len
+        ).to(args.device)
+        model = nn.DataParallel(model)
         "================================================================================="
         "BOOL-Q"
         # Datasets:
@@ -107,17 +113,11 @@ if __name__ == '__main__':
         # eval_boolq(model, args, test_dataloader, tokenizer)
         "================================================================================="
         "TRE"
-        model_.resize_token_embeddings(len(tokenizer))
-        model = Longformer(
-            model_, args.output_size, args.dropout_p,
-            args.Size_of_longfor, args.Max_Len
-        ).to(args.device)
-        model = nn.DataParallel(model)
-
+        # change this path for eval:
         # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
         PATH = Path('models/model_with_markers_epoch_5_.pt')
         model.load_state_dict(torch.load(PATH))
-
+        # Dataloaders:
         train_dataloader = DataLoader(
             TRE_training_data_with_markers,
             batch_size=args.batch_size,
@@ -133,14 +133,12 @@ if __name__ == '__main__':
             batch_size=args.batch_size,
             shuffle=False
         )
-
         # Training:
         if not args.eval:
             train_tre_new_questions_with_markers(
                 model, args, train_dataloader,
                 tokenizer, num_epochs=5
             )
-
         # Evaluation:
         if args.eval:
             eval_tre_new_questions_with_markers(
