@@ -54,8 +54,8 @@ parser.add_argument('--Size_of_longfor', type=str, default='base',
 
 if __name__ == '__main__':
     __file__ = 'main.py'
+
     os.environ['OMP_NUM_THREADS'] = '1'
-    # os.environ['CUDA_VISIBLE_DEVICES'] = "3"
     print('Available devices ', torch.cuda.device_count())
 
     with warnings.catch_warnings():
@@ -115,7 +115,7 @@ if __name__ == '__main__':
         model = nn.DataParallel(model)
 
         # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
-        PATH = Path('models/model_with_markers_epoch_1_.pt')
+        PATH = Path('models/model_with_markers_epoch_5_.pt')
         model.load_state_dict(torch.load(PATH))
 
         train_dataloader = DataLoader(
@@ -146,4 +146,4 @@ if __name__ == '__main__':
             eval_tre_new_questions_with_markers(
                 model, args, val_dataloader, tokenizer
             )
-        "====================================================================================================="
+        "================================================================================="

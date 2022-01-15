@@ -2,10 +2,10 @@ from torch import nn
 class Longformer(nn.Module):
 
     def __init__(self, longformer_, Output_size, Dropout_prob, size_of_longformer, Max_len):
-        super(Longformer, self).__init__()
+        super().__init__()
 
         # parameters:
-        print("creating the BERT_longformer module...")
+        print("creating the longformer module...")
         # define the linear layer:
         self.output_size = Output_size
         self.max_len = Max_len

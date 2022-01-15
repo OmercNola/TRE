@@ -7,7 +7,7 @@ from datetime import timedelta
 import datetime as datetime
 import random
 from pathlib import Path
-
+"============================================================================="
 # without markers:
 def before_question_from_two_words(first_word, second_word):
     """
@@ -258,7 +258,7 @@ def eval_TRE(model, args, test_dataloader, tokenizer):
                 print(f'right:{right}')
                 print(f'wrong:{wrong}')
                 print(f'right / (right + wrong):{right / (right + wrong)}\n')
-
+"============================================================================="
 # for markers:
 def before_question_for_markers(first_word, second_word):
     """
@@ -460,7 +460,7 @@ def eval_TRE_with_markers(model, args, test_dataloader, tokenizer):
             print(f'right:{right}')
             print(f'wrong:{wrong}')
             print(f'right / (right + wrong):{right / (right + wrong)}\n')
-
+"============================================================================="
 # New questions for markers:
 def question_1_for_markers(first_word, second_word):
     """
@@ -658,33 +658,48 @@ def eval_tre_new_questions_with_markers(
         passages = instances[0]
         first_words, second_words, word_labels = instances[1][0], instances[1][1], instances[1][4]
 
-        for passage, first_word, second_word, Label in zip(passages, first_words, second_words, word_labels):
+        zip_object = zip(passages, first_words, second_words, word_labels)
+        for passage, first_word, second_word, Label in zip_object:
 
-            question_1 = question_1_for_markers(first_word, second_word) + tokenizer.sep_token
-            question_2 = question_2_for_markers(first_word, second_word) + tokenizer.sep_token
+            question_1 = question_1_for_markers(
+                first_word, second_word) + tokenizer.sep_token
+            question_2 = question_2_for_markers(
+                first_word, second_word) + tokenizer.sep_token
 
-            questions_list = [('question_1', question_1), ('question_2', question_2)]
+            questions_list = [
+                ('question_1', question_1),
+                ('question_2', question_2)
+            ]
 
             # 2 Questions for each instance:
             results = []
             for question_name, question in questions_list:
 
                 # tokenize question and text as a pair, Roberta
-                encodings = tokenizer(question, passage, max_length=args.Max_Len, padding='max_length', truncation=True)
+                encodings = tokenizer(
+                    question,
+                    passage,
+                    max_length=args.Max_Len,
+                    padding='max_length',
+                    truncation=True
+                )
 
                 input_ids = encodings['input_ids']
                 attention_mask = encodings['attention_mask']
 
-                input_ids = torch.tensor([input_ids], requires_grad=False).to(args.device)
-                attention_mask = torch.tensor([attention_mask], requires_grad=False).to(args.device)
+                input_ids = torch.tensor(
+                    [input_ids], requires_grad=False).to(args.device)
+                attention_mask = torch.tensor(
+                    [attention_mask], requires_grad=False).to(args.device)
 
                 with torch.no_grad():
-                    outputs = model(input_ids=input_ids, attention_mask=attention_mask)
 
-                results.append(
-                    [question_name,
-                     torch.argmax(torch.softmax(outputs, dim=1), dim=1).clone().detach().cpu().numpy()[0]]
-                )
+                    outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+                    pred = torch.argmax(
+                        torch.softmax(outputs, dim=1),
+                        dim=1
+                    ).clone().detach().cpu().numpy()[0]
+                    results.append([question_name, pred])
 
             ans1, ans2 = results[0][1], results[1][1]
 
@@ -716,5 +731,6 @@ def eval_tre_new_questions_with_markers(
             print(f'right:{right}')
             print(f'wrong:{wrong}')
             print(f'right / (right + wrong):{right / (right + wrong)}\n')
+"============================================================================="
 
 
