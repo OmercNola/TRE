@@ -11,7 +11,7 @@ import itertools
 import random
 from pathlib import Path, PureWindowsPath, PurePosixPath
 import platform
-"=========================================================================================================="
+"================================================================================="
 def process_data(tml_folder_path, annotation_file_path):
     """
     :param tml_folder_path:
@@ -150,15 +150,17 @@ def final_data_process_for_markers(folder_path, labeled_data_path):
                 pass
     print(f'len of data: {len(data_)}')
     return data_
-"=========================================================================================================="
+"================================================================================="
 """TimeBank"""
 TimeBank_folder = Path('data/TBAQ-cleaned/TimeBank/')
 TimeBank_labeled_data = Path('data/timebank.txt')
 # without markers:
 TimeBank_data = final_data_process(TimeBank_folder, TimeBank_labeled_data)
 # with markers:
-TimeBank_data_with_markers = final_data_process_for_markers(TimeBank_folder, TimeBank_labeled_data)
-"=========================================================================================================="
+TimeBank_data_with_markers = final_data_process_for_markers(
+    TimeBank_folder, TimeBank_labeled_data
+)
+"================================================================================="
 """Aquaint"""
 Aq_folder = Path('data/TBAQ-cleaned/AQUAINT/')
 Aq_labeled_data = Path('data/aquaint.txt')
@@ -166,7 +168,7 @@ Aq_labeled_data = Path('data/aquaint.txt')
 Aq_data = final_data_process(Aq_folder, Aq_labeled_data)
 # with markers:
 Aq_data_with_markers = final_data_process_for_markers(Aq_folder, Aq_labeled_data)
-"=========================================================================================================="
+"================================================================================="
 """Aquaint and Timebank no markers"""
 Aq_and_Timebank = Aq_data + TimeBank_data
 print(f'len of Aq_and_Timebank: {len(Aq_and_Timebank)}')
@@ -174,43 +176,28 @@ TRE_validation_data = random.sample(Aq_and_Timebank, int(len(Aq_and_Timebank) * 
 print(f'len of validation_data: {len(TRE_validation_data)}')
 TRE_training_data = [i for i in Aq_and_Timebank if i not in TRE_validation_data]
 print(f'len of training data: {len(TRE_training_data)}')
-"=========================================================================================================="
+"================================================================================="
 """Aquaint and Timebank with markers"""
 Aq_and_Timebank_with_markers = Aq_data_with_markers + TimeBank_data_with_markers
 print(f'len of Aq_and_Timebank_with_markers: {len(Aq_and_Timebank_with_markers)}')
-TRE_validation_data_with_markers = random.sample(Aq_and_Timebank_with_markers, int(len(Aq_and_Timebank_with_markers) * 0.1))
+TRE_validation_data_with_markers = random.sample(
+    Aq_and_Timebank_with_markers,
+    int(len(Aq_and_Timebank_with_markers) * 0.1)
+)
 print(f'len of validation_data_with_markers: {len(TRE_validation_data_with_markers)}')
-TRE_training_data_with_markers = [i for i in Aq_and_Timebank_with_markers if i not in TRE_validation_data_with_markers]
+TRE_training_data_with_markers = [
+    i for i in Aq_and_Timebank_with_markers
+     if i not in TRE_validation_data_with_markers
+]
 print(f'len of training data_with_markers: {len(TRE_training_data_with_markers)}')
-"=========================================================================================================="
+"================================================================================="
 """Platinum"""
 Platinum_folder = Path('data/TBAQ-cleaned/platinum/')
 Platinum_labeled_data = Path('data/platinum.txt')
 # without markers:
 TRE_test_data = final_data_process(Platinum_folder, Platinum_labeled_data)
 # with markers:
-TRE_test_data_with_markers = final_data_process_for_markers(Platinum_folder, Platinum_labeled_data)
-"=========================================================================================================="
-
-just_vague_labels = [i for i in TRE_training_data if i[1][4].strip() == 'VAGUE']
-print(len(just_vague_labels))
-Aq_and_Timebank_without_vague = [i for i in TRE_training_data if i[1][4].strip() != 'VAGUE']
-TRE_training_data_for_vague = random.sample(Aq_and_Timebank_without_vague, len(just_vague_labels) * 2)
-print(len(TRE_training_data_for_vague))
-TRE_training_data_for_vague = TRE_training_data_for_vague + just_vague_labels
-print(len(TRE_training_data_for_vague))
-percents_vague = len(just_vague_labels) / len(TRE_training_data_for_vague)
-print(percents_vague)
-
-just_equal_labels = [i for i in TRE_training_data if i[1][4].strip() == 'EQUAL']
-print(len(just_equal_labels))
-Aq_and_Timebank_without_equal = [i for i in TRE_training_data if i[1][4].strip() != 'EQUAL']
-TRE_training_data_for_equal = random.sample(Aq_and_Timebank_without_equal, len(just_equal_labels) * 1)
-print(len(TRE_training_data_for_equal))
-TRE_training_data_for_equal = TRE_training_data_for_equal + just_equal_labels
-print(len(TRE_training_data_for_equal))
-percents_equal = len(just_equal_labels) / len(TRE_training_data_for_equal)
-print(percents_equal)
-
-just_equal_labels = [i for i in TRE_test_data if i[1][4].strip() == 'EQUAL']
-print(len(just_equal_labels))
+TRE_test_data_with_markers = final_data_process_for_markers(
+    Platinum_folder, Platinum_labeled_data
+)
+"================================================================================="

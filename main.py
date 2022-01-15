@@ -54,7 +54,6 @@ if __name__ == '__main__':
     os.environ['OMP_NUM_THREADS'] = '1'
     # os.environ['CUDA_VISIBLE_DEVICES'] = "3"
     print('Available devices ', torch.cuda.device_count())
-    print(torch.cuda.current_device())
 
     with warnings.catch_warnings():
         "====================================================================================================="
@@ -114,7 +113,7 @@ if __name__ == '__main__':
         model = Longformer(model_, args.output_size, args.dropout_p, args.Size_of_longfor, args.Max_Len).to(args.device)
         model = nn.DataParallel(model)
         # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
-        PATH = Path('models/model_with_markers_epoch_8_.pt')
+        PATH = Path('models/model_with_markers_epoch_3_.pt')
         model.load_state_dict(torch.load(PATH))
 
         train_dataloader = DataLoader(TRE_training_data_with_markers, batch_size=args.batch_size, shuffle=True)
@@ -123,5 +122,5 @@ if __name__ == '__main__':
 
         # Training / evaluation:
         # train_tre_new_questions_with_markers(model, args, train_dataloader, tokenizer, num_epochs=5)
-        # eval_tre_new_questions_with_markers(model, args, test_dataloader, tokenizer)
+        eval_tre_new_questions_with_markers(model, args, test_dataloader, tokenizer)
         "====================================================================================================="

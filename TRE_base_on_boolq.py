@@ -664,19 +664,19 @@ def eval_tre_new_questions_with_markers(
                 else:
                     wrong += 1
 
-            if ans1 == 1 and ans2 == 1:
+            elif ans1 == 1 and ans2 == 1:
                 if Label.strip() == 'VAGUE':
                     right += 1
                 else:
                     wrong += 1
 
-            if ans1 == 1 and ans2 == 0:
+            elif ans1 == 1 and ans2 == 0:
                 if Label.strip() == 'BEFORE':
                     right += 1
                 else:
                     wrong += 1
 
-            if ans1 == 0 and ans2 == 1:
+            elif ans1 == 0 and ans2 == 1:
                 if Label.strip() == 'AFTER':
                     right += 1
                 else:
