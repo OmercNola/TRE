@@ -9,7 +9,7 @@ import random
 from pathlib import Path
 
 # without markers:
-def give_me_before_question_from_two_words(first_word, second_word):
+def before_question_from_two_words(first_word, second_word):
     """
     :param first_word:
     :param second_word:
@@ -21,7 +21,7 @@ def give_me_before_question_from_two_words(first_word, second_word):
     # Does the word Moses occur in the text before the word Isaac?
     # Which word is earlier in the timeline by the text: or ?
     return f'Did the word {first_word} occur in the timeline of the text before the word {second_word}?'
-def give_me_after_question_from_two_words(first_word, second_word):
+def after_question_from_two_words(first_word, second_word):
     """
     :param first_word:
     :param second_word:
@@ -33,14 +33,14 @@ def give_me_after_question_from_two_words(first_word, second_word):
     # Does the word Moses occur in the text before the word Isaac?
     # Which word is earlier in the timeline by the text: or ?
     return f'Did the word {first_word} occur in the timeline of the text after the word {second_word}?'
-def give_me_equal_question_from_two_words(first_word, second_word):
+def equal_question_from_two_words(first_word, second_word):
     """
     :param first_word:
     :param second_word:
     :return:
     """
     return f'Did the word {first_word} and the word {second_word} occur in the timeline of the text at the same time?'
-def give_me_vague_question_from_two_words(first_word, second_word):
+def vague_question_from_two_words(first_word, second_word):
     """
     :param first_word:
     :param second_word:
@@ -79,13 +79,13 @@ def train_TRE(model, args, train_dataloader, tokenizer, num_epochs=1):
                 if (Label.strip() == 'EQUAL'):
                     continue
 
-                question = give_me_before_question_from_two_words(first_word, second_word)
+                question = before_question_from_two_words(first_word, second_word)
                 question_before = question + tokenizer.sep_token
-                question = give_me_after_question_from_two_words(first_word, second_word)
+                question = after_question_from_two_words(first_word, second_word)
                 question_after = question + tokenizer.sep_token
-                question = give_me_equal_question_from_two_words(first_word, second_word)
+                question = equal_question_from_two_words(first_word, second_word)
                 question_equal = question + tokenizer.sep_token
-                question = give_me_vague_question_from_two_words(first_word, second_word)
+                question = vague_question_from_two_words(first_word, second_word)
                 question_vague = question + tokenizer.sep_token
 
                 # if (Label.strip() == 'EQUAL'):
@@ -196,13 +196,13 @@ def eval_TRE(model, args, test_dataloader, tokenizer):
             #
             # print(Label)
 
-            question = give_me_before_question_from_two_words(first_word, second_word)
+            question = before_question_from_two_words(first_word, second_word)
             question_before = question + tokenizer.sep_token
-            question = give_me_after_question_from_two_words(first_word, second_word)
+            question = after_question_from_two_words(first_word, second_word)
             question_after = question + tokenizer.sep_token
-            question = give_me_equal_question_from_two_words(first_word, second_word)
+            question = equal_question_from_two_words(first_word, second_word)
             question_equal = question + tokenizer.sep_token
-            question = give_me_vague_question_from_two_words(first_word, second_word)
+            question = vague_question_from_two_words(first_word, second_word)
             question_vague = question + tokenizer.sep_token
             questions_list = [question_before, question_after, question_vague]
             label_list = ['BEFORE', 'AFTER', 'VAGUE']
@@ -260,28 +260,28 @@ def eval_TRE(model, args, test_dataloader, tokenizer):
                 print(f'right / (right + wrong):{right / (right + wrong)}\n')
 
 # for markers:
-def give_me_before_question_for_markers(first_word, second_word):
+def before_question_for_markers(first_word, second_word):
     """
     :param first_word:
     :param second_word:
     :return:
     """
     return f'Did the entity [E1] {first_word} [/E1] occur in the timeline of the text before the entity [E2] {second_word} [/E2]?'
-def give_me_after_question_for_markers(first_word, second_word):
+def after_question_for_markers(first_word, second_word):
     """
     :param first_word:
     :param second_word:
     :return:
     """
     return f'Did the entity [E1] {first_word} [/E1] occur in the timeline of the text after the entity [E2] {second_word} [/E2]?'
-def give_me_equal_question_for_markers(first_word, second_word):
+def equal_question_for_markers(first_word, second_word):
     """
     :param first_word:
     :param second_word:
     :return:
     """
     return f'Does [E1] and [E2] occur in the text at the same time?'
-def give_me_vague_question_for_markers(first_word, second_word):
+def vague_question_for_markers(first_word, second_word):
     """
     :param first_word:
     :param second_word:
@@ -289,7 +289,9 @@ def give_me_vague_question_for_markers(first_word, second_word):
     """
     f'Is it difficult to compare the entities [E1] {first_word} [/E1] and [E2] {second_word} [/E2] in the timeline of the text?'
     return  f'Is it not possible to know if the entity [E1] {first_word} [/E1] occurred in the timeline of the text before the entity [E2] {second_word} [/E2]?'
-def train_TRE_with_markers(model, args, train_dataloader, tokenizer, num_epochs=1):
+def train_TRE_with_markers(
+        model, args, train_dataloader,
+        tokenizer, num_epochs=1):
 
     print('training TRE with markers')
     model.train()
@@ -320,10 +322,10 @@ def train_TRE_with_markers(model, args, train_dataloader, tokenizer, num_epochs=
                 if (Label.strip() == 'EQUAL'):
                     continue
 
-                question_before = give_me_before_question_for_markers(first_word, second_word) + tokenizer.sep_token
-                question_after = give_me_after_question_for_markers(first_word, second_word) + tokenizer.sep_token
-                # question_equal = give_me_equal_question_for_markers(first_word, second_word) + tokenizer.sep_token
-                question_vague = give_me_vague_question_for_markers(first_word, second_word) + tokenizer.sep_token
+                question_before = before_question_for_markers(first_word, second_word) + tokenizer.sep_token
+                question_after = after_question_for_markers(first_word, second_word) + tokenizer.sep_token
+                # question_equal = equal_question_for_markers(first_word, second_word) + tokenizer.sep_token
+                question_vague = vague_question_for_markers(first_word, second_word) + tokenizer.sep_token
 
 
                 questions_list = [question_before, question_after, question_vague]
@@ -401,10 +403,10 @@ def eval_TRE_with_markers(model, args, test_dataloader, tokenizer):
         for passage, first_word, second_word, Label in zip(passages, first_words, second_words, word_labels):
 
 
-            question_before = give_me_before_question_for_markers(first_word, second_word) + tokenizer.sep_token
-            question_after = give_me_after_question_for_markers(first_word, second_word) + tokenizer.sep_token
-            question_equal = give_me_equal_question_for_markers(first_word, second_word) + tokenizer.sep_token
-            question_vague = give_me_vague_question_for_markers(first_word, second_word) + tokenizer.sep_token
+            question_before = before_question_for_markers(first_word, second_word) + tokenizer.sep_token
+            question_after = after_question_for_markers(first_word, second_word) + tokenizer.sep_token
+            question_equal = equal_question_for_markers(first_word, second_word) + tokenizer.sep_token
+            question_vague = vague_question_for_markers(first_word, second_word) + tokenizer.sep_token
             questions_list = [question_before, question_after, question_vague]
             label_list = ['BEFORE', 'AFTER', 'VAGUE']
 
@@ -476,7 +478,9 @@ def question_2_for_markers(first_word, second_word):
     """
     return f'Is it possible that the start time of entity [E2] {second_word} [/E2]' \
            f' is before the start time of entity [E1] {first_word} [/E1] in the timeline of the text?'
-def train_tre_new_questions_with_markers(model, args, train_dataloader, tokenizer, num_epochs=1):
+def train_tre_new_questions_with_markers(
+        model, args, train_dataloader,
+        tokenizer, num_epochs=1):
     """
     :param model:
     :type model:
@@ -600,7 +604,8 @@ def train_tre_new_questions_with_markers(model, args, train_dataloader, tokenize
                 LOSS = 0
 
         torch.save(model.state_dict(), Path(f'models/model_with_markers_epoch_{3+e}_.pt'))
-def eval_tre_new_questions_with_markers(model, args, test_dataloader, tokenizer):
+def eval_tre_new_questions_with_markers(
+        model, args, test_dataloader, tokenizer):
     """
     :param model:
     :type model:
@@ -625,8 +630,8 @@ def eval_tre_new_questions_with_markers(model, args, test_dataloader, tokenizer)
 
         for passage, first_word, second_word, Label in zip(passages, first_words, second_words, word_labels):
 
-            question_1 = give_me_question_1_for_markers(first_word, second_word) + tokenizer.sep_token
-            question_2 = give_me_question_2_for_markers(first_word, second_word) + tokenizer.sep_token
+            question_1 = question_1_for_markers(first_word, second_word) + tokenizer.sep_token
+            question_2 = question_2_for_markers(first_word, second_word) + tokenizer.sep_token
 
             questions_list = [('question_1', question_1), ('question_2', question_2)]
 

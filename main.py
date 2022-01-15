@@ -20,11 +20,9 @@ from datetime import datetime, timedelta
 from longformer import Longformer
 import boolq
 from boolq import train_boolq, eval_boolq
-from data_preprocess import TRE_validation_data, TRE_training_data, TRE_test_data, TRE_training_data_with_markers, TRE_test_data_with_markers
-from data_preprocess import TRE_training_data_for_vague, TRE_training_data_for_equal, percents_equal, percents_vague
-from TRE_base_on_boolq import train_TRE, eval_TRE, train_TRE_with_markers
-from TRE_base_on_boolq import eval_TRE_with_markers, train_TRE_New_questions_with_markers, eval_TRE_New_questions_with_markers
-from TRE_base_on_boolq_4_different_models import train_TRE_diff_models, eval_TRE_one_model, eval_TRE_diff_models
+from data import TRE_training_data_with_markers, TRE_test_data_with_markers
+from TRE_base_on_boolq import train_tre_new_questions_with_markers
+from TRE_base_on_boolq import eval_tre_new_questions_with_markers
 from pathlib import Path
 
 torch.set_printoptions(profile="full")
@@ -116,7 +114,7 @@ if __name__ == '__main__':
         model = Longformer(model_, args.output_size, args.dropout_p, args.Size_of_longfor, args.Max_Len).to(args.device)
         model = nn.DataParallel(model)
         # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
-        PATH = Path('models/model_with_markers_epoch_6_.pt')
+        PATH = Path('models/model_with_markers_epoch_8_.pt')
         model.load_state_dict(torch.load(PATH))
 
         train_dataloader = DataLoader(TRE_training_data_with_markers, batch_size=args.batch_size, shuffle=True)
@@ -124,41 +122,6 @@ if __name__ == '__main__':
         test_dataloader = DataLoader(TRE_test_data_with_markers, batch_size=2, shuffle=False)
 
         # Training / evaluation:
-        # train_TRE_New_questions_with_markers(model, args, train_dataloader, tokenizer, num_epochs=5)
-        eval_TRE_New_questions_with_markers(model, args, train_dataloader, tokenizer)
+        # train_tre_new_questions_with_markers(model, args, train_dataloader, tokenizer, num_epochs=5)
+        # eval_tre_new_questions_with_markers(model, args, test_dataloader, tokenizer)
         "====================================================================================================="
-        "TRE 4 models"
-        # PATH = Path().resolve().parent / 'models/model_tre_Aq_Timebank_BEFORE_epoch_4_.pt'
-        # model.load_state_dict(torch.load(PATH))
-
-        # train_dataloader = DataLoader(TRE_training_data, batch_size=1, shuffle=True)
-        # train_dataloader_vague = DataLoader(TRE_training_data_for_vague, batch_size=1, shuffle=True)
-        # train_dataloader_equal = DataLoader(TRE_training_data_for_equal, batch_size=1, shuffle=True)
-        # train_dataloader_equal = DataLoader([i for i in TRE_training_data_for_equal if i[1][4].strip() == 'EQUAL'], batch_size=1, shuffle=True)
-
-        # val_dataloader = DataLoader(TRE_validation_data, batch_size=2, shuffle=True)
-        # test_dataloader = DataLoader(TRE_test_data, batch_size=1, shuffle=False)
-        # test_dataloader = DataLoader([i for i in TRE_test_data if i[1][4].strip() == 'EQUAL'], batch_size=1, shuffle=False)
-
-        # Training / evaluation:
-        # train_TRE_diff_models(model, args, train_dataloader, tokenizer, 'BEFORE', num_epochs=8)
-        # train_TRE_diff_models(model, args, train_dataloader, tokenizer, 'AFTER', num_epochs=4)
-        # train_TRE_diff_models(model, args, train_dataloader_equal, tokenizer, 'EQUAL', percents_equal, num_epochs=4)
-        # train_TRE_diff_models(model, args, train_dataloader_vague, tokenizer, 'VAGUE', percents_vague, num_epochs=10)
-
-        # eval_TRE_one_model(model, args, test_dataloader, tokenizer, 'BEFORE')
-
-        # model_before = Longformer(model_, args.output_size, args.dropout_p, args.Size_of_longfor, args.Max_Len).to(args.device)
-        # PATH = Path().resolve().parent / 'models/model_tre_Aq_Timebank_BEFORE_epoch_4_.pt'
-        # model_before.load_state_dict(torch.load(PATH))
-        #
-        # model_vague = Longformer(model_, args.output_size, args.dropout_p, args.Size_of_longfor, args.Max_Len).to(args.device)
-        # PATH = Path().resolve().parent / 'models/model_tre_Aq_Timebank_VAGUE_epoch_10_.pt'
-        # model_vague.load_state_dict(torch.load(PATH))
-        #
-        # model_equal = Longformer(model_, args.output_size, args.dropout_p, args.Size_of_longfor, args.Max_Len).to(args.device)
-        # PATH = Path().resolve().parent / 'models/model_tre_Aq_Timebank_EQUAL_epoch_4_.pt'
-        # model_equal.load_state_dict(torch.load(PATH))
-        #
-        # models_list = [model_before, model_vague, model_equal]
-        # eval_TRE_diff_models(models_list, args, test_dataloader, tokenizer)
