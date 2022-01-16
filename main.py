@@ -34,6 +34,8 @@ parser.add_argument('--eval', type=bool, default=False,
                     help='eval mode ? if False then training mode')
 parser.add_argument('--batch_size', type=int, default=6,
                     help='batch_size (default: 2)')
+parser.add_argument('--epochs', type=int, default=10,
+                    help='number of epochs')
 parser.add_argument('--lr', type=float, default=0.00001,
                     help='learning rate (default: 0.00001)')
 parser.add_argument('--gamma', type=float, default=0.99,
@@ -138,7 +140,7 @@ if __name__ == '__main__':
         if not args.eval:
             train_tre_new_questions_with_markers(
                 model, args, train_dataloader,
-                tokenizer, num_epochs=10
+                tokenizer, num_epochs=args.epochs
             )
         # Evaluation:
         if args.eval:

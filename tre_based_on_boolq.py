@@ -772,6 +772,10 @@ def eval_tre_new_questions_with_markers(
         zip_object = zip(passages, first_words, second_words, word_labels)
         for passage, first_word, second_word, Label in zip_object:
 
+            # ignor vague and equal
+            if Label.strip() == 'VAGUE' or Label.strip() == 'EQUAL':
+                continue
+
             question_1 = question_1_for_markers(
                 first_word, second_word) + tokenizer.sep_token
             question_2 = question_2_for_markers(
