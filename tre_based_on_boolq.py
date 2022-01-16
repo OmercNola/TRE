@@ -523,9 +523,10 @@ def question_1_for_markers(first_word, second_word):
     :param second_word:
     :return:
     """
-    res = f'Is it possible that the start time of entity [E1] {first_word} [/E1]' \
-          f' is before the start time of entity [E2] {second_word} [/E2]' \
-          f' in the timeline of the text?'
+    f'Is it possible that the start time of entity [E1] {first_word} [/E1]' \
+    f' is before the start time of entity [E2] {second_word} [/E2]' \
+    f' in the timeline of the text?'
+    res = f'Is it possible that [E1] {first_word} [/E1] started before [E2] {second_word} [/E2]?'
     return res
 def question_2_for_markers(first_word, second_word):
     """
@@ -533,9 +534,11 @@ def question_2_for_markers(first_word, second_word):
     :param second_word:
     :return:
     """
-    res = f'Is it possible that the start time of entity [E2] {second_word} [/E2]' \
-          f' is before the start time of entity [E1] {first_word} [/E1]' \
-          f' in the timeline of the text?'
+    f'Is it possible that the start time of entity [E2] {second_word} [/E2]' \
+    f' is before the start time of entity [E1] {first_word} [/E1]' \
+    f' in the timeline of the text?'
+
+    res = f'Is it possible that [E2] {second_word} [/E2] started before [E1] {first_word} [/E1]?'
     return res
 def get_label(question_name, label):
     """
@@ -663,6 +666,10 @@ def train_tre_new_questions_with_markers(
 
             zip_object = zip(passages, first_words, second_words, word_labels)
             for passage, first_word, second_word, Label in zip_object:
+
+                # ignor vague and equal
+                if Label.strip() == 'VAGUE' or Label.strip() == 'EQUAL':
+                    continue
 
                 question_1 = question_1_for_markers(
                     first_word, second_word) + tokenizer.sep_token
