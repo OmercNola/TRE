@@ -30,7 +30,7 @@ parser = argparse.ArgumentParser(description='TRE')
 parser.add_argument('--device', type=torch.device,
                     default=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
                     help='device type')
-parser.add_argument('--eval', type=bool, default=False,
+parser.add_argument('--eval', type=bool, default=True,
                     help='eval mode ? if False then training mode')
 parser.add_argument('--lr', type=float, default=0.00001,
                     help='learning rate (default: 0.00001)')
@@ -114,8 +114,8 @@ if __name__ == '__main__':
         "================================================================================="
         "TRE"
         # change this path for eval:
-        PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
-        # PATH = Path('models/model_with_markers_epoch_8_.pt')
+        # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
+        PATH = Path('models/model_with_markers_epoch_8_.pt')
         model.load_state_dict(torch.load(PATH))
         # Dataloaders:
         train_dataloader = DataLoader(

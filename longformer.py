@@ -17,7 +17,7 @@ class Longformer(nn.Module):
         if size_of_longformer == 'base':
             self.hidden_size = 768
 
-            print('The BERT_longformer model has {:} different named parameters.\n'.format(len(self.params)))
+            print('The longformer model has {:} different named parameters.\n'.format(len(self.params)))
 
             print('==== Embedding Layer ====\n')
             for p in self.params[0:5]:
@@ -49,7 +49,7 @@ class Longformer(nn.Module):
         elif size_of_longformer == 'large':
             self.hidden_size = 1024
 
-            print('The BERT_longformer model has {:} different named parameters.\n'.format(len(self.params)))
+            print('The longformer model has {:} different named parameters.\n'.format(len(self.params)))
 
             print('==== Embedding Layer ====\n')
             for p in self.params[0:5]:

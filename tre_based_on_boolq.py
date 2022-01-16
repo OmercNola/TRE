@@ -462,26 +462,81 @@ def eval_TRE_with_markers(model, args, test_dataloader, tokenizer):
             print(f'right / (right + wrong):{right / (right + wrong)}\n')
 "============================================================================="
 # New questions for markers:
+class results_tracker:
+
+    def __init__(
+            self,
+            total_amount_of_before_instances,
+            total_amount_of_after_instances,
+            total_amount_of_vague_instances,
+            total_amount_of_equal_instances
+    ):
+
+        self.total_amount_of_before_instances = \
+            total_amount_of_before_instances
+        self.total_amount_of_after_instances = \
+            total_amount_of_after_instances
+        self.total_amount_of_vague_instances = \
+            total_amount_of_vague_instances
+        self.total_amount_of_equal_instances = \
+            total_amount_of_equal_instances
+
+
+        self.TP_BEFORE = 0
+        self.TN_BEFORE = 0
+        self.FP_BEFORE = 0
+        self.FN_BEFORE = 0
+
+        self.TP_AFTER = 0
+        self.TN_AFTER = 0
+        self.FP_AFTER = 0
+        self.FN_AFTER = 0
+
+        self.TP_EQUAL = 0
+        self.TN_EQUAL = 0
+        self.FP_EQUAL = 0
+        self.FN_EQUAL = 0
+
+        self.TP_VAGUE = 0
+        self.TN_VAGUE = 0
+        self.FP_VAGUE = 0
+        self.FN_VAGUE = 0
+
+    def update(self, label, ans1, ans2):
+
+        if label.strip() == 'BEFORE':
+
+            if ans1 == 1 and ans2 == 0:
+                self.TP_BEFORE += 1
+
+            if ans1 == 0 and ans2 == 1:
+                self.FP_AFTER += 1
+
+            if ans1 == 1 and ans2 == 1:
+                self.FP_VAGUE += 1
+
+            if ans1 == 0 and ans2 == 0:
+                self.FP_EQUAL += 1
 def question_1_for_markers(first_word, second_word):
     """
     :param first_word:
     :param second_word:
     :return:
     """
-    f'Is it possible that the start time of entity [E1] {first_word} [/E1]' \
-    f' is before the start time of entity [E2] {second_word} [/E2] in the timeline of the text?'
-    return f'Is it possible that the start time of entity [E1]'\
-           f' is before the start time of entity [E2]?'
+    res = f'Is it possible that the start time of entity [E1] {first_word} [/E1]' \
+          f' is before the start time of entity [E2] {second_word} [/E2]' \
+          f' in the timeline of the text?'
+    return res
 def question_2_for_markers(first_word, second_word):
     """
     :param first_word:
     :param second_word:
     :return:
     """
-    f'Is it possible that the start time of entity [E2] {second_word} [/E2]' \
-    f' is before the start time of entity [E1] {first_word} [/E1] in the timeline of the text?'
-    return f'Is it possible that the start time of entity [E2]' \
-           f' is before the start time of entity [E1]?'
+    res = f'Is it possible that the start time of entity [E2] {second_word} [/E2]' \
+          f' is before the start time of entity [E1] {first_word} [/E1]' \
+          f' in the timeline of the text?'
+    return res
 def get_label(question_name, label):
     """
     :param question_name:
@@ -510,6 +565,43 @@ def get_label(question_name, label):
             res = 1
         elif label.strip() == 'EQUAL':
             res = 0
+
+    return res
+def check_answers(ans1, ans2, Label):
+    """
+    :param ans1:
+    :type ans1:
+    :param ans2:
+    :type ans2:
+    :param Label:
+    :type Label:
+    :return:
+    :rtype:
+    """
+
+    if ans1 == 0 and ans2 == 0:
+        if Label.strip() == 'EQUAL':
+            res = True
+        else:
+            res = False
+
+    elif ans1 == 1 and ans2 == 1:
+        if Label.strip() == 'VAGUE':
+            res = True
+        else:
+            res = False
+
+    elif ans1 == 1 and ans2 == 0:
+        if Label.strip() == 'BEFORE':
+            res = True
+        else:
+            res = False
+
+    elif ans1 == 0 and ans2 == 1:
+        if Label.strip() == 'AFTER':
+            res = True
+        else:
+            res = False
 
     return res
 def print_training_progress(
@@ -627,8 +719,7 @@ def train_tre_new_questions_with_markers(
                         loss.backward()
 
                         # This is to help prevent the "exploding gradients" problem:
-                        # torch.nn.utils.clip_grad_norm_((i for i in model.parameters() if i.requires_grad == True), 40)
-                        # torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
+                        # torch.nn.utils.clip_grad_norm_(model.parameters(), 40)
 
                         # update parameters
                         optim.step()
@@ -716,38 +807,25 @@ def eval_tre_new_questions_with_markers(
 
             ans1, ans2 = results[0][1], results[1][1]
 
-            if ans1 == 0 and ans2 == 0:
-                if Label.strip() == 'EQUAL':
-                    right += 1
-                else:
-                    wrong += 1
-                    print(f'wrong in: {Label.strip()}')
-
-            elif ans1 == 1 and ans2 == 1:
-                if Label.strip() == 'VAGUE':
-                    right += 1
-                else:
-                    wrong += 1
-                    print(f'wrong in: {Label.strip()}')
-
-            elif ans1 == 1 and ans2 == 0:
-                if Label.strip() == 'BEFORE':
-                    right += 1
-                else:
-                    wrong += 1
-                    print(f'wrong in: {Label.strip()}')
-
-            elif ans1 == 0 and ans2 == 1:
-                if Label.strip() == 'AFTER':
-                    right += 1
-                else:
-                    wrong += 1
-                    print(f'wrong in: {Label.strip()}')
+            if check_answers(ans1, ans2, Label):
+                right += 1
+                TP += 1
+            else:
+                wrong += 1
+                FN += 1
 
         if instances_counter % print_every == 0:
+
+            # precision and recall:
+            precision = TP / (TP + FP)
+            recall = TP / (TP + FN)
+
+            F1 = 2 * (precision * recall) / (precision + recall)
+            print(f'F1: {F1}')
+
             print(f'right:{right}')
             print(f'wrong:{wrong}')
-            print(f'right / (right + wrong):{right / (right + wrong)}\n')
+            print(f'Accuracy): {right / (right + wrong)}\n')
 "============================================================================="
 
 
