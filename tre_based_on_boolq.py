@@ -7,6 +7,7 @@ from datetime import timedelta
 import datetime as datetime
 import random
 from pathlib import Path
+from sklearn.metrics import f1_score
 "============================================================================="
 # without markers:
 def before_question_from_two_words(first_word, second_word):
@@ -464,8 +465,7 @@ def eval_TRE_with_markers(model, args, test_dataloader, tokenizer):
 # New questions for markers:
 class results_tracker:
 
-    def __init__(
-            self,
+    def __init__(self,
             total_amount_of_before_instances,
             total_amount_of_after_instances,
             total_amount_of_vague_instances,
@@ -506,17 +506,62 @@ class results_tracker:
 
         if label.strip() == 'BEFORE':
 
-            if ans1 == 1 and ans2 == 0:
+            if ans1 == 1 and ans2 == 0: # BEFORE
                 self.TP_BEFORE += 1
 
-            if ans1 == 0 and ans2 == 1:
+            if ans1 == 0 and ans2 == 1: # AFTER
                 self.FP_AFTER += 1
+                self.FN_BEFORE += 1
 
-            if ans1 == 1 and ans2 == 1:
+            if ans1 == 1 and ans2 == 1: # VAGUE
                 self.FP_VAGUE += 1
+                self.FN_BEFORE += 1
 
-            if ans1 == 0 and ans2 == 0:
+            if ans1 == 0 and ans2 == 0: # EQUAL
                 self.FP_EQUAL += 1
+                self.FN_BEFORE += 1
+
+        if label.strip() == 'AFTER':
+
+            if ans1 == 1 and ans2 == 0: # BEFORE
+                self.FP_BEFORE += 1
+                self.FN_AFTER += 1
+
+            if ans1 == 0 and ans2 == 1: # AFTER
+                self.TP_AFTER += 1
+
+            if ans1 == 1 and ans2 == 1: # VAGUE
+                self.FP_VAGUE += 1
+                self.FN_AFTER += 1
+
+            if ans1 == 0 and ans2 == 0: # EQUAL
+                self.FP_EQUAL += 1
+                self.FN_AFTER += 1
+
+    def f1_micro_and_macro(self):
+        """
+        F1-score = 2 × (precision × recall)/(precision + recall)
+        precision = TP/(TP+FP)
+        recall = TP/(TP+FN)
+        :return:
+        :rtype:
+        """
+
+        precision_before = self.TP_BEFORE / (self.TP_BEFORE + self.FP_BEFORE)
+        recall_before = self.TP_BEFORE / (self.TP_BEFORE + self.FN_BEFORE)
+        f1_before = 2 * (precision_before * recall_before) / (precision_before + recall_before)
+        "====================================================================================="
+        precision_after = self.TP_AFTER / (self.TP_AFTER + self.FP_AFTER)
+        recall_after = self.TP_AFTER / (self.TP_AFTER + self.FN_AFTER)
+        f1_after = 2 * (precision_after * recall_after) / (precision_after + recall_after)
+        "====================================================================================="
+        # macro f1, just everage:
+        macro_f1 = (f1_before + f1_after) / 2
+        # micro f1, equal to recall f1, and precission f1
+        micro_f1 = (self.TP_BEFORE + self.TP_AFTER) / \
+                   ((self.TP_BEFORE + self.TP_AFTER) + (self.FP_BEFORE + self.FP_AFTER))
+
+        return (macro_f1, micro_f1)
 def question_1_for_markers(first_word, second_word):
     """
     :param first_word:
