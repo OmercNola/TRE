@@ -157,16 +157,17 @@ def get_label(question_name, label):
 
     return res
 def print_training_progress(
-        t, length_of_data_loader, epoch, batch_counter, total_loss):
+        start_time, length_of_data_loader, epoch, batch_counter, total_loss):
     """
     """
     print(f'Epoch:{epoch}, '
           f' loss:{total_loss:.2f}, '
-          f'Training time:{timedelta(seconds=time.time() - t)}, '
+          f'Training time:{timedelta(seconds=time.time() - start_time)}, '
           f'Epoch percent: {round((batch_counter / length_of_data_loader) * 100, 2)}')
 def save_model_checkpoint(
         args, model, optimizerizer, scheduler,
-        batch_counter, epoch, loss):
+        length_of_data_loader, batch_counter,
+        epoch, loss):
     """
     """
     PATH = Path(f"models/model_epoch_{epoch}_iter_{batch_counter}_.pt")
@@ -176,17 +177,24 @@ def save_model_checkpoint(
         'optimizerizer_state_dict': optimizerizer.state_dict(),
         'scheduler_state_dict': scheduler.state_dict(),
         'loss': loss / args.save_model_every,
+        'epoch percent': round((batch_counter / length_of_data_loader) * 100, 2)
     }, PATH)
+
+    print(f'checkpoint has been saved !')
+    print(f'Epoch percent: {round((batch_counter / length_of_data_loader) * 100, 2)}')
 def load_model_checkpoint(path_, model, optimizer, scheduler):
     """
     """
+    # load the checkpoint:
     checkpoint = torch.load(path_)
+
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
     loss = checkpoint['loss']
+    epoch_percent = checkpoint['epoch percent']
 
-    return model, optimizer, scheduler, loss
+    return model, optimizer, scheduler, loss, epoch_percent
 def train_tre_new_questions_with_markers(
         model, args, train_dataloader,
         tokenizer, num_epochs, checkpoint_path=None):
@@ -224,8 +232,11 @@ def train_tre_new_questions_with_markers(
 
     # if there is a checkpoint, load it:
     if checkpoint_path is not None:
-        (model, optimizer, scheduler, _) = \
-            load_model_checkpoint(checkpoint_path, model, optimizer, scheduler)
+        (model, optimizer, scheduler, _, _) = \
+            load_model_checkpoint(
+                checkpoint_path, model,
+                optimizer, scheduler
+            )
 
     # training mode:
     model.train()
@@ -335,8 +346,9 @@ def train_tre_new_questions_with_markers(
                 if args.save_model_during_training:
                     save_model_checkpoint(
                         args, model, optimizer,
-                        scheduler, batch_counter,
-                        epoch, total_loss_for_save
+                        scheduler, len(train_dataloader),
+                        batch_counter, epoch,
+                        total_loss_for_save
                     )
                     total_loss_for_save = 0
 
@@ -344,8 +356,9 @@ def train_tre_new_questions_with_markers(
         if args.save_model_during_training:
             save_model_checkpoint(
                 args, model, optimizer,
-                scheduler, batch_counter,
-                epoch, total_loss_for_save
+                scheduler, len(train_dataloader),
+                batch_counter, epoch,
+                total_loss_for_save
             )
             total_loss_for_save = 0
 def eval_tre_new_questions_with_markers(

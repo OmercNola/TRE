@@ -31,7 +31,8 @@ parser.add_argument('--device', type=torch.device,
                     default=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
                     help='device type')
 "============================================================================"
-parser.add_argument('--eval', type=bool, default=True,
+"Train settings"
+parser.add_argument('--eval', type=bool, default=False,
                     help='eval mode ? if False then training mode')
 parser.add_argument('--save_model_during_training', type=bool, default=True,
                     help='save model during training ? ')
@@ -41,7 +42,7 @@ parser.add_argument('--batch_size', type=int, default=6,
                     help='batch_size (default: 2)')
 parser.add_argument('--save_model_every', type=int, default=200,
                     help='when to save the model - number of batches')
-parser.add_argument('--print_loss_every', type=int, default=100,
+parser.add_argument('--print_loss_every', type=int, default=50,
                     help='when to print the loss - number of batches')
 "============================================================================"
 parser.add_argument('--lr', type=float, default=0.00001,
@@ -125,7 +126,7 @@ if __name__ == '__main__':
         PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
         model.load_state_dict(torch.load(PATH))
 
-        """if you want to evaluate or proceed training, change this path:"""
+        """if you want to evaluate or proceed training, change this path"""
         # checkpoint_path = Path('models/model_epoch_1_.pt')
         checkpoint_path = None
 
