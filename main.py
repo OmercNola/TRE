@@ -23,19 +23,27 @@ from boolq import train_boolq, eval_boolq
 from data import TRE_training_data_with_markers, TRE_test_data_with_markers
 from data import TRE_validation_data_with_markers
 from tre_based_on_boolq import train_tre_new_questions_with_markers
-from tre_based_on_boolq import eval_tre_new_questions_with_markers
+from tre_based_on_boolq import eval_tre_new_questions_with_markers, results_tracker
 from pathlib import Path
 torch.set_printoptions(profile="full")
 parser = argparse.ArgumentParser(description='TRE')
 parser.add_argument('--device', type=torch.device,
                     default=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
                     help='device type')
-parser.add_argument('--eval', type=bool, default=False,
+"============================================================================"
+parser.add_argument('--eval', type=bool, default=True,
                     help='eval mode ? if False then training mode')
+parser.add_argument('--save_model_during_training', type=bool, default=True,
+                    help='save model during training ? ')
 parser.add_argument('--batch_size', type=int, default=6,
                     help='batch_size (default: 2)')
-parser.add_argument('--epochs', type=int, default=10,
+parser.add_argument('--epochs', type=int, default=1,
                     help='number of epochs')
+parser.add_argument('--save_model_every', type=int, default=1000,
+                    help='when to save the model - number of batches')
+parser.add_argument('--print_loss_every', type=int, default=100,
+                    help='when to print the loss - number of batches')
+"============================================================================"
 parser.add_argument('--lr', type=float, default=0.00001,
                     help='learning rate (default: 0.00001)')
 parser.add_argument('--gamma', type=float, default=0.99,
@@ -62,10 +70,6 @@ if __name__ == '__main__':
 
     with warnings.catch_warnings():
         "================================================================================="
-        warnings.simplefilter("ignore", UserWarning)
-        warnings.simplefilter("ignore", RuntimeWarning)
-        warnings.simplefilter("ignore", RuntimeError)
-        warnings.simplefilter("ignore", EnvironmentError)
         args = parser.parse_known_args()[0]
         "================================================================================="
         "MODEL AND TOKENIZER"
@@ -114,11 +118,15 @@ if __name__ == '__main__':
         # model.to(args.device)
         # eval_boolq(model, args, test_dataloader, tokenizer)
         "================================================================================="
-        "TRE"
-        # change this path for eval:
+        "Temporal Relation Classification"
 
-        PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
-        # PATH = Path('models/model_with_markers_epoch_8_.pt')
+        """this is a trained model on boolq dataset, with acc (0.82)"""
+        # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
+
+        """if you want to evaluate or proceed training, change this path:"""
+        # PATH = Path('models/model_epoch_1_.pt')
+
+        # load the model state_dict
         model.load_state_dict(torch.load(PATH))
         # Dataloaders:
         train_dataloader = DataLoader(
@@ -144,7 +152,8 @@ if __name__ == '__main__':
             )
         # Evaluation:
         if args.eval:
+            tracker = results_tracker()
             eval_tre_new_questions_with_markers(
-                model, args, test_dataloader, tokenizer
+                model, args, test_dataloader, tokenizer, tracker
             )
         "================================================================================="

@@ -148,7 +148,6 @@ def final_data_process_for_markers(folder_path, labeled_data_path):
                 data_.append([passage, instance])
             except:
                 pass
-    print(f'len of data: {len(data_)}')
     return data_
 "================================================================================="
 """TimeBank"""
@@ -169,13 +168,13 @@ Aq_data = final_data_process(Aq_folder, Aq_labeled_data)
 # with markers:
 Aq_data_with_markers = final_data_process_for_markers(Aq_folder, Aq_labeled_data)
 "================================================================================="
-"""Aquaint and Timebank no markers"""
-Aq_and_Timebank = Aq_data + TimeBank_data
-print(f'len of Aq_and_Timebank: {len(Aq_and_Timebank)}')
-TRE_validation_data = random.sample(Aq_and_Timebank, int(len(Aq_and_Timebank) * 0.1))
-print(f'len of validation_data: {len(TRE_validation_data)}')
-TRE_training_data = [i for i in Aq_and_Timebank if i not in TRE_validation_data]
-print(f'len of training data: {len(TRE_training_data)}')
+# """Aquaint and Timebank no markers"""
+# Aq_and_Timebank = Aq_data + TimeBank_data
+# print(f'len of Aq_and_Timebank: {len(Aq_and_Timebank)}')
+# TRE_validation_data = random.sample(Aq_and_Timebank, int(len(Aq_and_Timebank) * 0.1))
+# print(f'len of validation_data: {len(TRE_validation_data)}')
+# TRE_training_data = [i for i in Aq_and_Timebank if i not in TRE_validation_data]
+# print(f'len of training data: {len(TRE_training_data)}')
 "================================================================================="
 """Aquaint and Timebank with markers"""
 Aq_and_Timebank_with_markers = Aq_data_with_markers + TimeBank_data_with_markers
@@ -184,12 +183,12 @@ TRE_validation_data_with_markers = random.sample(
     Aq_and_Timebank_with_markers,
     int(len(Aq_and_Timebank_with_markers) * 0.1)
 )
-print(f'len of validation_data_with_markers: {len(TRE_validation_data_with_markers)}')
+print(f'len of validation data with markers: {len(TRE_validation_data_with_markers)}')
 TRE_training_data_with_markers = [
     i for i in Aq_and_Timebank_with_markers
      if i not in TRE_validation_data_with_markers
 ]
-print(f'len of training data_with_markers: {len(TRE_training_data_with_markers)}')
+print(f'len of train data with markers: {len(TRE_training_data_with_markers)}')
 "================================================================================="
 """Platinum"""
 Platinum_folder = Path('data/TBAQ-cleaned/platinum/')
@@ -200,4 +199,5 @@ TRE_test_data = final_data_process(Platinum_folder, Platinum_labeled_data)
 TRE_test_data_with_markers = final_data_process_for_markers(
     Platinum_folder, Platinum_labeled_data
 )
+print(f'len of test data with markers: {len(TRE_test_data_with_markers)}')
 "================================================================================="
