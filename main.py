@@ -32,7 +32,7 @@ parser.add_argument('--device', type=torch.device,
                     help='device type')
 "============================================================================"
 "Train settings"
-parser.add_argument('--eval', type=bool, default=False,
+parser.add_argument('--eval', type=bool, default=True,
                     help='eval mode ? if False then training mode')
 parser.add_argument('--save_model_during_training', type=bool, default=True,
                     help='save model during training ? ')
@@ -45,6 +45,7 @@ parser.add_argument('--save_model_every', type=int, default=200,
 parser.add_argument('--print_loss_every', type=int, default=50,
                     help='when to print the loss - number of batches')
 "============================================================================"
+"Hyper-parameters"
 parser.add_argument('--lr', type=float, default=0.00001,
                     help='learning rate (default: 0.00001)')
 parser.add_argument('--gamma', type=float, default=0.99,
@@ -53,15 +54,17 @@ parser.add_argument('--max-grad-norm', type=float, default=50,
                     help='value loss coefficient (default: 50)')
 parser.add_argument('--seed', type=int, default=1,
                     help='random seed (default: 1)')
-parser.add_argument('--output_size', type=int, default=2,
-                    help='output_size (default: 2)')
 parser.add_argument('--dropout_p', type=float, default=0.1,
                     help='dropout_p (default: 0.1)')
+"============================================================================"
+"Model settings"
+parser.add_argument('--output_size', type=int, default=2,
+                    help='output_size (default: 2)')
 parser.add_argument('--Max_Len', type=int, default=4096,
                     help='Max_Len (default: 4096)')
 parser.add_argument('--Size_of_longfor', type=str, default='base',
                     help='Size_of_longformer (default: "base")')
-
+"============================================================================"
 
 if __name__ == '__main__':
     __file__ = 'main.py'
@@ -77,7 +80,9 @@ if __name__ == '__main__':
         # load tokenizer, add new tokens, and save tokenizer:
         tokenizer = AutoTokenizer.from_pretrained("allenai/longformer-base-4096")
         print(f'len of tokenizer before adding new tokens: {len(tokenizer)}')
-        special_tokens_dict = {'additional_special_tokens': ['[E1]', '[/E1]', '[E2]', '[/E2]']}
+        special_tokens_dict = {
+            'additional_special_tokens': ['[E1]', '[/E1]', '[E2]', '[/E2]']
+        }
         tokenizer.add_special_tokens(special_tokens_dict)
         print(f'len of tokenizer after adding new tokens: {len(tokenizer)}')
         model_ = AutoModel.from_pretrained("allenai/longformer-base-4096")
@@ -88,7 +93,7 @@ if __name__ == '__main__':
         ).to(args.device)
         model = nn.DataParallel(model)
         "================================================================================="
-        "BOOL-Q"
+        "BOOLQ"
         # Datasets:
         # dataset_boolq = load_dataset("boolq")
         # Dataloaders:
@@ -99,7 +104,7 @@ if __name__ == '__main__':
         # train_boolq(num_epochs=8)
         # eval_boolq()
         "================================================================================="
-        "BOOL-Q WITH MARKERS"
+        "BOOLQ WITH MARKERS"
         # model_.resize_token_embeddings(len(tokenizer))
         # model = Longformer(model_, args.output_size, args.dropout_p, args.Size_of_longfor, args.Max_Len).to(args.device)
         # model = nn.DataParallel(model)
@@ -123,12 +128,12 @@ if __name__ == '__main__':
 
         """this is a trained model on boolq dataset, with acc (0.82)"""
         # boolq is a yes/no QA dataset.
-        PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
-        model.load_state_dict(torch.load(PATH))
+        # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
+        # model.load_state_dict(torch.load(PATH))
 
         """if you want to evaluate or proceed training, change this path"""
-        # checkpoint_path = Path('models/model_epoch_1_.pt')
-        checkpoint_path = None
+        checkpoint_path = Path('models/model_epoch_1_iter_800_.pt')
+        # checkpoint_path = None
 
         # Dataloaders:
         train_dataloader = DataLoader(
@@ -160,6 +165,6 @@ if __name__ == '__main__':
             tracker = results_tracker()
             eval_tre_new_questions_with_markers(
                 model, args, test_dataloader,
-                tokenizer, tracker
+                tokenizer, tracker, checkpoint_path=checkpoint_path
             )
         "================================================================================="
