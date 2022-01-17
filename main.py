@@ -17,7 +17,7 @@ import argparse
 import warnings
 import time
 from datetime import datetime, timedelta
-from longformer import Longformer
+from longformer import create_longformer
 import boolq
 from boolq import train_boolq, eval_boolq
 from data import TRE_training_data_with_markers, TRE_test_data_with_markers
@@ -34,6 +34,8 @@ parser.add_argument('--device', type=torch.device,
 "Train settings"
 parser.add_argument('--eval', type=bool, default=True,
                     help='eval mode ? if False then training mode')
+parser.add_argument('--eval_during_training', type=bool, default=True,
+                    help='eval during training ?')
 parser.add_argument('--save_model_during_training', type=bool, default=True,
                     help='save model during training ? ')
 parser.add_argument('--epochs', type=int, default=1,
@@ -48,13 +50,11 @@ parser.add_argument('--print_loss_every', type=int, default=50,
 "Hyper-parameters"
 parser.add_argument('--lr', type=float, default=0.00001,
                     help='learning rate (default: 0.00001)')
-parser.add_argument('--gamma', type=float, default=0.99,
-                    help='discount factor for rewards (default: 0.99)')
 parser.add_argument('--max-grad-norm', type=float, default=50,
                     help='value loss coefficient (default: 50)')
 parser.add_argument('--seed', type=int, default=1,
                     help='random seed (default: 1)')
-parser.add_argument('--dropout_p', type=float, default=0.1,
+parser.add_argument('--dropout_p', type=float, default=0.0,
                     help='dropout_p (default: 0.1)')
 "============================================================================"
 "Model settings"
@@ -87,10 +87,7 @@ if __name__ == '__main__':
         print(f'len of tokenizer after adding new tokens: {len(tokenizer)}')
         model_ = AutoModel.from_pretrained("allenai/longformer-base-4096")
         model_.resize_token_embeddings(len(tokenizer))
-        model = Longformer(
-            model_, args.output_size, args.dropout_p,
-            args.Size_of_longfor, args.Max_Len
-        ).to(args.device)
+        model = create_longformer(model_, args).to(args.device)
         model = nn.DataParallel(model)
         "================================================================================="
         "BOOLQ"
@@ -128,12 +125,12 @@ if __name__ == '__main__':
 
         """this is a trained model on boolq dataset, with acc (0.82)"""
         # boolq is a yes/no QA dataset.
-        # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
-        # model.load_state_dict(torch.load(PATH))
+        PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
+        model.load_state_dict(torch.load(PATH))
 
         """if you want to evaluate or proceed training, change this path"""
-        checkpoint_path = Path('models/model_epoch_1_iter_800_.pt')
-        # checkpoint_path = None
+        # checkpoint_path = Path('models/model_epoch_1_iter_1000_lr00001_.pt')
+        checkpoint_path = None
 
         # Dataloaders:
         train_dataloader = DataLoader(
@@ -154,8 +151,8 @@ if __name__ == '__main__':
 
         """Training"""
         if not args.eval:
-            train_tre_new_questions_with_markers(
-                model, args, train_dataloader,
+            eval_scores = train_tre_new_questions_with_markers(
+                model, args, train_dataloader, test_dataloader,
                 tokenizer, num_epochs=args.epochs,
                 checkpoint_path=checkpoint_path
             )
@@ -163,7 +160,7 @@ if __name__ == '__main__':
         """Evaluation"""
         if args.eval:
             tracker = results_tracker()
-            eval_tre_new_questions_with_markers(
+            (f1_macro, f1_micro) = eval_tre_new_questions_with_markers(
                 model, args, test_dataloader,
                 tokenizer, tracker, checkpoint_path=checkpoint_path
             )

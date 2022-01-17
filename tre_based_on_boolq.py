@@ -237,7 +237,7 @@ def save_model_checkpoint(
         epoch, loss):
     """
     """
-    PATH = Path(f"models/model_epoch_{epoch}_iter_{batch_counter}_.pt")
+    PATH = Path(f"models/model_epoch_{epoch}_iter_{batch_counter}_lr00001_.pt")
     torch.save({
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
@@ -270,7 +270,7 @@ def load_model_checkpoint(path_, model, optimizer=None, scheduler=None):
 
     return model, optimizer, scheduler, loss, epoch_percent
 def train_tre_new_questions_with_markers(
-        model, args, train_dataloader,
+        model, args, train_dataloader, test_dataloader,
         tokenizer, num_epochs, checkpoint_path=None):
     """
     :param model:
@@ -303,6 +303,9 @@ def train_tre_new_questions_with_markers(
     # loss progress counters
     total_loss_for_print = 0
     total_loss_for_save = 0
+
+    # evaluation scores:
+    eval_scores = []
 
     # if there is a checkpoint, load it:
     if checkpoint_path is not None:
@@ -415,7 +418,7 @@ def train_tre_new_questions_with_markers(
                 )
                 total_loss_for_print = 0
 
-            # save the Model once in a while...
+            # save the model once in a while, and evaluate.
             if (batch_counter) % args.save_model_every == 0:
                 if args.save_model_during_training:
                     save_model_checkpoint(
@@ -426,6 +429,16 @@ def train_tre_new_questions_with_markers(
                     )
                     total_loss_for_save = 0
 
+                # evaluate the model:
+                if args.eval_during_training:
+                    epoch_precent = (batch_counter / len(train_dataloader)) * 100
+                    tracker = results_tracker()
+                    (macro, micro) = eval_tre_new_questions_with_markers(
+                        model, args, test_dataloader,
+                        tokenizer, tracker
+                    )
+                    eval_scores.append([epoch, epoch_precent, macro, micro])
+
         # save in the end of the epoch:
         if args.save_model_during_training:
             save_model_checkpoint(
@@ -435,8 +448,11 @@ def train_tre_new_questions_with_markers(
                 total_loss_for_save
             )
             total_loss_for_save = 0
+
+    return eval_scores
 def eval_tre_new_questions_with_markers(
-        model, args, test_dataloader, tokenizer, tracker, checkpoint_path):
+        model, args, test_dataloader,
+        tokenizer, tracker, checkpoint_path=None):
     """
     :param model:
     :type model:
@@ -450,9 +466,10 @@ def eval_tre_new_questions_with_markers(
     :rtype:
     """
 
-    # load checkpoint:
-    (model, _, _, _, _) = \
-        load_model_checkpoint(checkpoint_path, model)
+    # if there is a checkpoint_path, then load it:
+    if checkpoint_path is not None:
+        (model, _, _, _, _) = \
+            load_model_checkpoint(checkpoint_path, model)
 
     model.eval()
 
@@ -515,5 +532,11 @@ def eval_tre_new_questions_with_markers(
 
         if batch_counter % print_every == 0:
             macro, micro = tracker.f1_macro_and_micro()
-            print(f'f1 macro: {macro}, f1 micro: {micro}')
+            eval_precent = (batch_counter / len(test_dataloader)) * 100
+            print(f'f1 macro: {macro}, f1 micro: {micro}, '
+                  f'evaluation percent: {eval_precent:.3f}')
+
+    macro, micro = tracker.f1_macro_and_micro()
+
+    return (macro, micro)
 "============================================================================="

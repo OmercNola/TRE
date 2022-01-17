@@ -96,3 +96,19 @@ class Longformer(nn.Module):
         output = self.out(last_hidden_state.view(-1, self.max_len * self.hidden_size))
 
         return output
+def create_longformer(model, args):
+    """
+    :param model:
+    :type model:
+    :param args:
+    :type args:
+    :return:
+    :rtype:
+    """
+
+    model_ = Longformer(
+        model, args.output_size, args.dropout_p,
+        args.Size_of_longfor, args.Max_Len
+    )
+
+    return model_
