@@ -189,7 +189,7 @@ def load_model_checkpoint(path_, model, optimizer, scheduler):
     return model, optimizer, scheduler, loss
 def train_tre_new_questions_with_markers(
         model, args, train_dataloader,
-        tokenizer, num_epochs, path_of_checkpoint=None):
+        tokenizer, num_epochs, checkpoint_path=None):
     """
     :param model:
     :type model:
@@ -201,8 +201,8 @@ def train_tre_new_questions_with_markers(
     :type tokenizer:
     :param num_epochs:
     :type num_epochs:
-    :param path_of_checkpoint:
-    :type path_of_checkpoint:
+    :param checkpoint_path:
+    :type checkpoint_path:
     :return:
     :rtype:
     """
@@ -223,11 +223,9 @@ def train_tre_new_questions_with_markers(
     total_loss_for_save = 0
 
     # if there is a checkpoint, load it:
-    if path_of_checkpoint is not None:
-        (model, optimizer, scheduler, loss) = \
-            load_model_checkpoint(path_of_checkpoint, model, optimizer, scheduler)
-        total_loss_for_print = loss
-        total_loss_for_save = loss
+    if checkpoint_path is not None:
+        (model, optimizer, scheduler, _) = \
+            load_model_checkpoint(checkpoint_path, model, optimizer, scheduler)
 
     # training mode:
     model.train()

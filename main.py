@@ -35,11 +35,11 @@ parser.add_argument('--eval', type=bool, default=True,
                     help='eval mode ? if False then training mode')
 parser.add_argument('--save_model_during_training', type=bool, default=True,
                     help='save model during training ? ')
-parser.add_argument('--batch_size', type=int, default=6,
-                    help='batch_size (default: 2)')
 parser.add_argument('--epochs', type=int, default=1,
                     help='number of epochs')
-parser.add_argument('--save_model_every', type=int, default=1000,
+parser.add_argument('--batch_size', type=int, default=6,
+                    help='batch_size (default: 2)')
+parser.add_argument('--save_model_every', type=int, default=200,
                     help='when to save the model - number of batches')
 parser.add_argument('--print_loss_every', type=int, default=100,
                     help='when to print the loss - number of batches')
@@ -121,13 +121,14 @@ if __name__ == '__main__':
         "Temporal Relation Classification"
 
         """this is a trained model on boolq dataset, with acc (0.82)"""
-        # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
+        # boolq is a yes/no QA dataset.
+        PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
+        model.load_state_dict(torch.load(PATH))
 
         """if you want to evaluate or proceed training, change this path:"""
-        # PATH = Path('models/model_epoch_1_.pt')
+        # checkpoint_path = Path('models/model_epoch_1_.pt')
+        checkpoint_path = None
 
-        # load the model state_dict
-        model.load_state_dict(torch.load(PATH))
         # Dataloaders:
         train_dataloader = DataLoader(
             TRE_training_data_with_markers,
@@ -144,16 +145,20 @@ if __name__ == '__main__':
             batch_size=args.batch_size,
             shuffle=False
         )
-        # Training:
+
+        """Training"""
         if not args.eval:
             train_tre_new_questions_with_markers(
                 model, args, train_dataloader,
-                tokenizer, num_epochs=args.epochs
+                tokenizer, num_epochs=args.epochs,
+                checkpoint_path=checkpoint_path
             )
-        # Evaluation:
+
+        """Evaluation"""
         if args.eval:
             tracker = results_tracker()
             eval_tre_new_questions_with_markers(
-                model, args, test_dataloader, tokenizer, tracker
+                model, args, test_dataloader,
+                tokenizer, tracker
             )
         "================================================================================="
