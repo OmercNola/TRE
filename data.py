@@ -101,7 +101,6 @@ def final_data_process(folder_path, labeled_data_path):
                 data_.append([passage, instance])
             except:
                 pass
-    print(f'len of data: {len(data_)}')
     return data_
 # prepare the data with markers:
 def new_context_with_markers_from_tokens_and_two_eids(elements_, eid1_, eid2_):

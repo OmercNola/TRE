@@ -5,7 +5,7 @@ class Longformer(nn.Module):
         super().__init__()
 
         # parameters:
-        print("creating the longformer module...")
+        print("creating the longformer model...")
 
         # define the linear layer:
         self.output_size = Output_size

@@ -32,9 +32,9 @@ parser.add_argument('--device', type=torch.device,
                     help='device type')
 "============================================================================"
 "Train settings"
-parser.add_argument('--eval', type=bool, default=True,
+parser.add_argument('--eval', type=bool, default=False,
                     help='eval mode ? if False then training mode')
-parser.add_argument('--eval_during_training', type=bool, default=True,
+parser.add_argument('--eval_during_training', type=bool, default=False,
                     help='eval during training ?')
 parser.add_argument('--save_model_during_training', type=bool, default=True,
                     help='save model during training ? ')
@@ -124,13 +124,13 @@ if __name__ == '__main__':
 
     """this is a trained model on boolq dataset, with acc (0.82)"""
     # boolq is a yes/no QA dataset.
-    # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
-    # model.load_state_dict(torch.load(PATH))
+    PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
+    model.load_state_dict(torch.load(PATH))
 
     """if you want to evaluate or proceed training,
        change this path, if set to None it will ignor checkpoint"""
-    checkpoint_path = Path('models/model_epoch_9_.pt')
-    # checkpoint_path = None
+    # checkpoint_path = Path('models/model_epoch_9_.pt')
+    checkpoint_path = None
 
     # Dataloaders:
     train_dataloader = DataLoader(
