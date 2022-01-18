@@ -86,6 +86,8 @@ class Longformer(nn.Module):
 
     def forward(self, input_ids, attention_mask):
         Output = self.model(input_ids=input_ids, attention_mask=attention_mask)
+
+        # all the hidden states from the last layer:
         last_hidden_state = Output.last_hidden_state
 
         # last_hidden_state = self.Dropout(last_hidden_state)

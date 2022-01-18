@@ -228,7 +228,7 @@ def print_training_progress(
     """
     """
     print(f'Epoch:{epoch}, '
-          f' loss:{total_loss:.2f}, '
+          f'loss:{total_loss:.2f}, '
           f'Training time:{timedelta(seconds=time.time() - start_time)}, '
           f'Epoch percent: {round((batch_counter / length_of_data_loader) * 100, 2)}')
 def save_model_checkpoint(
@@ -237,7 +237,7 @@ def save_model_checkpoint(
         epoch, loss):
     """
     """
-    PATH = Path(f"models/model_epoch_{epoch}_iter_{batch_counter}_lr00001_.pt")
+    PATH = Path(f"models/model_epoch_{epoch}_iter_{batch_counter}_.pt")
     torch.save({
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
@@ -255,18 +255,31 @@ def load_model_checkpoint(path_, model, optimizer=None, scheduler=None):
     # load the checkpoint:
     checkpoint = torch.load(path_)
 
-    model.load_state_dict(checkpoint['model_state_dict'])
+    try:
+        model.load_state_dict(checkpoint['model_state_dict'])
+    except KeyError:
+        model.load_state_dict(checkpoint)
 
     if optimizer is not None:
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        try:
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        except:
+            optimizer = None
 
     if scheduler is not None:
-        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        try:
+            scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        except:
+            optimizer = None
+    try:
+        loss = checkpoint['loss']
+    except:
+        loss = None
 
-    loss = checkpoint['loss']
-
-    # epoch_percent = checkpoint['epoch percent']
-    epoch_percent = None
+    try:
+        epoch_percent = checkpoint['epoch percent']
+    except:
+        epoch_percent = None
 
     return model, optimizer, scheduler, loss, epoch_percent
 def train_tre_new_questions_with_markers(
@@ -478,13 +491,14 @@ def eval_tre_new_questions_with_markers(
     for batch_counter, instances in enumerate(test_dataloader, start=1):
 
         passages = instances[0]
-        first_words, second_words, word_labels = instances[1][0], instances[1][1], instances[1][4]
+        first_words, second_words = instances[1][0], instances[1][1]
+        word_labels = instances[1][4]
 
         zip_object = zip(passages, first_words, second_words, word_labels)
         for passage, first_word, second_word, Label in zip_object:
 
             # ignor vague and equal
-            if Label.strip() == 'VAGUE':
+            if Label.strip() == 'VAGUE' or Label.strip() == 'EQUAL':
                 continue
 
             question_1 = question_1_for_markers(
@@ -536,7 +550,8 @@ def eval_tre_new_questions_with_markers(
             print(f'f1 macro: {macro}, f1 micro: {micro}, '
                   f'evaluation percent: {eval_precent:.3f}')
 
-    macro, micro = tracker.f1_macro_and_micro()
+    # return the last f1_macro and f1_micro
+    f1_macro, f1_micro = tracker.f1_macro_and_micro()
 
-    return (macro, micro)
+    return (f1_macro, f1_micro)
 "============================================================================="

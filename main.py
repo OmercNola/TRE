@@ -38,7 +38,7 @@ parser.add_argument('--eval_during_training', type=bool, default=True,
                     help='eval during training ?')
 parser.add_argument('--save_model_during_training', type=bool, default=True,
                     help='save model during training ? ')
-parser.add_argument('--epochs', type=int, default=1,
+parser.add_argument('--epochs', type=int, default=10,
                     help='number of epochs')
 parser.add_argument('--batch_size', type=int, default=6,
                     help='batch_size (default: 2)')
@@ -125,12 +125,12 @@ if __name__ == '__main__':
 
         """this is a trained model on boolq dataset, with acc (0.82)"""
         # boolq is a yes/no QA dataset.
-        PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
-        model.load_state_dict(torch.load(PATH))
+        # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
+        # model.load_state_dict(torch.load(PATH))
 
         """if you want to evaluate or proceed training, change this path"""
-        # checkpoint_path = Path('models/model_epoch_1_iter_1000_lr00001_.pt')
-        checkpoint_path = None
+        checkpoint_path = Path('models/model_epoch_9_.pt')
+        # checkpoint_path = None
 
         # Dataloaders:
         train_dataloader = DataLoader(
@@ -146,7 +146,7 @@ if __name__ == '__main__':
         test_dataloader = DataLoader(
             TRE_test_data_with_markers,
             batch_size=args.batch_size,
-            shuffle=False
+            shuffle=True
         )
 
         """Training"""
@@ -156,6 +156,9 @@ if __name__ == '__main__':
                 tokenizer, num_epochs=args.epochs,
                 checkpoint_path=checkpoint_path
             )
+
+            df = pd.DataFrame(eval_scores)
+            df.to_csv(Path('models/results.csv'))
 
         """Evaluation"""
         if args.eval:
