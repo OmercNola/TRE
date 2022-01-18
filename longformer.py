@@ -26,6 +26,15 @@ class Longformer(nn.Module):
 
 
     def forward(self, input_ids, attention_mask):
+        """
+        :param input_ids:
+        :type input_ids:
+        :param attention_mask:
+        :type attention_mask:
+        :return:
+        :rtype:
+        """
+
         Output = self.model(input_ids=input_ids, attention_mask=attention_mask)
 
         # all the hidden states from the last layer:
