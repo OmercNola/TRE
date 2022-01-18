@@ -252,34 +252,21 @@ def save_model_checkpoint(
 def load_model_checkpoint(path_, model, optimizer=None, scheduler=None):
     """
     """
+
     # load the checkpoint:
     checkpoint = torch.load(path_)
 
-    try:
-        model.load_state_dict(checkpoint['model_state_dict'])
-    except KeyError:
-        model.load_state_dict(checkpoint)
+    model.load_state_dict(checkpoint['model_state_dict'])
 
     if optimizer is not None:
-        try:
-            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        except:
-            optimizer = None
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
     if scheduler is not None:
-        try:
-            scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
-        except:
-            optimizer = None
-    try:
-        loss = checkpoint['loss']
-    except:
-        loss = None
+        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
 
-    try:
-        epoch_percent = checkpoint['epoch percent']
-    except:
-        epoch_percent = None
+    loss = checkpoint['loss']
+
+    epoch_percent = checkpoint['epoch percent']
 
     return model, optimizer, scheduler, loss, epoch_percent
 def train_tre_new_questions_with_markers(
@@ -350,7 +337,7 @@ def train_tre_new_questions_with_markers(
             zip_object = zip(passages, first_words, second_words, word_labels)
             for passage, first_word, second_word, Label in zip_object:
 
-                # ignor vague and equal
+                # ignor vague, like other papers do
                 if Label.strip() == 'VAGUE':
                     continue
 
@@ -497,8 +484,8 @@ def eval_tre_new_questions_with_markers(
         zip_object = zip(passages, first_words, second_words, word_labels)
         for passage, first_word, second_word, Label in zip_object:
 
-            # ignor vague and equal
-            if Label.strip() == 'VAGUE' or Label.strip() == 'EQUAL':
+            # ignor vague:
+            if Label.strip() == 'VAGUE':
                 continue
 
             question_1 = question_1_for_markers(
