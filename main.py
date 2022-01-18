@@ -42,7 +42,7 @@ parser.add_argument('--save_model_every', type=int, default=500,
                     help='when to save the model - number of batches')
 parser.add_argument('--epochs', type=int, default=10,
                     help='number of epochs')
-parser.add_argument('--batch_size', type=int, default=6,
+parser.add_argument('--batch_size', type=int, default=8,
                     help='batch_size (default: 2)')
 parser.add_argument('--print_loss_every', type=int, default=50,
                     help='when to print the loss - number of batches')
