@@ -10,7 +10,7 @@ import random
 from pathlib import Path
 from sklearn.metrics import f1_score
 "============================================================================="
-# New questions for markers:
+# class that computes l1 scores (macro and micro):
 class results_tracker:
 
     def __init__(self):
@@ -170,6 +170,7 @@ class results_tracker:
             micro_f1 = 0
 
         return (float(f'{macro_f1:.4f}'), float(f'{micro_f1:.4f}'))
+# questions for markers:
 def question_1_for_markers(first_word, second_word):
     """
     :param first_word:
@@ -192,6 +193,7 @@ def question_2_for_markers(first_word, second_word):
     """
     res = f'Is it possible that [E2] {second_word} [/E2] started before [E1] {first_word} [/E1]?'
     return res
+# get the label (number) from label string:
 def get_label(question_name, label):
     """
     :param question_name:
@@ -222,6 +224,7 @@ def get_label(question_name, label):
             res = 0
 
     return res
+# print the training:
 def print_training_progress(
         start_time, length_of_data_loader, epoch, batch_counter, total_loss):
     """
@@ -230,6 +233,7 @@ def print_training_progress(
           f'loss:{total_loss:.2f}, '
           f'Training time:{timedelta(seconds=time.time() - start_time)}, '
           f'Epoch percent: {round((batch_counter / length_of_data_loader) * 100, 2)}')
+# save checkpoit:
 def save_model_checkpoint(
         args, model, optimizerizer, scheduler,
         length_of_data_loader, batch_counter,
@@ -248,6 +252,7 @@ def save_model_checkpoint(
 
     print(f'checkpoint has been saved !')
     print(f'Epoch percent: {round((batch_counter / length_of_data_loader) * 100, 2)}')
+# load checkpoint:
 def load_model_checkpoint(path_, model, optimizer=None, scheduler=None):
     """
     """
@@ -268,6 +273,8 @@ def load_model_checkpoint(path_, model, optimizer=None, scheduler=None):
     epoch_percent = checkpoint['epoch percent']
 
     return model, optimizer, scheduler, loss, epoch_percent
+"============================================================================="
+# train:
 def train_tre_new_questions_with_markers(
         model, args, train_dataloader, test_dataloader,
         tokenizer, num_epochs, checkpoint_path=None):
@@ -451,6 +458,8 @@ def train_tre_new_questions_with_markers(
             total_loss_for_save = 0
 
     return eval_scores
+"============================================================================="
+# evaluation:
 def eval_tre_new_questions_with_markers(
         model, args, test_dataloader,
         tokenizer, tracker, checkpoint_path=None):
