@@ -6,7 +6,7 @@ import numpy as np
 from collections import defaultdict, OrderedDict
 from xml.dom import minidom
 from transformers import AutoTokenizer, AutoModel, AutoModelForQuestionAnswering, BertTokenizer
-from transformers import get_linear_schedule_with_warmup, RobertaTokenizer, AdamW
+from transformers import get_linear_schedule_with_warmup, RobertaTokenizer, AdamW, AutoConfig
 from datasets import load_dataset
 import json
 import torch
@@ -25,6 +25,7 @@ from data import TRE_validation_data_with_markers
 from train_and_eval import train_tre_new_questions_with_markers
 from train_and_eval import eval_tre_new_questions_with_markers, results_tracker
 from pathlib import Path
+from pprint import pprint
 torch.set_printoptions(profile="full")
 parser = argparse.ArgumentParser(description='TRE')
 parser.add_argument('--device', type=torch.device,
@@ -77,17 +78,33 @@ if __name__ == '__main__':
     torch.manual_seed(args.seed)
     "================================================================================="
     "MODEL AND TOKENIZER"
-    # load tokenizer, add new tokens, and save tokenizer:
+
+    # get the config:
+    config = AutoConfig.from_pretrained(
+        "allenai/longformer-base-4096"
+    )
+
+    # change longformer dropout prob, default to 0.1:
+    config.attention_probs_dropout_prob = args.dropout_p
+    config.hidden_dropout_prob = args.dropout_p
+
+    # load tokenizer, add new tokens:
     tokenizer = AutoTokenizer.from_pretrained("allenai/longformer-base-4096")
-    print(f'len of tokenizer before adding new tokens: {len(tokenizer)}')
     special_tokens_dict = {
         'additional_special_tokens': ['[E1]', '[/E1]', '[E2]', '[/E2]']
     }
     tokenizer.add_special_tokens(special_tokens_dict)
-    print(f'len of tokenizer after adding new tokens: {len(tokenizer)}')
-    model_ = AutoModel.from_pretrained("allenai/longformer-base-4096")
+
+    # load the pretrained longformer model:
+    model_ = AutoModel.from_pretrained("allenai/longformer-base-4096", config=config)
+
+    # change embeddings size after adding new tokens:
     model_.resize_token_embeddings(len(tokenizer))
+
+    # create our model, with classification head (FC linear layer):
     model = create_longformer(model_, args).to(args.device)
+
+    # parallel:
     model = nn.DataParallel(model)
     "================================================================================="
     "BOOLQ"
