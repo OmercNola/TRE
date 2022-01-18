@@ -1,4 +1,5 @@
-from transformers import AutoTokenizer, AutoModel, AutoModelForQuestionAnswering, BertTokenizer, RobertaTokenizer, AdamW
+from transformers import (AutoTokenizer, AutoModel, AutoModelForQuestionAnswering,
+                          BertTokenizer, RobertaTokenizer, AdamW)
 from torch import nn
 import torch
 from transformers import get_linear_schedule_with_warmup

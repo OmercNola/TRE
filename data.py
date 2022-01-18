@@ -166,14 +166,6 @@ Aq_data = final_data_process(Aq_folder, Aq_labeled_data)
 # with markers:
 Aq_data_with_markers = final_data_process_for_markers(Aq_folder, Aq_labeled_data)
 "================================================================================="
-# """Aquaint and Timebank no markers"""
-# Aq_and_Timebank = Aq_data + TimeBank_data
-# print(f'len of Aq_and_Timebank: {len(Aq_and_Timebank)}')
-# TRE_validation_data = random.sample(Aq_and_Timebank, int(len(Aq_and_Timebank) * 0.1))
-# print(f'len of validation_data: {len(TRE_validation_data)}')
-# TRE_training_data = [i for i in Aq_and_Timebank if i not in TRE_validation_data]
-# print(f'len of training data: {len(TRE_training_data)}')
-"================================================================================="
 """Aquaint and Timebank with markers (val and train data)"""
 Aq_and_Timebank_with_markers = Aq_data_with_markers + TimeBank_data_with_markers
 print(f'len of Aq_and_Timebank_with_markers: {len(Aq_and_Timebank_with_markers)}')

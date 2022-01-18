@@ -72,100 +72,99 @@ if __name__ == '__main__':
     os.environ['OMP_NUM_THREADS'] = '1'
     print('Available devices ', torch.cuda.device_count())
 
-    with warnings.catch_warnings():
-        "================================================================================="
-        args = parser.parse_known_args()[0]
-        "================================================================================="
-        "MODEL AND TOKENIZER"
-        # load tokenizer, add new tokens, and save tokenizer:
-        tokenizer = AutoTokenizer.from_pretrained("allenai/longformer-base-4096")
-        print(f'len of tokenizer before adding new tokens: {len(tokenizer)}')
-        special_tokens_dict = {
-            'additional_special_tokens': ['[E1]', '[/E1]', '[E2]', '[/E2]']
-        }
-        tokenizer.add_special_tokens(special_tokens_dict)
-        print(f'len of tokenizer after adding new tokens: {len(tokenizer)}')
-        model_ = AutoModel.from_pretrained("allenai/longformer-base-4096")
-        model_.resize_token_embeddings(len(tokenizer))
-        model = create_longformer(model_, args).to(args.device)
-        model = nn.DataParallel(model)
-        "================================================================================="
-        "BOOLQ"
-        # Datasets:
-        # dataset_boolq = load_dataset("boolq")
-        # Dataloaders:
-        # train_dataloader = DataLoader(dataset_boolq['train'], batch_size=1, shuffle=True)
-        # test_dataloader = DataLoader(dataset_boolq['validation'], batch_size=4, shuffle=False)
+    "================================================================================="
+    args = parser.parse_known_args()[0]
+    "================================================================================="
+    "MODEL AND TOKENIZER"
+    # load tokenizer, add new tokens, and save tokenizer:
+    tokenizer = AutoTokenizer.from_pretrained("allenai/longformer-base-4096")
+    print(f'len of tokenizer before adding new tokens: {len(tokenizer)}')
+    special_tokens_dict = {
+        'additional_special_tokens': ['[E1]', '[/E1]', '[E2]', '[/E2]']
+    }
+    tokenizer.add_special_tokens(special_tokens_dict)
+    print(f'len of tokenizer after adding new tokens: {len(tokenizer)}')
+    model_ = AutoModel.from_pretrained("allenai/longformer-base-4096")
+    model_.resize_token_embeddings(len(tokenizer))
+    model = create_longformer(model_, args).to(args.device)
+    model = nn.DataParallel(model)
+    "================================================================================="
+    "BOOLQ"
+    # Datasets:
+    # dataset_boolq = load_dataset("boolq")
+    # Dataloaders:
+    # train_dataloader = DataLoader(dataset_boolq['train'], batch_size=1, shuffle=True)
+    # test_dataloader = DataLoader(dataset_boolq['validation'], batch_size=4, shuffle=False)
 
-        # Training / evaluation:
-        # train_boolq(num_epochs=8)
-        # eval_boolq()
-        "================================================================================="
-        "BOOLQ WITH MARKERS"
-        # model_.resize_token_embeddings(len(tokenizer))
-        # model = Longformer(model_, args.output_size, args.dropout_p, args.Size_of_longfor, args.Max_Len).to(args.device)
-        # model = nn.DataParallel(model)
-        #
-        # # # Datasets:
-        # dataset_boolq = load_dataset("boolq")
-        # # Dataloaders:
-        # train_dataloader = DataLoader(dataset_boolq['train'], batch_size=args.batch_size, shuffle=True)
-        #
-        # # # Training
-        # #train_boolq(model, args, train_dataloader, tokenizer, num_epochs=10)
-        #
-        # # Evaluation
-        # test_dataloader = DataLoader(dataset_boolq['validation'], batch_size=4, shuffle=False)
-        # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
-        # model.load_state_dict(torch.load(PATH))
-        # model.to(args.device)
-        # eval_boolq(model, args, test_dataloader, tokenizer)
-        "================================================================================="
-        "Temporal Relation Classification"
+    # Training / evaluation:
+    # train_boolq(num_epochs=8)
+    # eval_boolq()
+    "================================================================================="
+    "BOOLQ WITH MARKERS"
+    # model_.resize_token_embeddings(len(tokenizer))
+    # model = Longformer(model_, args.output_size, args.dropout_p, args.Size_of_longfor, args.Max_Len).to(args.device)
+    # model = nn.DataParallel(model)
+    #
+    # # # Datasets:
+    # dataset_boolq = load_dataset("boolq")
+    # # Dataloaders:
+    # train_dataloader = DataLoader(dataset_boolq['train'], batch_size=args.batch_size, shuffle=True)
+    #
+    # # # Training
+    # #train_boolq(model, args, train_dataloader, tokenizer, num_epochs=10)
+    #
+    # # Evaluation
+    # test_dataloader = DataLoader(dataset_boolq['validation'], batch_size=4, shuffle=False)
+    # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
+    # model.load_state_dict(torch.load(PATH))
+    # model.to(args.device)
+    # eval_boolq(model, args, test_dataloader, tokenizer)
+    "================================================================================="
+    "Temporal Relation Classification"
 
-        """this is a trained model on boolq dataset, with acc (0.82)"""
-        # boolq is a yes/no QA dataset.
-        # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
-        # model.load_state_dict(torch.load(PATH))
+    """this is a trained model on boolq dataset, with acc (0.82)"""
+    # boolq is a yes/no QA dataset.
+    # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
+    # model.load_state_dict(torch.load(PATH))
 
-        """if you want to evaluate or proceed training,
-           change this path, if set to None it will ignor checkpoint"""
-        checkpoint_path = Path('models/model_epoch_9_.pt')
-        # checkpoint_path = None
+    """if you want to evaluate or proceed training,
+       change this path, if set to None it will ignor checkpoint"""
+    checkpoint_path = Path('models/model_epoch_9_.pt')
+    # checkpoint_path = None
 
-        # Dataloaders:
-        train_dataloader = DataLoader(
-            TRE_training_data_with_markers,
-            batch_size=args.batch_size,
-            shuffle=True
+    # Dataloaders:
+    train_dataloader = DataLoader(
+        TRE_training_data_with_markers,
+        batch_size=args.batch_size,
+        shuffle=True
+    )
+    val_dataloader = DataLoader(
+        TRE_validation_data_with_markers,
+        batch_size=args.batch_size,
+        shuffle=True
+    )
+    test_dataloader = DataLoader(
+        TRE_test_data_with_markers,
+        batch_size=args.batch_size,
+        shuffle=True
+    )
+
+    """Training"""
+    if not args.eval:
+        eval_scores = train_tre_new_questions_with_markers(
+            model, args, train_dataloader, test_dataloader,
+            tokenizer, num_epochs=args.epochs,
+            checkpoint_path=checkpoint_path
         )
-        val_dataloader = DataLoader(
-            TRE_validation_data_with_markers,
-            batch_size=args.batch_size,
-            shuffle=True
+
+        # df = pd.DataFrame(eval_scores)
+        # df.to_csv(Path('models/results.csv'))
+
+    """Evaluation"""
+    if args.eval:
+        tracker = results_tracker()
+        (f1_macro, f1_micro) = eval_tre_new_questions_with_markers(
+            model, args, test_dataloader,
+            tokenizer, tracker, checkpoint_path=checkpoint_path
         )
-        test_dataloader = DataLoader(
-            TRE_test_data_with_markers,
-            batch_size=args.batch_size,
-            shuffle=True
-        )
-
-        """Training"""
-        if not args.eval:
-            eval_scores = train_tre_new_questions_with_markers(
-                model, args, train_dataloader, test_dataloader,
-                tokenizer, num_epochs=args.epochs,
-                checkpoint_path=checkpoint_path
-            )
-
-            # df = pd.DataFrame(eval_scores)
-            # df.to_csv(Path('models/results.csv'))
-
-        """Evaluation"""
-        if args.eval:
-            tracker = results_tracker()
-            (f1_macro, f1_micro) = eval_tre_new_questions_with_markers(
-                model, args, test_dataloader,
-                tokenizer, tracker, checkpoint_path=checkpoint_path
-            )
-        "================================================================================="
+    "================================================================================="
