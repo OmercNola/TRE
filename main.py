@@ -34,16 +34,16 @@ parser.add_argument('--device', type=torch.device,
 "Train settings"
 parser.add_argument('--eval', type=bool, default=False,
                     help='eval mode ? if False then training mode')
-parser.add_argument('--eval_during_training', type=bool, default=False,
+parser.add_argument('--eval_during_training', type=bool, default=True,
                     help='eval during training ?')
 parser.add_argument('--save_model_during_training', type=bool, default=True,
                     help='save model during training ? ')
+parser.add_argument('--save_model_every', type=int, default=500,
+                    help='when to save the model - number of batches')
 parser.add_argument('--epochs', type=int, default=10,
                     help='number of epochs')
 parser.add_argument('--batch_size', type=int, default=6,
                     help='batch_size (default: 2)')
-parser.add_argument('--save_model_every', type=int, default=200,
-                    help='when to save the model - number of batches')
 parser.add_argument('--print_loss_every', type=int, default=50,
                     help='when to print the loss - number of batches')
 parser.add_argument('--seed', type=int, default=1,
@@ -54,7 +54,7 @@ parser.add_argument('--lr', type=float, default=0.00001,
                     help='learning rate (default: 0.00001)')
 parser.add_argument('--max-grad-norm', type=float, default=50,
                     help='value loss coefficient (default: 50)')
-parser.add_argument('--dropout_p', type=float, default=0.0,
+parser.add_argument('--dropout_p', type=float, default=0.2,
                     help='dropout_p (default: 0.1)')
 "============================================================================"
 "Model settings"
@@ -74,6 +74,7 @@ if __name__ == '__main__':
 
     "================================================================================="
     args = parser.parse_known_args()[0]
+    torch.manual_seed(args.seed)
     "================================================================================="
     "MODEL AND TOKENIZER"
     # load tokenizer, add new tokens, and save tokenizer:
