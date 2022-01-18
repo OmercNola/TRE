@@ -123,7 +123,7 @@ if __name__ == '__main__':
     "Temporal Relation Classification"
 
     """this is a trained model on boolq dataset, with acc (0.82)"""
-    # boolq is a yes/no QA dataset.
+    # boolq is a yes/no QA dataset, load the pretrained model:
     PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
     model.load_state_dict(torch.load(PATH))
 
