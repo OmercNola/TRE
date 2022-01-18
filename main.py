@@ -46,14 +46,14 @@ parser.add_argument('--save_model_every', type=int, default=200,
                     help='when to save the model - number of batches')
 parser.add_argument('--print_loss_every', type=int, default=50,
                     help='when to print the loss - number of batches')
+parser.add_argument('--seed', type=int, default=1,
+                    help='random seed (default: 1)')
 "============================================================================"
 "Hyper-parameters"
 parser.add_argument('--lr', type=float, default=0.00001,
                     help='learning rate (default: 0.00001)')
 parser.add_argument('--max-grad-norm', type=float, default=50,
                     help='value loss coefficient (default: 50)')
-parser.add_argument('--seed', type=int, default=1,
-                    help='random seed (default: 1)')
 parser.add_argument('--dropout_p', type=float, default=0.0,
                     help='dropout_p (default: 0.1)')
 "============================================================================"
