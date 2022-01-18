@@ -93,11 +93,9 @@ class results_tracker:
         precision = TP/(TP+FP)
         recall = TP/(TP+FN)
 
-        F1-micro = 2 × (micro_precision × micro_recall)/(micro_precision + micro_recall)
+        F1_micro = 2 × (micro_precision × micro_recall)/(micro_precision + micro_recall)
         micro_precision = TP_sum_all_classes/(TP_sum_all_classes + FP_sum_all_classes)
         micro_recall = TP_sum_all_classes/(TP_sum_all_classes + FN_sum_all_classes)
-        :return:
-        :rtype:
         """
 
         "====================================================================================="
@@ -148,7 +146,8 @@ class results_tracker:
             f1_equal= 0
         "====================================================================================="
         "F1, MACRO, MICRO"
-        # macro f1, just everage:
+
+        # macro f1, just the everage:
         macro_f1 = (f1_before + f1_after + f1_equal) / 3
 
         # micro f1
@@ -173,24 +172,23 @@ class results_tracker:
 def question_1_for_markers(first_word, second_word):
     """
     :param first_word:
+    :type first_word:
     :param second_word:
+    :type second_word:
     :return:
+    :rtype:
     """
-    f'Is it possible that the start time of entity [E1] {first_word} [/E1]' \
-    f' is before the start time of entity [E2] {second_word} [/E2]' \
-    f' in the timeline of the text?'
     res = f'Is it possible that [E1] {first_word} [/E1] started before [E2] {second_word} [/E2]?'
     return res
 def question_2_for_markers(first_word, second_word):
     """
     :param first_word:
+    :type first_word:
     :param second_word:
+    :type second_word:
     :return:
+    :rtype:
     """
-    f'Is it possible that the start time of entity [E2] {second_word} [/E2]' \
-    f' is before the start time of entity [E1] {first_word} [/E1]' \
-    f' in the timeline of the text?'
-
     res = f'Is it possible that [E2] {second_word} [/E2] started before [E1] {first_word} [/E1]?'
     return res
 def get_label(question_name, label):
@@ -420,6 +418,8 @@ def train_tre_new_questions_with_markers(
 
             # save the model once in a while, and evaluate.
             if (batch_counter) % args.save_model_every == 0:
+
+                # save:
                 if args.save_model_during_training:
                     save_model_checkpoint(
                         args, model, optimizer,
@@ -429,7 +429,7 @@ def train_tre_new_questions_with_markers(
                     )
                     total_loss_for_save = 0
 
-                # evaluate the model:
+                # evaluate:
                 if args.eval_during_training:
                     epoch_precent = (batch_counter / len(train_dataloader)) * 100
                     tracker = results_tracker()

@@ -16,7 +16,9 @@ def train_boolq(model, args, train_dataloader, tokenizer, num_epochs=1):
 
     # Create the learning rate scheduler.
     total_steps = len(train_dataloader) * num_epochs
-    scheduler = get_linear_schedule_with_warmup(optim, num_warmup_steps=500, num_training_steps=total_steps)
+    scheduler = get_linear_schedule_with_warmup(
+        optim, num_warmup_steps=500, num_training_steps=total_steps
+    )
 
     print_every = 25
     t = time.time()
@@ -60,10 +62,6 @@ def train_boolq(model, args, train_dataloader, tokenizer, num_epochs=1):
 
             outputs = model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
 
-            # print(f'outputs:{outputs}')
-            # print(torch.softmax(outputs, dim=1))
-            # print(f'labels:{labels}\n')
-
             # extract loss
             loss = 0
             loss += criterion(outputs, labels)
@@ -91,6 +89,7 @@ def train_boolq(model, args, train_dataloader, tokenizer, num_epochs=1):
 def eval_boolq(model, args, test_dataloader, tokenizer):
 
     model.eval()
+
     print_every = 10
     right, wrong = 0, 0
 
@@ -127,9 +126,6 @@ def eval_boolq(model, args, test_dataloader, tokenizer):
         with torch.no_grad():
             outputs = model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
 
-        # print(f'outputs:{outputs}')
-        # print(f'labels:{labels}\n')
-        # print(torch.softmax(outputs, dim=1))
         pred_lables = torch.argmax(torch.softmax(outputs, dim=1), dim=1)
 
         for label, pred_lable in zip(labels, pred_lables):
@@ -138,7 +134,6 @@ def eval_boolq(model, args, test_dataloader, tokenizer):
             else:
                 wrong += 1
 
+        # copmute accuracy:
         if instances_counter % print_every == 0:
-            print(f'right:{right}')
-            print(f'wrong:{wrong}')
-            print(f'right / (right + wrong):{right / (right + wrong)}\n')
+            print(f'acc): {right / (right + wrong)}\n')

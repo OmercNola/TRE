@@ -128,7 +128,8 @@ if __name__ == '__main__':
         # PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
         # model.load_state_dict(torch.load(PATH))
 
-        """if you want to evaluate or proceed training, change this path"""
+        """if you want to evaluate or proceed training,
+           change this path, if set to None it will ignor checkpoint"""
         checkpoint_path = Path('models/model_epoch_9_.pt')
         # checkpoint_path = None
 
@@ -157,8 +158,8 @@ if __name__ == '__main__':
                 checkpoint_path=checkpoint_path
             )
 
-            df = pd.DataFrame(eval_scores)
-            df.to_csv(Path('models/results.csv'))
+            # df = pd.DataFrame(eval_scores)
+            # df.to_csv(Path('models/results.csv'))
 
         """Evaluation"""
         if args.eval:

@@ -138,9 +138,7 @@ def final_data_process_for_markers(folder_path, labeled_data_path):
         for instance in TimeBank_labeled_data[key]:
             eiid1 = instance[2]
             eiid2 = instance[3]
-            label = instance[4]
-            # if label.strip() != 'BEFORE' and label.strip() != 'AFTER':
-            #     continue
+
             try:
                 eid1 = Map[f'ei{eiid1}']
                 eid2 = Map[f'ei{eiid2}']
@@ -176,7 +174,7 @@ Aq_data_with_markers = final_data_process_for_markers(Aq_folder, Aq_labeled_data
 # TRE_training_data = [i for i in Aq_and_Timebank if i not in TRE_validation_data]
 # print(f'len of training data: {len(TRE_training_data)}')
 "================================================================================="
-"""Aquaint and Timebank with markers"""
+"""Aquaint and Timebank with markers (val and train data)"""
 Aq_and_Timebank_with_markers = Aq_data_with_markers + TimeBank_data_with_markers
 print(f'len of Aq_and_Timebank_with_markers: {len(Aq_and_Timebank_with_markers)}')
 TRE_validation_data_with_markers = random.sample(
@@ -186,11 +184,11 @@ TRE_validation_data_with_markers = random.sample(
 print(f'len of validation data with markers: {len(TRE_validation_data_with_markers)}')
 TRE_training_data_with_markers = [
     i for i in Aq_and_Timebank_with_markers
-     if i not in TRE_validation_data_with_markers
+    if i not in TRE_validation_data_with_markers
 ]
 print(f'len of train data with markers: {len(TRE_training_data_with_markers)}')
 "================================================================================="
-"""Platinum"""
+"""Platinum, (test data)"""
 Platinum_folder = Path('data/TBAQ-cleaned/platinum/')
 Platinum_labeled_data = Path('data/platinum.txt')
 # without markers:
