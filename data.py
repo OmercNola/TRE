@@ -4,7 +4,6 @@ import numpy as np
 from collections import defaultdict, OrderedDict
 from xml.dom import minidom
 import os
-from transformers import AutoTokenizer, AutoModel, BertTokenizer, RobertaTokenizer, AdamW
 import json
 import torch
 import itertools

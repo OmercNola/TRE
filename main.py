@@ -5,27 +5,25 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict, OrderedDict
 from xml.dom import minidom
-from transformers import AutoTokenizer, AutoModel, AutoModelForQuestionAnswering, BertTokenizer
-from transformers import get_linear_schedule_with_warmup, RobertaTokenizer, AdamW, AutoConfig
-from datasets import load_dataset
 import json
 import torch
 from torch import nn
-from torch.utils.data import DataLoader
 import itertools
 import argparse
 import warnings
 import time
 from datetime import datetime, timedelta
-from longformer import create_longformer
+from longformer import create_pretrained_model_and_tokenizer
+from logger import create_config_for_wandb
 import boolq
 from boolq import train_boolq, eval_boolq
-from data import TRE_training_data_with_markers, TRE_test_data_with_markers
-from data import TRE_validation_data_with_markers
-from train_and_eval import train_tre_new_questions_with_markers
-from train_and_eval import eval_tre_new_questions_with_markers, results_tracker
+from dataloaders import create_dataloader
+from train import train_tre_new_questions_with_markers
+from eval import eval_tre_new_questions_with_markers
+from utils import results_tracker
 from pathlib import Path
 from pprint import pprint
+import wandb
 torch.set_printoptions(profile="full")
 parser = argparse.ArgumentParser(description='TRE')
 parser.add_argument('--device', type=torch.device,
@@ -39,11 +37,11 @@ parser.add_argument('--eval_during_training', type=bool, default=True,
                     help='eval during training ?')
 parser.add_argument('--save_model_during_training', type=bool, default=True,
                     help='save model during training ? ')
-parser.add_argument('--save_model_every', type=int, default=500,
+parser.add_argument('--save_model_every', type=int, default=1900,
                     help='when to save the model - number of batches')
 parser.add_argument('--epochs', type=int, default=10,
                     help='number of epochs')
-parser.add_argument('--batch_size', type=int, default=8,
+parser.add_argument('--batch_size', type=int, default=6,
                     help='batch_size (default: 2)')
 parser.add_argument('--print_loss_every', type=int, default=50,
                     help='when to print the loss - number of batches')
@@ -75,34 +73,21 @@ if __name__ == '__main__':
 
     "================================================================================="
     args = parser.parse_known_args()[0]
+
+    # login to W&B:
+    wandb.login()
+
+    # Ensure deterministic behavior
+    if args.seed is None:
+        args.seed = random.randint(1, 10000)
+    random.seed(args.seed)
     torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    torch.backends.cudnn.deterministic = True
     "================================================================================="
-    "MODEL AND TOKENIZER"
-
-    # get the config:
-    config = AutoConfig.from_pretrained(
-        "allenai/longformer-base-4096"
-    )
-
-    # change longformer dropout prob, default to 0.1:
-    config.attention_probs_dropout_prob = args.dropout_p
-    config.hidden_dropout_prob = args.dropout_p
-
-    # load tokenizer, add new tokens:
-    tokenizer = AutoTokenizer.from_pretrained("allenai/longformer-base-4096")
-    special_tokens_dict = {
-        'additional_special_tokens': ['[E1]', '[/E1]', '[E2]', '[/E2]']
-    }
-    tokenizer.add_special_tokens(special_tokens_dict)
-
-    # load the pretrained longformer model:
-    model_ = AutoModel.from_pretrained("allenai/longformer-base-4096", config=config)
-
-    # change embeddings size after adding new tokens:
-    model_.resize_token_embeddings(len(tokenizer))
-
-    # create our model, with classification head (FC linear layer):
-    model = create_longformer(model_, args).to(args.device)
+    # create model and tokenizer (after markers adition):
+    model, tokenizer = create_pretrained_model_and_tokenizer(args)
+    model.to(args.device)
 
     # parallel:
     model = nn.DataParallel(model)
@@ -151,38 +136,29 @@ if __name__ == '__main__':
     checkpoint_path = None
 
     # Dataloaders:
-    train_dataloader = DataLoader(
-        TRE_training_data_with_markers,
-        batch_size=args.batch_size,
-        shuffle=True
-    )
-    val_dataloader = DataLoader(
-        TRE_validation_data_with_markers,
-        batch_size=args.batch_size,
-        shuffle=True
-    )
-    test_dataloader = DataLoader(
-        TRE_test_data_with_markers,
-        batch_size=args.batch_size,
-        shuffle=True
-    )
+    train_dataloader = create_dataloader(args, 'train')
+    val_dataloader = create_dataloader(args, 'val')
+    test_dataloader = create_dataloader(args, 'test')
 
-    """Training"""
-    if not args.eval:
-        eval_scores = train_tre_new_questions_with_markers(
-            model, args, train_dataloader, test_dataloader,
-            tokenizer, num_epochs=args.epochs,
-            checkpoint_path=checkpoint_path
-        )
+    config_for_wandb = create_config_for_wandb(args, 'MTRES')
 
-        # df = pd.DataFrame(eval_scores)
-        # df.to_csv(Path('models/results.csv'))
+    # tell wandb to get started
+    with wandb.init(project="tre", entity='omerc', config=config_for_wandb):
 
-    """Evaluation"""
-    if args.eval:
-        tracker = results_tracker()
-        (f1_macro, f1_micro) = eval_tre_new_questions_with_markers(
-            model, args, test_dataloader,
-            tokenizer, tracker, checkpoint_path=checkpoint_path
-        )
+        wandb.log({"seed": args.seed})
+
+        """Training"""
+        if not args.eval:
+            train_tre_new_questions_with_markers(
+                model, args, train_dataloader, test_dataloader,
+                tokenizer, checkpoint_path=checkpoint_path
+            )
+
+        """Evaluation"""
+        if args.eval:
+            tracker = results_tracker()
+            (f1_macro, f1_micro) = eval_tre_new_questions_with_markers(
+                model, args, test_dataloader,
+                tokenizer, tracker, checkpoint_path=checkpoint_path
+            )
     "================================================================================="
