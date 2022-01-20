@@ -32,7 +32,7 @@ parser.add_argument('--device', type=torch.device,
                     help='device type')
 "============================================================================"
 "Train settings"
-parser.add_argument('--eval', type=bool, default=True,
+parser.add_argument('--eval', type=bool, default=False,
                     help='eval mode ? if False then training mode')
 parser.add_argument('--eval_during_training', type=bool, default=True,
                     help='eval during training ?')
@@ -50,7 +50,10 @@ parser.add_argument('--seed', type=int, default=1,
                     help='random seed (default: 1)')
 parser.add_argument('--boolq_pre_trained_model_path', type=str,
                     default='models/model_boolq_with_markers_epoch_10_.pt',
-                    help='boolq pre trained model path')
+                    help='this is a pre trained model on boolq dataset, with acc (0.82)')
+parser.add_argument('--checkpoint_path', type=str,
+                    default='models/model_epoch_9_.pt',
+                    help='checkpoint path for evaluation or proceed training')
 "============================================================================"
 "Hyper-parameters"
 parser.add_argument('--lr', type=float, default=0.00001,
@@ -87,6 +90,8 @@ if __name__ == '__main__':
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
+
+    # not relly sure what it is, needs to check !!!!
     torch.backends.cudnn.deterministic = True
     "================================================================================="
     # create model and tokenizer (after markers adition):
@@ -129,21 +134,20 @@ if __name__ == '__main__':
     "================================================================================="
     "Temporal Relation Classification"
 
-    """this is a trained model on boolq dataset, with acc (0.82)"""
     # boolq is a yes/no QA dataset, load the pretrained model:
     PATH = Path(args.boolq_pre_trained_model_path)
     model.load_state_dict(torch.load(PATH))
 
-    """if you want to evaluate or proceed training,
-       change this path, if set to None it will ignor checkpoint"""
-    # checkpoint_path = Path('models/model_epoch_9_.pt')
-    checkpoint_path = None
+    # load checkpoint:
+    if args.checkpoint_path is not None:
+        checkpoint_path = Path(args.checkpoint_path)
 
     # Dataloaders:
     train_dataloader = create_dataloader(args, 'train')
     val_dataloader = create_dataloader(args, 'val')
     test_dataloader = create_dataloader(args, 'test')
 
+    # config for the experiment:
     config_for_wandb = create_config_for_wandb(args, 'MTRES')
 
     # tell wandb to get started
