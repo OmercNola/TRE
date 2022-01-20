@@ -54,7 +54,7 @@ parser.add_argument('--boolq_pre_trained_model_path', type=str,
                     default='models/model_boolq_with_markers_epoch_10_.pt',
                     help='this is a pre trained model on boolq dataset, with acc (0.82)')
 parser.add_argument('--checkpoint_path', type=str,
-                    default='models/model_epoch_1_iter_800_lr00001_.pt',
+                    default=None, #'models/model_epoch_1_iter_800_lr00001_.pt',
                     help='checkpoint path for evaluation or proceed training')
 "============================================================================"
 "Hyper-parameters"
@@ -104,7 +104,6 @@ if __name__ == '__main__':
     model = nn.DataParallel(model)
     "================================================================================="
     "BOOLQ WITH MARKERS"
-
     # # # Datasets:
     # dataset_boolq = load_dataset("boolq")
     # # Dataloaders:
@@ -127,6 +126,7 @@ if __name__ == '__main__':
     model.load_state_dict(torch.load(PATH))
 
     # load checkpoint:
+    checkpoint_path = None
     if args.checkpoint_path is not None:
         checkpoint_path = Path(args.checkpoint_path)
 

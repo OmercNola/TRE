@@ -88,9 +88,7 @@ def load_model_checkpoint(path_, model, optimizer=None, scheduler=None):
         scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
 
     epoch = checkpoint['epoch']
-
     loss = checkpoint['loss']
-
     epoch_percent = checkpoint['epoch percent']
 
     return model, optimizer, scheduler, epoch, loss, epoch_percent
