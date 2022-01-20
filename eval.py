@@ -113,7 +113,6 @@ def eval_tre_new_questions_with_markers(
             print(f'f1 macro: {macro}, f1 micro: {micro}, '
                   f'evaluation percent: {eval_precent:.3f}')
 
-
     # at the end of the evaluation:
     macro, micro = tracker.f1_macro_and_micro()
 

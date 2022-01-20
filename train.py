@@ -188,9 +188,9 @@ def train_tre_new_questions_with_markers(
                     tracker = results_tracker()
                     eval_tre_new_questions_with_markers(
                         model, args, test_dataloader,
-                        tokenizer, tracker
+                        tokenizer, tracker, checkpoint_path=None,
+                        batches_overall=batches_overall
                     )
-
 
 
         # save in the end of the epoch:

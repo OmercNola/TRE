@@ -32,7 +32,7 @@ parser.add_argument('--device', type=torch.device,
                     help='device type')
 "============================================================================"
 "Train settings"
-parser.add_argument('--eval', type=bool, default=False,
+parser.add_argument('--eval', type=bool, default=True,
                     help='eval mode ? if False then training mode')
 parser.add_argument('--eval_during_training', type=bool, default=True,
                     help='eval during training ?')
@@ -161,8 +161,8 @@ if __name__ == '__main__':
         """Evaluation"""
         if args.eval:
             tracker = results_tracker()
-            (f1_macro, f1_micro) = eval_tre_new_questions_with_markers(
+            eval_tre_new_questions_with_markers(
                 model, args, test_dataloader,
-                tokenizer, tracker, checkpoint_path=checkpoint_path
+                tokenizer, tracker, checkpoint_path=None
             )
     "================================================================================="
