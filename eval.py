@@ -36,6 +36,8 @@ def eval_tre_new_questions_with_markers(
     :rtype:
     """
 
+    print("evaluating...")
+
     # if there is a checkpoint_path, then load it:
     # we need just the model for evaluation
     if checkpoint_path is not None:
@@ -49,7 +51,7 @@ def eval_tre_new_questions_with_markers(
 
         passages = instances[0]
         first_words, second_words = instances[1][0], instances[1][1]
-        word_labels = instances[1][4]
+        word_labels = instances[1][2]
 
         zip_object = zip(passages, first_words, second_words, word_labels)
         for passage, first_word, second_word, Label in zip_object:

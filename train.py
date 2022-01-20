@@ -85,7 +85,7 @@ def train_tre_new_questions_with_markers(
             passages = instances[0]
             first_words = instances[1][0]
             second_words = instances[1][1]
-            word_labels = instances[1][4]
+            word_labels = instances[1][2]
 
             zip_object = zip(passages, first_words, second_words, word_labels)
             for passage, first_word, second_word, Label in zip_object:
