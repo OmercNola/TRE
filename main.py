@@ -1,3 +1,4 @@
+import pathlib
 import platform
 import os
 import random
@@ -47,6 +48,9 @@ parser.add_argument('--print_loss_every', type=int, default=50,
                     help='when to print the loss - number of batches')
 parser.add_argument('--seed', type=int, default=1,
                     help='random seed (default: 1)')
+parser.add_argument('--boolq_pre_trained_model_path', type=str,
+                    default='models/model_boolq_with_markers_epoch_10_.pt',
+                    help='boolq pre trained model path')
 "============================================================================"
 "Hyper-parameters"
 parser.add_argument('--lr', type=float, default=0.00001,
@@ -127,7 +131,7 @@ if __name__ == '__main__':
 
     """this is a trained model on boolq dataset, with acc (0.82)"""
     # boolq is a yes/no QA dataset, load the pretrained model:
-    PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
+    PATH = Path(args.boolq_pre_trained_model_path)
     model.load_state_dict(torch.load(PATH))
 
     """if you want to evaluate or proceed training,
