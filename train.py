@@ -51,9 +51,12 @@ def train_tre_new_questions_with_markers(
     total_loss_for_print = 0
     total_loss_for_save = 0
 
+    # set epoch_start to 1, it we have checkpoint, will load it from there.
+    epoch_start = 1
+
     # if there is a checkpoint, load it:
     if checkpoint_path is not None:
-        (model, optimizer, scheduler, _, _) = \
+        (model, optimizer, scheduler, epoch_start, _, _) = \
             load_model_checkpoint(
                 checkpoint_path, model,
                 optimizer, scheduler
@@ -68,7 +71,7 @@ def train_tre_new_questions_with_markers(
     # total nuber of batches counter:
     batches_overall = 0
 
-    for epoch in tqdm(range(1, args.epochs+1, 1)):
+    for epoch in tqdm(range(epoch_start, args.epochs+1, 1)):
 
         batch_input_ids = []
         batch_attention_mask = []

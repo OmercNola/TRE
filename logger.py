@@ -59,23 +59,24 @@ def save_model_checkpoint(
         epoch, loss):
     """
     """
+    epoch_percent = round((batch_counter / length_of_data_loader) * 100, 2)
     PATH = Path(f"models/model_epoch_{epoch}_iter_{batch_counter}_.pt")
+
     torch.save({
         'epoch': epoch,
+        'epoch percent': epoch_percent,
         'model_state_dict': model.state_dict(),
         'optimizerizer_state_dict': optimizerizer.state_dict(),
         'scheduler_state_dict': scheduler.state_dict(),
-        'loss': loss / args.save_model_every,
-        'epoch percent': round((batch_counter / length_of_data_loader) * 100, 2)
+        'loss': loss / args.save_model_every
     }, PATH)
 
     print(f'checkpoint has been saved !')
-    print(f'Epoch percent: {round((batch_counter / length_of_data_loader) * 100, 2)}')
+    print(f'Epoch percent: {epoch_percent}')
 # load checkpoint:
 def load_model_checkpoint(path_, model, optimizer=None, scheduler=None):
     """
     """
-
     # load the checkpoint:
     checkpoint = torch.load(path_)
 
@@ -87,9 +88,11 @@ def load_model_checkpoint(path_, model, optimizer=None, scheduler=None):
     if scheduler is not None:
         scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
 
+    epoch = checkpoint['epoch']
+
     loss = checkpoint['loss']
 
     epoch_percent = checkpoint['epoch percent']
 
-    return model, optimizer, scheduler, loss, epoch_percent
+    return model, optimizer, scheduler, epoch, loss, epoch_percent
 "============================================================================="
