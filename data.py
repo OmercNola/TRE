@@ -159,7 +159,7 @@ def get_text_and_labeled_data_from_tml_file_tcr(filepath):
 
         eventID_1 = ei_e_map[e.attributes["eventInstanceID"].value]
         eventID_2 = ei_e_map[e.attributes["relatedToEventInstance"].value]
-        relation = e.attributes['relType']
+        relation = e.attributes['relType'].value
 
         for index, child in enumerate(text_elements[0].childNodes):
             if type(child) is minidom.Element and child.nodeName == "EVENT" and \

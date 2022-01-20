@@ -32,7 +32,7 @@ parser.add_argument('--device', type=torch.device,
                     help='device type')
 "============================================================================"
 "Train settings"
-parser.add_argument('--eval', type=bool, default=False,
+parser.add_argument('--eval', type=bool, default=True,
                     help='eval mode ? if False then training mode')
 parser.add_argument('--eval_during_training', type=bool, default=True,
                     help='eval during training ?')
@@ -42,7 +42,7 @@ parser.add_argument('--save_model_every', type=int, default=500,
                     help='when to save the model - number of batches')
 parser.add_argument('--epochs', type=int, default=10,
                     help='number of epochs')
-parser.add_argument('--batch_size', type=int, default=6,
+parser.add_argument('--batch_size', type=int, default=2,
                     help='batch_size (default: 2)') # 6 is good for 3 3090 GPU'S, 8 for 8 GPU'S..
 parser.add_argument('--print_loss_every', type=int, default=50,
                     help='when to print the loss - number of batches')
@@ -54,7 +54,7 @@ parser.add_argument('--boolq_pre_trained_model_path', type=str,
                     default='models/model_boolq_with_markers_epoch_10_.pt',
                     help='this is a pre trained model on boolq dataset, with acc (0.82)')
 parser.add_argument('--checkpoint_path', type=str,
-                    default=None, #'models/model_epoch_1_iter_800_lr00001_.pt',
+                    default='models/model_epoch_8_iter_1910_.pt',
                     help='checkpoint path for evaluation or proceed training')
 "============================================================================"
 "Hyper-parameters"
@@ -154,7 +154,7 @@ if __name__ == '__main__':
         if args.eval:
             tracker = results_tracker()
             eval_tre_new_questions_with_markers(
-                model, args, test_dataloader,
-                tokenizer, tracker, checkpoint_path=None
+                model, args, val_dataloader,
+                tokenizer, tracker, checkpoint_path=checkpoint_path
             )
     "================================================================================="

@@ -116,8 +116,8 @@ def eval_tre_new_questions_with_markers(
             macro, micro = tracker.f1_macro_and_micro()
 
             # save then to wandb:
-            wandb.log({"batches_overall": batches_overall,
-                       "f1 macro": macro, "f1 micro": micro})
+            # wandb.log({"batches_overall": batches_overall,
+            #            "f1 macro": macro, "f1 micro": micro})
 
             eval_precent = (batch_counter / len(test_dataloader)) * 100
             print(f'f1 macro: {macro}, f1 micro: {micro}, '

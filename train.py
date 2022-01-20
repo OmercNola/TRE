@@ -171,7 +171,7 @@ def train_tre_new_questions_with_markers(
                     epoch, batch_counter, total_loss_for_print
                 )
                 # save in wandb:
-                train_log(total_loss_for_print, epoch, batch_counter, batches_overall)
+                train_log(total_loss_for_print, epoch, batches_overall)
                 total_loss_for_print = 0
 
             # save the model once in a while:

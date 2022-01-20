@@ -26,22 +26,18 @@ def create_config_for_wandb(args, dataset):
 
     return config
 # save traing statistics
-def train_log(loss, epoch, batch_counter, batches_overall):
+def train_log(loss, epoch, batches_overall):
     """
     :param loss:
     :type loss:
-    :param example_ct:
-    :type example_ct:
     :param epoch:
     :type epoch:
+    :param batches_overall:
+    :type batches_overall:
     :return:
     :rtype:
     """
-    wandb.log(
-        {"epoch": epoch, "loss": loss,
-        "batch_counter": batch_counter},
-        step=batches_overall
-    )
+    wandb.log({"epoch": epoch, "loss": loss}, step=batches_overall)
 # print the training:
 def print_training_progress(
         start_time, length_of_data_loader, epoch, batch_counter, total_loss):
@@ -76,6 +72,9 @@ def save_model_checkpoint(
 def load_model_checkpoint(path_, model, optimizer=None, scheduler=None):
     """
     """
+
+    print('loading checkpoint..')
+
     # load the checkpoint:
     checkpoint = torch.load(path_)
 
