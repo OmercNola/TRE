@@ -54,7 +54,7 @@ parser.add_argument('--boolq_pre_trained_model_path', type=str,
                     default='models/model_boolq_with_markers_epoch_10_.pt',
                     help='this is a pre trained model on boolq dataset, with acc (0.82)')
 parser.add_argument('--checkpoint_path', type=str,
-                    default='models/model_epoch_9_.pt',
+                    default='models/model_epoch_1_iter_800_lr00001_.pt',
                     help='checkpoint path for evaluation or proceed training')
 "============================================================================"
 "Hyper-parameters"
@@ -103,22 +103,8 @@ if __name__ == '__main__':
     # parallel:
     model = nn.DataParallel(model)
     "================================================================================="
-    "BOOLQ"
-    # Datasets:
-    # dataset_boolq = load_dataset("boolq")
-    # Dataloaders:
-    # train_dataloader = DataLoader(dataset_boolq['train'], batch_size=1, shuffle=True)
-    # test_dataloader = DataLoader(dataset_boolq['validation'], batch_size=4, shuffle=False)
-
-    # Training / evaluation:
-    # train_boolq(num_epochs=8)
-    # eval_boolq()
-    "================================================================================="
     "BOOLQ WITH MARKERS"
-    # model_.resize_token_embeddings(len(tokenizer))
-    # model = Longformer(model_, args.output_size, args.dropout_p, args.Size_of_longfor, args.Max_Len).to(args.device)
-    # model = nn.DataParallel(model)
-    #
+
     # # # Datasets:
     # dataset_boolq = load_dataset("boolq")
     # # Dataloaders:

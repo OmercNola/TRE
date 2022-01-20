@@ -53,7 +53,7 @@ def print_training_progress(
           f'Epoch percent: {round((batch_counter / length_of_data_loader) * 100, 2)}')
 # save checkpoit:
 def save_model_checkpoint(
-        args, model, optimizerizer, scheduler,
+        args, model, optimizer, scheduler,
         length_of_data_loader, batch_counter,
         epoch, loss):
     """
@@ -65,7 +65,7 @@ def save_model_checkpoint(
         'epoch': epoch,
         'epoch percent': epoch_percent,
         'model_state_dict': model.state_dict(),
-        'optimizerizer_state_dict': optimizerizer.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
         'scheduler_state_dict': scheduler.state_dict(),
         'loss': loss / args.save_model_every
     }, PATH)
