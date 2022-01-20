@@ -16,6 +16,7 @@ def eval_tre_new_questions_with_markers(
         model, args, test_dataloader,
         tokenizer, tracker, checkpoint_path=None,
         batches_overall=None):
+
     """
     :param model:
     :type model:
@@ -36,13 +37,13 @@ def eval_tre_new_questions_with_markers(
     """
 
     # if there is a checkpoint_path, then load it:
+    # we need just the model for evaluation
     if checkpoint_path is not None:
-        (model, _, _, _, _) = \
+        (model, _, _, _, _, _) = \
             load_model_checkpoint(checkpoint_path, model)
 
+    # evaluation mode:
     model.eval()
-
-    print_every = 10
 
     for batch_counter, instances in enumerate(test_dataloader, start=1):
 
@@ -53,10 +54,11 @@ def eval_tre_new_questions_with_markers(
         zip_object = zip(passages, first_words, second_words, word_labels)
         for passage, first_word, second_word, Label in zip_object:
 
-            # ignor vague:
+            # ignor vague, like other papers do:
             if Label.strip() == 'VAGUE':
                 continue
 
+            # get the questions:
             question_1 = question_1_for_markers(
                 first_word, second_word) + tokenizer.sep_token
             question_2 = question_2_for_markers(
@@ -88,19 +90,25 @@ def eval_tre_new_questions_with_markers(
                 attention_mask = torch.tensor(
                     [attention_mask], requires_grad=False).to(args.device)
 
+                # ensure no gradients for eval:
                 with torch.no_grad():
 
                     outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-                    pred = torch.argmax(
-                        torch.softmax(outputs, dim=1),
-                        dim=1
-                    ).clone().detach().cpu().numpy()[0]
+
+                    # our prediction:
+                    pred = torch.argmax(torch.softmax(outputs, dim=1), dim=1)
+
+                    # move to cpu and numpy:
+                    pred = pred.clone().detach().cpu().numpy()[0]
+
+                    # results:
                     results.append([question_name, pred])
 
+            # now we 2 questions ready, we update results tracker:
             ans1, ans2 = results[0][1], results[1][1]
             tracker.update(Label, ans1, ans2)
 
-        if batch_counter % print_every == 0:
+        if batch_counter % args.print_eval_every == 0:
 
             # get f1 macro and f1 micro results:
             macro, micro = tracker.f1_macro_and_micro()

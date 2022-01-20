@@ -46,6 +46,8 @@ parser.add_argument('--batch_size', type=int, default=6,
                     help='batch_size (default: 2)')
 parser.add_argument('--print_loss_every', type=int, default=50,
                     help='when to print the loss - number of batches')
+parser.add_argument('--print_eval_every', type=int, default=50,
+                    help='when to print f1 scores during eval - number of batches')
 parser.add_argument('--seed', type=int, default=1,
                     help='random seed (default: 1)')
 parser.add_argument('--boolq_pre_trained_model_path', type=str,
