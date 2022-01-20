@@ -89,7 +89,7 @@ def train_tre_new_questions_with_markers(
             zip_object = zip(passages, first_words, second_words, word_labels)
             for passage, first_word, second_word, Label in zip_object:
 
-                # ignor vague, like other papers do
+                # ignor vague, like other papers do:
                 if Label.strip() == 'VAGUE':
                     continue
 
@@ -146,7 +146,7 @@ def train_tre_new_questions_with_markers(
                         loss.backward()
 
                         # This is to help prevent the "exploding gradients" problem:
-                        # torch.nn.utils.clip_grad_norm_(model.parameters(), 40)
+                        # torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
 
                         # update parameters
                         optimizer.step()
@@ -163,7 +163,7 @@ def train_tre_new_questions_with_markers(
                         batch_labels = []
 
             # Print and save progress once in a while...
-            if (batch_counter) % args.print_loss_every == 0:
+            if batch_counter % args.print_loss_every == 0:
                 # just print:
                 print_training_progress(
                     t0, len(train_dataloader),
@@ -174,7 +174,7 @@ def train_tre_new_questions_with_markers(
                 total_loss_for_print = 0
 
             # save the model once in a while, and evaluate.
-            if (batch_counter) % args.save_model_every == 0:
+            if batch_counter % args.save_model_every == 0:
 
                 # save:
                 if args.save_model_during_training:
@@ -195,7 +195,6 @@ def train_tre_new_questions_with_markers(
                         batches_overall=batches_overall
                     )
 
-
         # save in the end of the epoch:
         if args.save_model_during_training:
             save_model_checkpoint(
@@ -205,4 +204,3 @@ def train_tre_new_questions_with_markers(
                 total_loss_for_save
             )
             total_loss_for_save = 0
-

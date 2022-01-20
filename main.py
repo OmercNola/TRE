@@ -60,7 +60,7 @@ parser.add_argument('--checkpoint_path', type=str,
 "Hyper-parameters"
 parser.add_argument('--lr', type=float, default=0.00001,
                     help='learning rate (default: 0.00001)')
-parser.add_argument('--max-grad-norm', type=float, default=50,
+parser.add_argument('--max_grad_norm', type=float, default=50,
                     help='value loss coefficient (default: 50)')
 parser.add_argument('--dropout_p', type=float, default=0.2,
                     help='dropout_p (default: 0.1)')
