@@ -173,7 +173,7 @@ def train_tre_new_questions_with_markers(
                 train_log(total_loss_for_print, epoch, batch_counter, batches_overall)
                 total_loss_for_print = 0
 
-            # save the model once in a while, and evaluate.
+            # save the model once in a while:
             if batch_counter % args.save_model_every == 0:
 
                 # save:
@@ -186,16 +186,16 @@ def train_tre_new_questions_with_markers(
                     )
                     total_loss_for_save = 0
 
-                # evaluate:
-                if args.eval_during_training:
-                    tracker = results_tracker()
-                    eval_tre_new_questions_with_markers(
-                        model, args, test_dataloader,
-                        tokenizer, tracker, checkpoint_path=None,
-                        batches_overall=batches_overall
-                    )
+        # evaluate at the end of the epoch:
+        if args.eval_during_training:
+            tracker = results_tracker()
+            eval_tre_new_questions_with_markers(
+                model, args, test_dataloader,
+                tokenizer, tracker, checkpoint_path=None,
+                batches_overall=batches_overall
+            )
 
-        # save in the end of the epoch:
+        # save at the end of the epoch:
         if args.save_model_during_training:
             save_model_checkpoint(
                 args, model, optimizer,
