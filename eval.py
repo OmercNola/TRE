@@ -47,6 +47,12 @@ def eval_tre_new_questions_with_markers(
     # evaluation mode:
     model.eval()
 
+    # create wandb table for traking the rsults:
+    table = wandb.Table(
+        columns=['passage', 'word_1', 'word_2',
+                 'ans_1', 'ans_2', 'pred_label', 'real_label']
+    )
+
     for batch_counter, instances in enumerate(test_dataloader, start=1):
 
         passages = instances[0]
@@ -108,7 +114,12 @@ def eval_tre_new_questions_with_markers(
 
             # now we 2 questions ready, we update results tracker:
             ans1, ans2 = results[0][1], results[1][1]
-            tracker.update(Label, ans1, ans2)
+            pred_label = tracker.update(Label, ans1, ans2)
+
+            # the columns of the table are like:
+            # columns = ['passage', 'word_1', 'word_2',
+            #            'ans_1', 'ans_2', 'pred_label', 'real_label']
+            table.add_data(passage, first_word, second_word, ans1, ans2, pred_label, Label.strip())
 
         if batch_counter % args.print_eval_every == 0:
 
@@ -133,4 +144,6 @@ def eval_tre_new_questions_with_markers(
     eval_precent = (batch_counter / len(test_dataloader)) * 100
     print(f'f1 macro: {macro}, f1 micro: {micro}, '
           f'evaluation percent: {eval_precent:.3f}')
+
+    wandb.finish()
 "============================================================================="

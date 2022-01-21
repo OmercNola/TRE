@@ -52,52 +52,70 @@ class results_tracker:
 
             if ans1 == 1 and ans2 == 0: # BEFORE
                 self.TP_BEFORE += 1
+                res = 'BEFORE'
 
             if ans1 == 0 and ans2 == 1: # AFTER
                 self.FP_AFTER += 1
                 self.FN_BEFORE += 1
+                res = 'AFTER'
 
             if ans1 == 1 and ans2 == 1: # VAGUE
                 self.FP_VAGUE += 1
                 self.FN_BEFORE += 1
+                res = 'VAGUE'
 
             if ans1 == 0 and ans2 == 0: # EQUAL
                 self.FP_EQUAL += 1
                 self.FN_BEFORE += 1
+                res = 'EQUAL'
 
         elif label.strip() == 'AFTER':
 
             if ans1 == 1 and ans2 == 0: # BEFORE
                 self.FP_BEFORE += 1
                 self.FN_AFTER += 1
+                res = 'BEFORE'
+
 
             if ans1 == 0 and ans2 == 1: # AFTER
                 self.TP_AFTER += 1
+                res = 'AFTER'
 
             if ans1 == 1 and ans2 == 1: # VAGUE
                 self.FP_VAGUE += 1
                 self.FN_AFTER += 1
+                res = 'VAGUE'
 
             if ans1 == 0 and ans2 == 0: # EQUAL
                 self.FP_EQUAL += 1
                 self.FN_AFTER += 1
+                res = 'EQUAL'
 
-        elif label.strip() == 'EQUAL':
+        elif (label.strip() == 'EQUAL') or (label.strip() == 'SIMULTANEOUS'):
 
             if ans1 == 1 and ans2 == 0: # BEFORE
                 self.FP_BEFORE += 1
                 self.FN_EQUAL += 1
+                res = 'BEFORE'
 
             if ans1 == 0 and ans2 == 1: # AFTER
                 self.FP_AFTER += 1
                 self.FN_EQUAL += 1
+                res = 'AFTER'
 
             if ans1 == 1 and ans2 == 1: # VAGUE
                 self.FP_VAGUE += 1
                 self.FN_EQUAL += 1
+                res = 'VAGUE'
 
             if ans1 == 0 and ans2 == 0: # EQUAL
                 self.TP_EQUAL += 1
+                res = 'EQUAL'
+
+        else:
+            raise Exception(f'label: {label.strip()} is incorect')
+
+        return res
 
     def f1_macro_and_micro(self):
         """

@@ -32,7 +32,7 @@ parser.add_argument('--device', type=torch.device,
                     help='device type')
 "============================================================================"
 "Train settings"
-parser.add_argument('--eval', type=bool, default=False,
+parser.add_argument('--eval', type=bool, default=True,
                     help='eval mode ? if False then training mode')
 parser.add_argument('--eval_during_training', type=bool, default=True,
                     help='eval during training ?')
@@ -54,7 +54,7 @@ parser.add_argument('--boolq_pre_trained_model_path', type=str,
                     default='models/model_boolq_with_markers_epoch_10_.pt',
                     help='this is a pre trained model on boolq dataset, with acc (0.82)')
 parser.add_argument('--checkpoint_path', type=str,
-                    default=None, #'models/model_epoch_8_iter_1910_.pt',
+                    default='models/model_epoch_4_iter_500_.pt',
                     help='checkpoint path for evaluation or proceed training')
 "============================================================================"
 "Hyper-parameters"
