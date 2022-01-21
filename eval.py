@@ -49,8 +49,13 @@ def eval_tre_new_questions_with_markers(
 
     # create wandb table for traking the rsults:
     table = wandb.Table(
-        columns=['passage', 'word_1', 'word_2',
-                 'ans_1', 'ans_2', 'pred_label', 'real_label']
+        columns=[
+            'passage', 'passage length',
+            'word_1', 'word_2',
+            'ans_1', 'ans_2',
+            'pred_label', 'real_label',
+            'correct answer'
+        ]
     )
 
     for batch_counter, instances in enumerate(test_dataloader, start=1):
@@ -116,19 +121,21 @@ def eval_tre_new_questions_with_markers(
             ans1, ans2 = results[0][1], results[1][1]
             pred_label = tracker.update(Label, ans1, ans2)
 
-            # the columns of the table are like:
-            # columns = ['passage', 'word_1', 'word_2',
-            #            'ans_1', 'ans_2', 'pred_label', 'real_label']
-            table.add_data(passage, first_word, second_word, ans1, ans2, pred_label, Label.strip())
+            # data for logging in wandb:
+            correct_answer = pred_label == Label.strip()
+            passage_length = len(passage)
+            real_label = Label.strip()
+
+            # add data to the wandb table:
+            table.add_data(
+                passage, passage_length, first_word, second_word,
+                ans1, ans2, pred_label, real_label, correct_answer
+            )
 
         if batch_counter % args.print_eval_every == 0:
 
             # get f1 macro and f1 micro results:
             macro, micro = tracker.f1_macro_and_micro()
-
-            # save then to wandb:
-            # wandb.log({"batches_overall": batches_overall,
-            #            "f1 macro": macro, "f1 micro": micro})
 
             eval_precent = (batch_counter / len(test_dataloader)) * 100
             print(f'f1 macro: {macro}, f1 micro: {micro}, '
@@ -145,5 +152,6 @@ def eval_tre_new_questions_with_markers(
     print(f'f1 macro: {macro}, f1 micro: {micro}, '
           f'evaluation percent: {eval_precent:.3f}')
 
+    wandb.log({'results table': table})
     wandb.finish()
 "============================================================================="
