@@ -122,8 +122,13 @@ def eval_tre_new_questions_with_markers(
             pred_label = tracker.update(Label, ans1, ans2)
 
             # data for logging in wandb:
-            correct_answer = pred_label == Label.strip()
             passage_length = len(passage)
+
+            if Label.strip() == 'SIMULTANEOUS':
+                correct_answer = pred_label == 'EQUAL'
+            else:
+                correct_answer = pred_label == Label.strip()
+
             real_label = Label.strip()
 
             # add data to the wandb table:
