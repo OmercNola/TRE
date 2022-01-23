@@ -38,6 +38,8 @@ parser.add_argument('--eval_during_training', type=bool, default=True,
                     help='eval during training ?')
 parser.add_argument('--save_model_during_training', type=bool, default=False,
                     help='save model during training ? ')
+parser.add_argument('--save_table_of_results_after_eval', type=bool, default=False,
+                    help='save table of results (with text) after eval ?')
 parser.add_argument('--save_model_every', type=int, default=600,
                     help='when to save the model - number of batches')
 parser.add_argument('--epochs', type=int, default=6,

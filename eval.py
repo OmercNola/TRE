@@ -1,6 +1,7 @@
 from logger import (train_log, save_model_checkpoint,
                     load_model_checkpoint, print_training_progress)
 from utils import (question_1_for_markers, question_2_for_markers,
+                   question_1_for_regular_markers, question_2_for_regular_markers,
                    get_label, results_tracker)
 from torch import nn
 import torch
@@ -157,6 +158,8 @@ def eval_tre_new_questions_with_markers(
     print(f'f1 macro: {macro}, f1 micro: {micro}, '
           f'evaluation percent: {eval_precent:.3f}')
 
-    wandb.log({f'results table {wandb.run.name}': table})
+    if args.save_table_of_results_after_eval:
+        wandb.log({f'results table {wandb.run.name}': table})
+
     wandb.finish()
 "============================================================================="

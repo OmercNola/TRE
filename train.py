@@ -1,6 +1,7 @@
 from logger import (train_log, save_model_checkpoint,
                     load_model_checkpoint, print_training_progress)
 from utils import (question_1_for_markers, question_2_for_markers,
+                   question_1_for_regular_markers, question_2_for_regular_markers,
                    get_label, results_tracker)
 from eval import eval_tre_new_questions_with_markers
 from torch import nn
