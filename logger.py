@@ -55,7 +55,7 @@ def save_model_checkpoint(
     """
     """
     epoch_percent = round((batch_counter / length_of_data_loader) * 100, 2)
-    PATH = Path(f"models/model_epoch_{epoch}_iter_{batch_counter}_.pt")
+    PATH = Path(f"models/{wandb.run.name}_epoch_{epoch}_iter_{batch_counter}_.pt")
 
     torch.save({
         'epoch': epoch,

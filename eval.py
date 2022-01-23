@@ -161,5 +161,7 @@ def eval_tre_new_questions_with_markers(
     if args.save_table_of_results_after_eval:
         wandb.log({f'results table {wandb.run.name}': table})
 
-    wandb.finish()
+    # finish the session just when eval:
+    if args.eval:
+        wandb.finish()
 "============================================================================="

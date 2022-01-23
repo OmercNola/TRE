@@ -36,7 +36,7 @@ parser.add_argument('--eval', type=bool, default=False,
                     help='eval mode ? if False then training mode')
 parser.add_argument('--eval_during_training', type=bool, default=True,
                     help='eval during training ?')
-parser.add_argument('--save_model_during_training', type=bool, default=False,
+parser.add_argument('--save_model_during_training', type=bool, default=True,
                     help='save model during training ? ')
 parser.add_argument('--save_table_of_results_after_eval', type=bool, default=False,
                     help='save table of results (with text) after eval ?')
@@ -57,8 +57,8 @@ parser.add_argument('--boolq_pre_trained_model_path', type=str,
                     help='this is a pre trained model on boolq dataset, with acc (0.82)')
 parser.add_argument('--checkpoint_path', type=str,
                     default=None, #'models/model_epoch_4_iter_500_.pt',
-                    help='checkpoint path for evaluation or proceed training,'
-                         ' if None then ignor checkpoint')
+                    help='checkpoint path for evaluation or proceed training ,'
+                         'if set to None then ignor checkpoint')
 "============================================================================"
 "Hyper-parameters"
 parser.add_argument('--lr', type=float, default=0.00001,
