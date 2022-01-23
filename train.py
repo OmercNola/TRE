@@ -94,9 +94,9 @@ def train_tre_new_questions_with_markers(
                 if Label.strip() == 'VAGUE':
                     continue
 
-                question_1 = question_1_for_markers(
+                question_1 = question_1_for_regular_markers(
                     first_word, second_word) + tokenizer.sep_token
-                question_2 = question_2_for_markers(
+                question_2 = question_2_for_regular_markers(
                     first_word, second_word) + tokenizer.sep_token
 
                 questions_list = [

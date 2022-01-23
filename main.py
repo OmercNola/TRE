@@ -32,17 +32,17 @@ parser.add_argument('--device', type=torch.device,
                     help='device type')
 "============================================================================"
 "Train settings"
-parser.add_argument('--eval', type=bool, default=True,
+parser.add_argument('--eval', type=bool, default=False,
                     help='eval mode ? if False then training mode')
 parser.add_argument('--eval_during_training', type=bool, default=True,
                     help='eval during training ?')
 parser.add_argument('--save_model_during_training', type=bool, default=False,
                     help='save model during training ? ')
-parser.add_argument('--save_model_every', type=int, default=500,
+parser.add_argument('--save_model_every', type=int, default=600,
                     help='when to save the model - number of batches')
-parser.add_argument('--epochs', type=int, default=5,
+parser.add_argument('--epochs', type=int, default=6,
                     help='number of epochs')
-parser.add_argument('--batch_size', type=int, default=2,
+parser.add_argument('--batch_size', type=int, default=4,
                     help='batch_size (default: 2)') # 6 is good for 3 3090 GPU'S, 8 for 8 GPU'S..
 parser.add_argument('--print_loss_every', type=int, default=50,
                     help='when to print the loss - number of batches')
@@ -54,8 +54,9 @@ parser.add_argument('--boolq_pre_trained_model_path', type=str,
                     default='models/model_boolq_with_markers_epoch_10_.pt',
                     help='this is a pre trained model on boolq dataset, with acc (0.82)')
 parser.add_argument('--checkpoint_path', type=str,
-                    default='models/model_epoch_4_iter_500_.pt',
-                    help='checkpoint path for evaluation or proceed training')
+                    default=None, #'models/model_epoch_4_iter_500_.pt',
+                    help='checkpoint path for evaluation or proceed training,'
+                         ' if None then ignor checkpoint')
 "============================================================================"
 "Hyper-parameters"
 parser.add_argument('--lr', type=float, default=0.00001,
@@ -138,7 +139,7 @@ if __name__ == '__main__':
     # config for the experiment:
     config_for_wandb = create_config_for_wandb(args, 'MTRES')
 
-    # tell wandb to get started
+    # tell wandb to get started:
     with wandb.init(project="tre", entity='omerc', config=config_for_wandb):
 
         wandb.log({"seed": args.seed})
@@ -146,7 +147,7 @@ if __name__ == '__main__':
         """Training"""
         if not args.eval:
             train_tre_new_questions_with_markers(
-                model, args, train_dataloader, test_dataloader,
+                model, args, train_dataloader, val_dataloader,
                 tokenizer, checkpoint_path=checkpoint_path
             )
 
@@ -154,7 +155,7 @@ if __name__ == '__main__':
         if args.eval:
             tracker = results_tracker()
             eval_tre_new_questions_with_markers(
-                model, args, val_dataloader,
+                model, args, test_dataloader,
                 tokenizer, tracker, checkpoint_path=checkpoint_path
             )
     "================================================================================="

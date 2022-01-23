@@ -68,10 +68,17 @@ def get_text_and_eiid_to_eid_map_from_tml_file(filepath):
 def new_context_with_markers_from_tokens_and_two_eids(elements_, eid1_, eid2_):
     """
     :param elements_:
+    :type elements_:
     :param eid1_:
+    :type eid1_:
     :param eid2_:
+    :type eid2_:
+    :param Shorten_text:
+    :type Shorten_text:
     :return:
+    :rtype:
     """
+
     new_context_ = ""
 
     for index, child in enumerate(elements_[0].childNodes):
@@ -89,6 +96,60 @@ def new_context_with_markers_from_tokens_and_two_eids(elements_, eid1_, eid2_):
             new_context_ += child.data
 
     return new_context_
+def new_short_context_with_markers_from_tokens_and_two_eids(elements_, eid1_, eid2_):
+    """
+    :param elements_:
+    :type elements_:
+    :param eid1_:
+    :type eid1_:
+    :param eid2_:
+    :type eid2_:
+    :param Shorten_text:
+    :type Shorten_text:
+    :return:
+    :rtype:
+    """
+
+    e2_was_found = False
+    new_short_context = ""
+
+    for index, child in enumerate(elements_[0].childNodes):
+
+        # e1:
+        if type(child) is minidom.Element and child.nodeName == "EVENT" and \
+                child.attributes["eid"].value == eid1_:
+            new_short_context += f'@{child.firstChild.data}@'
+
+        # e2:
+        elif type(child) is minidom.Element and child.nodeName == "EVENT" and \
+                child.attributes["eid"].value == eid2_:
+            new_short_context += f'@{child.firstChild.data}@'
+            e2_was_found = True
+
+
+        elif type(child) is minidom.Element and (child.nodeName == "TIMEX" or child.nodeName == "TIMEX3"):
+            if e2_was_found:
+                if "." in child.firstChild.data:
+                    new_short_context += child.firstChild.data.split(".")[0] + "."
+                    break
+            new_short_context += child.firstChild.data
+
+        elif type(child) is minidom.Element:
+            if e2_was_found:
+                if "." in child.firstChild.data:
+                    new_short_context += child.firstChild.data.split(".")[0] + "."
+                    break
+            new_short_context += child.firstChild.data
+
+        # not a minidom element:
+        else:
+            if e2_was_found:
+                if "." in child.data:
+                    new_short_context += child.data.split(".")[0] + "."
+                    break
+            new_short_context += child.data
+
+    return new_short_context
 def final_data_process_for_markers(folder_path, labeled_data_path):
     """
     :param folder_path:
@@ -118,7 +179,12 @@ def final_data_process_for_markers(folder_path, labeled_data_path):
             try:
                 eid1 = Map[f'ei{eiid1}']
                 eid2 = Map[f'ei{eiid2}']
-                passage = new_context_with_markers_from_tokens_and_two_eids(text_elements, eid1, eid2)
+
+                # here we get all passage with markers:
+                # passage = new_context_with_markers_from_tokens_and_two_eids(text_elements, eid1, eid2)
+
+                # here we get passage with markers and cut it just after the first "." after [E2]:
+                passage = new_short_context_with_markers_from_tokens_and_two_eids(text_elements, eid1, eid2)
 
                 first_word = instance[0]
                 second_word = instance[1]
@@ -211,7 +277,11 @@ def process_TCR_data(tml_folder_path):
             eid1, first_word = event1[0], event1[1]
             eid2, second_word = event2[0], event2[1]
 
-            passage = new_context_with_markers_from_tokens_and_two_eids(text_elements, eid1, eid2)
+            # here we get all passage with markers:
+            # passage = new_context_with_markers_from_tokens_and_two_eids(text_elements, eid1, eid2)
+
+            # here we get passage with markers and cut it just after the first "." after [E2]:
+            passage = new_short_context_with_markers_from_tokens_and_two_eids(text_elements, eid1, eid2)
 
             data.append([passage, [first_word, second_word, relation]])
 

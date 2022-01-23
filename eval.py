@@ -72,9 +72,9 @@ def eval_tre_new_questions_with_markers(
                 continue
 
             # get the questions:
-            question_1 = question_1_for_markers(
+            question_1 = question_1_for_regular_markers(
                 first_word, second_word) + tokenizer.sep_token
-            question_2 = question_2_for_markers(
+            question_2 = question_2_for_regular_markers(
                 first_word, second_word) + tokenizer.sep_token
 
             questions_list = [
@@ -157,6 +157,6 @@ def eval_tre_new_questions_with_markers(
     print(f'f1 macro: {macro}, f1 micro: {micro}, '
           f'evaluation percent: {eval_precent:.3f}')
 
-    wandb.log({'results table': table})
+    wandb.log({f'results table {wandb.run.name}': table})
     wandb.finish()
 "============================================================================="

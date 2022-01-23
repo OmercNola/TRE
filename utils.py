@@ -1,4 +1,4 @@
-# questions for markers:
+# questions for markers ([E1] {first_word} [/E1]):
 def question_1_for_markers(first_word, second_word):
     """
     :param first_word:
@@ -20,6 +20,29 @@ def question_2_for_markers(first_word, second_word):
     :rtype:
     """
     res = f'Is it possible that [E2] {second_word} [/E2] started before [E1] {first_word} [/E1]?'
+    return res
+# questions for regular markers (@word@):
+def question_1_for_regular_markers(first_word, second_word):
+    """
+    :param first_word:
+    :type first_word:
+    :param second_word:
+    :type second_word:
+    :return:
+    :rtype:
+    """
+    res = f'Is it possible that @{first_word}@ started before @{second_word}@ ?'
+    return res
+def question_2_for_regular_markers(first_word, second_word):
+    """
+    :param first_word:
+    :type first_word:
+    :param second_word:
+    :type second_word:
+    :return:
+    :rtype:
+    """
+    res = f'Is it possible that @{second_word}@ started before @{first_word}@ ?'
     return res
 # class that computes l1 scores (macro and micro):
 class results_tracker:
