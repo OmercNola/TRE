@@ -21,7 +21,7 @@ def question_2_for_markers(first_word, second_word):
     """
     res = f'Is it possible that [E2] {second_word} [/E2] started before [E1] {first_word} [/E1]?'
     return res
-# questions for regular markers (@word@):
+# questions for regular markers (@ word @):
 def question_1_for_regular_markers(first_word, second_word):
     """
     :param first_word:
@@ -31,7 +31,7 @@ def question_1_for_regular_markers(first_word, second_word):
     :return:
     :rtype:
     """
-    res = f'Is it possible that @{first_word}@ started before @{second_word}@ ?'
+    res = f'Is it possible that @ {first_word} @ started before @ {second_word} @ ?'
     return res
 def question_2_for_regular_markers(first_word, second_word):
     """
@@ -42,7 +42,7 @@ def question_2_for_regular_markers(first_word, second_word):
     :return:
     :rtype:
     """
-    res = f'Is it possible that @{second_word}@ started before @{first_word}@ ?'
+    res = f'Is it possible that @ {second_word} @ started before @ {first_word} @ ?'
     return res
 # class that computes l1 scores (macro and micro):
 class results_tracker:
@@ -103,8 +103,9 @@ class results_tracker:
                 res = 'AFTER'
 
             if ans1 == 1 and ans2 == 1: # VAGUE
-                self.TP_AFTER += 1
-                res = 'AFTER'
+                self.FP_BEFORE += 1
+                self.FN_AFTER += 1
+                res = 'BEFORE'
 
             if ans1 == 0 and ans2 == 0: # EQUAL
                 self.FP_EQUAL += 1
@@ -124,11 +125,31 @@ class results_tracker:
                 res = 'AFTER'
 
             if ans1 == 1 and ans2 == 1: # VAGUE
-                self.TP_EQUAL += 1
-                res = 'EQUAL'
+                self.FP_BEFORE += 1
+                self.FN_EQUAL += 1
+                res = 'BEFORE'
 
             if ans1 == 0 and ans2 == 0: # EQUAL
                 self.TP_EQUAL += 1
+                res = 'EQUAL'
+
+        elif label.strip() == 'VAGUE':
+
+            if ans1 == 1 and ans2 == 0: # BEFORE
+                self.TP_VAGUE += 1
+                res = 'VAGUE'
+
+            if ans1 == 0 and ans2 == 1: # AFTER
+                self.TP_VAGUE += 1
+                res = 'VAGUE'
+
+            if ans1 == 1 and ans2 == 1: # VAGUE
+                self.TP_VAGUE += 1
+                res = 'VAGUE'
+
+            if ans1 == 0 and ans2 == 0: # EQUAL
+                self.FP_EQUAL += 1
+                self.FN_VAGUE += 1
                 res = 'EQUAL'
 
         else:
@@ -194,15 +215,32 @@ class results_tracker:
         except ZeroDivisionError:
             f1_equal= 0
         "====================================================================================="
+        "VAGUE"
+        try:
+            precision_vague = self.TP_VAGUE / (self.TP_VAGUE + self.FP_VAGUE)
+        except ZeroDivisionError:
+            precision_vague = 0
+
+        try:
+            recall_vague = self.TP_VAGUE / (self.TP_VAGUE + self.FN_VAGUE)
+        except ZeroDivisionError:
+            recall_vague = 0
+
+        try:
+            f1_vague = 2 * (precision_vague * recall_vague) / (precision_vague + recall_vague)
+        except ZeroDivisionError:
+            f1_vague = 0
+        "====================================================================================="
         "F1, MACRO, MICRO"
 
         # macro f1, just the everage:
-        macro_f1 = (f1_before + f1_after + f1_equal) / 3
+        macro_f1 = (f1_before + f1_after + f1_equal + f1_vague) / 4
 
         # micro f1
-        TP_sum_all_classes = self.TP_BEFORE + self.TP_AFTER + self.TP_EQUAL
-        FP_sum_all_classes = self.FP_BEFORE + self.FP_AFTER + self.FP_EQUAL
-        FN_sum_all_classes = self.FN_BEFORE + self.FN_AFTER + self.FN_EQUAL
+        TP_sum_all_classes = self.TP_BEFORE + self.TP_AFTER + self.TP_EQUAL + self.TP_VAGUE
+        FP_sum_all_classes = self.FP_BEFORE + self.FP_AFTER + self.FP_EQUAL + self.FP_VAGUE
+        FN_sum_all_classes = self.FN_BEFORE + self.FN_AFTER + self.FN_EQUAL + self.FN_VAGUE
+
 
         try:
             micro_precision = TP_sum_all_classes / (TP_sum_all_classes + FP_sum_all_classes)

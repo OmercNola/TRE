@@ -118,12 +118,12 @@ def new_short_context_with_markers_from_tokens_and_two_eids(elements_, eid1_, ei
         # e1:
         if type(child) is minidom.Element and child.nodeName == "EVENT" and \
                 child.attributes["eid"].value == eid1_:
-            new_short_context += f'@{child.firstChild.data}@'
+            new_short_context += f'@ {child.firstChild.data} @'
 
         # e2:
         elif type(child) is minidom.Element and child.nodeName == "EVENT" and \
                 child.attributes["eid"].value == eid2_:
-            new_short_context += f'@{child.firstChild.data}@'
+            new_short_context += f'@ {child.firstChild.data} @'
             e2_was_found = True
 
 
