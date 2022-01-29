@@ -135,4 +135,5 @@ dmypy.json
 /models/
 /models
 /api_key.py
-/cheatsheet.py
+/utils/cheatsheet.py
+/utils/cheatsheet.py

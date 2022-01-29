@@ -288,15 +288,15 @@ def process_TCR_data(tml_folder_path):
     return data
 "================================================================================="
 """TimeBank"""
-TimeBank_folder = Path('data/TBAQ-cleaned/TimeBank/')
-TimeBank_labeled_data = Path('data/timebank.txt')
+TimeBank_folder = Path('../data/TBAQ-cleaned/TimeBank/')
+TimeBank_labeled_data = Path('../data/timebank.txt')
 TimeBank_data_with_markers = final_data_process_for_markers(
     TimeBank_folder, TimeBank_labeled_data
 )
 "================================================================================="
 """Aquaint"""
-Aq_folder = Path('data/TBAQ-cleaned/AQUAINT/')
-Aq_labeled_data = Path('data/aquaint.txt')
+Aq_folder = Path('../data/TBAQ-cleaned/AQUAINT/')
+Aq_labeled_data = Path('../data/aquaint.txt')
 Aq_data_with_markers = final_data_process_for_markers(Aq_folder, Aq_labeled_data)
 "================================================================================="
 """Aquaint and Timebank with markers (train data)"""
@@ -304,13 +304,13 @@ TRE_training_data_with_markers = Aq_data_with_markers + TimeBank_data_with_marke
 print(f'len of training data: {len(TRE_training_data_with_markers)}')
 "================================================================================="
 """TCR (val data)"""
-TCR_folder = Path('data/TBAQ-cleaned/TemporalPart/')
+TCR_folder = Path('../data/TBAQ-cleaned/TemporalPart/')
 TRE_validation_data_with_markers = process_TCR_data(TCR_folder)
 print(f'len of val data:      {len(TRE_validation_data_with_markers)}')
 "================================================================================="
 """Platinum (test data)"""
-Platinum_folder = Path('data/TBAQ-cleaned/platinum/')
-Platinum_labeled_data = Path('data/platinum.txt')
+Platinum_folder = Path('../data/TBAQ-cleaned/platinum/')
+Platinum_labeled_data = Path('../data/platinum.txt')
 TRE_test_data_with_markers = final_data_process_for_markers(
     Platinum_folder, Platinum_labeled_data
 )

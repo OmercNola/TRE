@@ -1,29 +1,16 @@
-import pathlib
-import platform
 import os
 import random
-import pandas as pd
 import numpy as np
-from collections import defaultdict, OrderedDict
-from xml.dom import minidom
-import json
 import torch
 from torch import nn
-import itertools
 import argparse
-import warnings
-import time
-from datetime import datetime, timedelta
 from model import create_pretrained_model_and_tokenizer
-from logger import create_config_for_wandb
-import boolq
-from boolq import train_boolq, eval_boolq
-from dataloaders import create_dataloader
+from utils.logger import create_config_for_wandb
+from datasets.dataloaders import create_dataloader
 from train import train_tre_new_questions_with_markers
 from eval import eval_tre_new_questions_with_markers
-from utils import results_tracker
+from utils.utils import results_tracker
 from pathlib import Path
-from pprint import pprint
 import wandb
 torch.set_printoptions(profile="full")
 parser = argparse.ArgumentParser(description='TRE')
