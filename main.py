@@ -31,21 +31,27 @@ parser.add_argument('--device', type=torch.device,
                     default=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
                     help='device type')
 "============================================================================"
-"Train settings"
-parser.add_argument('--eval', type=bool, default=True,
+"Train settings 1"
+parser.add_argument('--eval', type=bool, default=False,
                     help='eval mode ? if False then training mode')
 parser.add_argument('--eval_during_training', type=bool, default=True,
                     help='eval during training ?')
 parser.add_argument('--save_model_during_training', type=bool, default=True,
                     help='save model during training ? ')
-parser.add_argument('--save_table_of_results_after_eval', type=bool, default=True,
+parser.add_argument('--save_table_of_results_after_eval', type=bool, default=False,
                     help='save table of results (with text) after eval ?')
-parser.add_argument('--save_model_every', type=int, default=1000,
+parser.add_argument('--save_model_every', type=int, default=2000,
                     help='when to save the model - number of batches')
 parser.add_argument('--epochs', type=int, default=6,
                     help='number of epochs')
-parser.add_argument('--batch_size', type=int, default=4,
+parser.add_argument('--batch_size', type=int, default=2,
                     help='batch_size (default: 2)') # 6 is good for 3 3090 GPU'S, 8 for 8 GPU'S..
+parser.add_argument('--checkpoint_path', type=str,
+                    default=None, #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
+                    help='checkpoint path for evaluation or proceed training ,'
+                         'if set to None then ignor checkpoint')
+"============================================================================"
+"Train settings 2"
 parser.add_argument('--print_loss_every', type=int, default=50,
                     help='when to print the loss - number of batches')
 parser.add_argument('--print_eval_every', type=int, default=50,
@@ -55,17 +61,19 @@ parser.add_argument('--seed', type=int, default=1,
 parser.add_argument('--boolq_pre_trained_model_path', type=str,
                     default='models/model_boolq_with_markers_epoch_10_.pt',
                     help='this is a pre trained model on boolq dataset, with acc (0.82)')
-parser.add_argument('--checkpoint_path', type=str,
-                    default='models/fast-butterfly-49_epoch_1_iter_3184_.pt',
-                    help='checkpoint path for evaluation or proceed training ,'
-                         'if set to None then ignor checkpoint')
 "============================================================================"
 "Hyper-parameters"
 parser.add_argument('--lr', type=float, default=0.00001,
                     help='learning rate (default: 0.00001)')
+parser.add_argument('--beta_1', type=float, default=0.9,
+                    help='beta 1 for AdamW. default=0.9')
+parser.add_argument('--beta_2', type=float, default=0.999,
+                    help='beta 2 for AdamW. default=0.999')
+parser.add_argument('--weight_decay', type=float, default=0.01,
+                    help='weight_decay for AdamW. default=0.01')
 parser.add_argument('--max_grad_norm', type=float, default=50,
                     help='value loss coefficient (default: 50)')
-parser.add_argument('--dropout_p', type=float, default=0.2,
+parser.add_argument('--dropout_p', type=float, default=0.25,
                     help='dropout_p (default: 0.1)')
 "============================================================================"
 "Model settings"
@@ -128,7 +136,7 @@ if __name__ == '__main__':
     PATH = Path(args.boolq_pre_trained_model_path)
     model.load_state_dict(torch.load(PATH))
 
-    # load checkpoint:
+    # prepare checkpoint path:
     checkpoint_path = None
     if args.checkpoint_path is not None:
         checkpoint_path = Path(args.checkpoint_path)
@@ -144,7 +152,8 @@ if __name__ == '__main__':
     # tell wandb to get started:
     with wandb.init(project="tre", entity='omerc', config=config_for_wandb):
 
-        wandb.log({"seed": args.seed})
+        # wandb.log({"seed": args.seed})
+        wandb.config.update(args)
 
         """Training"""
         if not args.eval:

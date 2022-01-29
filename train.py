@@ -37,7 +37,11 @@ def train_tre_new_questions_with_markers(
 
     print('training tre with markers...')
 
-    optimizer = AdamW(model.parameters(), lr=args.lr)
+    optimizer = AdamW(
+        model.parameters(), lr=args.lr,
+        betas=(args.beta_1, args.beta_2),
+        weight_decay=args.weight_decay
+    )
     criterion = nn.CrossEntropyLoss()
 
     # Create the learning rate scheduler.
@@ -91,10 +95,6 @@ def train_tre_new_questions_with_markers(
             zip_object = zip(passages, first_words, second_words, word_labels)
             for passage, first_word, second_word, Label in zip_object:
 
-                # ignor vague, like other papers do:
-                if Label.strip() == 'VAGUE':
-                    continue
-
                 question_1 = question_1_for_regular_markers(
                     first_word, second_word) + tokenizer.sep_token
                 question_2 = question_2_for_regular_markers(
@@ -144,7 +144,7 @@ def train_tre_new_questions_with_markers(
                         # extract loss
                         loss = criterion(outputs, batch_labels)
 
-                        # calculate loss
+                        # compute gradients:
                         loss.backward()
 
                         # This is to help prevent the "exploding gradients" problem:
