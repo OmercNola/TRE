@@ -360,7 +360,7 @@ if __name__ == '__main__':
                         help='save model during training ? ')
     parser.add_argument('--save_table_of_results_after_eval', type=bool, default=False,
                         help='save table of results (with text) after eval ?')
-    parser.add_argument('--save_model_every', type=int, default=2000,
+    parser.add_argument('--save_model_every', type=int, default=1000,
                         help='when to save the model - number of batches')
     parser.add_argument('--epochs', type=int, default=6,
                         help='number of epochs')
@@ -442,3 +442,4 @@ if __name__ == '__main__':
     else:
         args.device = torch.device("cpu")
         main(args)
+
