@@ -144,7 +144,7 @@ def train_tre_new_questions_with_markers(
                         loss.backward()
 
                         # This is to help prevent the "exploding gradients" problem:
-                        # torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+                        torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
 
                         # update parameters
                         optimizer.step()

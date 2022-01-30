@@ -58,9 +58,9 @@ parser.add_argument('--beta_2', type=float, default=0.999,
                     help='beta 2 for AdamW. default=0.999')
 parser.add_argument('--weight_decay', type=float, default=0.01,
                     help='weight_decay for AdamW. default=0.01')
-parser.add_argument('--max_grad_norm', type=float, default=50,
+parser.add_argument('--max_grad_norm', type=float, default=40,
                     help='value loss coefficient (default: 50)')
-parser.add_argument('--dropout_p', type=float, default=0.25,
+parser.add_argument('--dropout_p', type=float, default=0.20,
                     help='dropout_p (default: 0.1)')
 "============================================================================"
 "Model settings"
