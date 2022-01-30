@@ -14,7 +14,8 @@ from utils.utils import results_tracker
 from pathlib import Path
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch import distributed as dist
-import torch.multiprocessing as TMP
+import torch.multiprocessing as mp
+from torch.utils.data.distributed import DistributedSampler
 import wandb
 import time
 from tqdm import tqdm
@@ -29,7 +30,6 @@ from utils.logger import \
     (train_log, save_model_checkpoint,
      load_model_checkpoint,
      print_training_progress)
-
 def is_master():
     return not dist.is_initialized() or dist.get_rank() == 0
 def train(model, args, train_dataloader, test_dataloader, tokenizer):
@@ -50,8 +50,6 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
     :rtype:
     """
 
-    print('training tre with markers...')
-
     optimizer = AdamW(
         model.parameters(), lr=args.learning_rate,
         betas=(args.beta_1, args.beta_2),
@@ -66,7 +64,7 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
     )
 
     # Tell wandb to watch what the model gets up to: gradients, weights, and more!
-    wandb.watch(model, criterion, log="all", log_freq=10)
+    # wandb.watch(model, criterion, log="all", log_freq=10)
 
     # loss progress counters
     total_loss_for_print = 0
@@ -224,6 +222,11 @@ def main(args, init_distributed=False):
     :rtype:
     """
 
+    if torch.cuda.is_available():
+        torch.cuda.set_device(args.device_id)
+        torch.cuda.init()
+        args.device = torch.device("cuda")
+
     if init_distributed:
         dist.init_process_group(
             backend=args.backend,
@@ -231,18 +234,19 @@ def main(args, init_distributed=False):
             world_size=args.world_size,
             rank=args.rank,
         )
-        dist.all_reduce(torch.zeros(1).cuda())
+        # dist.all_reduce(torch.zeros(1).cuda())
         args.device = torch.device("cuda", args.rank)
 
-    # config for the experiment:
-    config_for_wandb = create_config_for_wandb(args, 'MTRES')
-    # tell wandb to get started:
-    wandb.init(project="tre", entity='omerc', config=config_for_wandb, group="DDP")
-    wandb.config.update(args)
+    # # config for the experiment:
+    # config_for_wandb = create_config_for_wandb(args, 'MTRES')
+    # # tell wandb to get started:
+    # wandb.init(project="tre", entity='omerc', config=config_for_wandb, group="DDP")
+    # wandb.config.update(args)
 
     # create model and tokenizer (after markers adition):
     model, tokenizer = create_pretrained_model_and_tokenizer(args)
-    model = nn.DataParallel(model)
+    model = nn.DataParallel(model, device_ids=[args.rank])
+    model.to(args.device)
     "================================================================================="
     "BOOLQ WITH MARKERS"
     # # # Datasets:
@@ -266,7 +270,7 @@ def main(args, init_distributed=False):
 
     # boolq is a yes/no QA dataset, load the pretrained model:
     PATH = Path(args.boolq_pre_trained_model_path)
-    model.load_state_dict(torch.load(PATH, map_location="cuda:0"))
+    model.load_state_dict(torch.load(PATH))
     "=================================================================="
     # prepare checkpoint path:
     checkpoint_path = None
@@ -293,26 +297,40 @@ def main(args, init_distributed=False):
 
             if args.sync_bn:
                 model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
+
             model = DDP(
                 model,
                 device_ids=[args.rank],
                 output_device=args.rank,
                 find_unused_parameters=True,
                 broadcast_buffers=False
-            )
+            ).cuda()
 
-            train_sampler = torch.utils.data.distributed.DistributedSampler(
+            train_sampler = DistributedSampler(
                 train_dataset,
                 shuffle=args.shuffle,
             )
 
-            train_dataloader = DataLoader(train_dataset,
-                                          shuffle=False,
-                                          drop_last=True,
-                                          batch_size=args.batch_size,
-                                          num_workers=args.num_workers,
-                                          sampler=train_sampler,
-                                          pin_memory=True)
+            train_dataloader = DataLoader(
+                train_dataset,
+                shuffle=False,
+                drop_last=True,
+                batch_size=args.batch_size,
+                num_workers=args.num_workers,
+                sampler=train_sampler,
+                pin_memory=True
+            )
+
+            val_dataloader = DataLoader(
+                val_dataset,
+                shuffle=False,
+                drop_last=True,
+                batch_size=args.batch_size,
+                num_workers=args.num_workers,
+                sampler=train_sampler,
+                pin_memory=True
+            )
+
         # if we have just 1 gpu:
         else:
 
@@ -402,7 +420,7 @@ if __name__ == '__main__':
                         help='when to save the model - number of batches')
     parser.add_argument('--epochs', type=int, default=6,
                         help='number of epochs')
-    parser.add_argument('--batch_size', type=int, default=2,
+    parser.add_argument('--batch_size', type=int, default=4,
                         help='batch_size (default: 2)')  # 6 is good for 3 3090 GPU'S, 8 for 8 GPU'S..
     parser.add_argument('--checkpoint_path', type=str,
                         default=None,  # 'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
@@ -448,6 +466,7 @@ if __name__ == '__main__':
     "============================================================================"
 
     os.environ['OMP_NUM_THREADS'] = '1'
+    os.environ['WANDB_NOTEBOOK_NAME'] = 'omer tre'
     print('Available devices ', torch.cuda.device_count())
 
     "================================================================================="
@@ -466,16 +485,12 @@ if __name__ == '__main__':
     # not relly sure what it is, needs to check !!!!
     torch.backends.cudnn.deterministic = True
     "================================================================================="
-
     # Distributed
     args.world_size = torch.cuda.device_count()
     # args.world_size = args.gpus * args.nodes
 
-    if platform == "win32":
-        # Windows, nccl dosent work..
-        args.world_size = 1
-
     print(f'args.world_size: {args.world_size}')
+
     if args.world_size == 1:
         args.device_id = 0
         main(args)
@@ -483,12 +498,13 @@ if __name__ == '__main__':
     if args.world_size > 1:
         args.batch_size = int(args.batch_size / args.world_size)
         port = random.randint(10000, 20000)
-        args.init_method = f"tcp://localhost:{port}"
+        # args.init_method = f"tcp://localhost:{port}"
+        args.init_method = 'tcp://127.0.0.1:23456'
         # args.init_method = "env://"
         args.rank = None
         args.start_rank = 0
-        args.backend = 'nccl'
-        TMP.spawn(
+        args.backend = 'nccl' if platform != "win32" else 'gloo'
+        mp.spawn(
             fn=distributed_main,
             args=(args,),
             nprocs=args.world_size,

@@ -11,7 +11,6 @@ class Longformer(nn.Module):
         # Get all of the model's parameters as a list of tuples.
         self.params = list(self.model.named_parameters())
 
-        print("creating the longformer model...")
 
         # print('longformer model has {:} different'
         #       ' named parameters.\n'.format(len(self.params)))
