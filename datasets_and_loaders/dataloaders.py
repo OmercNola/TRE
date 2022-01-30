@@ -1,4 +1,4 @@
-from data import (TRE_training_data_with_markers, TRE_test_data_with_markers,
+from datasets_and_loaders.data import (TRE_training_data_with_markers, TRE_test_data_with_markers,
                   TRE_validation_data_with_markers)
 from torch.utils.data import DataLoader
 def create_dataloader(args, train_val_test):

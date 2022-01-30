@@ -4,9 +4,9 @@ import numpy as np
 import torch
 from torch import nn
 import argparse
-from model import create_pretrained_model_and_tokenizer
+from model.model import create_pretrained_model_and_tokenizer
 from utils.logger import create_config_for_wandb
-from datasets.dataloaders import create_dataloader
+from datasets_and_loaders.dataloaders import create_dataloader
 from train import train_tre_new_questions_with_markers
 from eval import eval_tre_new_questions_with_markers
 from utils.utils import results_tracker
@@ -60,7 +60,7 @@ parser.add_argument('--weight_decay', type=float, default=0.01,
                     help='weight_decay for AdamW. default=0.01')
 parser.add_argument('--max_grad_norm', type=float, default=40,
                     help='value loss coefficient (default: 50)')
-parser.add_argument('--dropout_p', type=float, default=0.20,
+parser.add_argument('--dropout_p', type=float, default=0.15,
                     help='dropout_p (default: 0.1)')
 "============================================================================"
 "Model settings"
