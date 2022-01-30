@@ -13,9 +13,9 @@ import platform
 from datetime import datetime
 from collections import namedtuple
 import xml
+from torch.utils.data import Dataset
 File = namedtuple('File', 'name path size modified_date')
 "================================================================================="
-# TB(train daa), AQ(also train data), PL(test data) process functions:
 def process_data(tml_folder_path, annotation_file_path):
     """
     :param tml_folder_path:
@@ -64,7 +64,6 @@ def get_text_and_eiid_to_eid_map_from_tml_file(filepath):
     elements = mydoc.getElementsByTagName("TEXT")
 
     return elements, ei_e_map
-# prepare the data with markers:
 def new_context_with_markers_from_tokens_and_two_eids(elements_, eid1_, eid2_):
     """
     :param elements_:
@@ -195,8 +194,6 @@ def final_data_process_for_markers(folder_path, labeled_data_path):
                 pass
     return data
 "================================================================================="
-# TCR(val data) process functions, TCR is a bit different from other datasets_and_loaders,
-# then process is also different
 def get_text_and_labeled_data_from_tml_file_tcr(filepath):
     """
     Read specific tml file and process it,
@@ -287,31 +284,72 @@ def process_TCR_data(tml_folder_path):
 
     return data
 "================================================================================="
-"""TimeBank"""
-TimeBank_folder = Path('./data/TBAQ-cleaned/TimeBank/')
-TimeBank_labeled_data = Path('./data/timebank.txt')
-TimeBank_data_with_markers = final_data_process_for_markers(
-    TimeBank_folder, TimeBank_labeled_data
-)
-"================================================================================="
-"""Aquaint"""
-Aq_folder = Path('./data/TBAQ-cleaned/AQUAINT/')
-Aq_labeled_data = Path('./data/aquaint.txt')
-Aq_data_with_markers = final_data_process_for_markers(Aq_folder, Aq_labeled_data)
-"================================================================================="
-"""Aquaint and Timebank with markers (train data)"""
-TRE_training_data_with_markers = Aq_data_with_markers + TimeBank_data_with_markers
-print(f'len of training data: {len(TRE_training_data_with_markers)}')
-"================================================================================="
-"""TCR (val data)"""
-TCR_folder = Path('./data/TBAQ-cleaned/TemporalPart/')
-TRE_validation_data_with_markers = process_TCR_data(TCR_folder)
-print(f'len of val data:      {len(TRE_validation_data_with_markers)}')
-"================================================================================="
-"""Platinum (test data)"""
-Platinum_folder = Path('./data/TBAQ-cleaned/platinum/')
-Platinum_labeled_data = Path('./data/platinum.txt')
-TRE_test_data_with_markers = final_data_process_for_markers(
-    Platinum_folder, Platinum_labeled_data
-)
-print(f'len of test data:     {len(TRE_test_data_with_markers)}')
+class TRE_train_dataset(Dataset):
+
+    def __init__(self, ):
+        super().__init__()
+
+        "=============================================================="
+        """TimeBank"""
+        TimeBank_folder = Path('./data/TBAQ-cleaned/TimeBank/')
+        TimeBank_labeled_data = Path('./data/timebank.txt')
+        TimeBank_data_with_markers = final_data_process_for_markers(
+            TimeBank_folder, TimeBank_labeled_data
+        )
+        "=============================================================="
+        """Aquaint"""
+        Aq_folder = Path('./data/TBAQ-cleaned/AQUAINT/')
+        Aq_labeled_data = Path('./data/aquaint.txt')
+        Aq_data_with_markers = final_data_process_for_markers(
+            Aq_folder, Aq_labeled_data
+        )
+        "=============================================================="
+        """Aquaint and Timebank with markers (train data)"""
+        self.TRE_training_data_with_markers = \
+            Aq_data_with_markers + TimeBank_data_with_markers
+        "=============================================================="
+
+    def __len__(self):
+        return len(self.TRE_training_data_with_markers)
+
+    def __getitem__(self, idx):
+        res = self.TRE_training_data_with_markers[idx]
+        return res
+class TRE_val_dataset(Dataset):
+
+    def __init__(self, ):
+        super().__init__()
+
+        "=============================================================="
+        """TCR (val data)"""
+        TCR_folder = Path('./data/TBAQ-cleaned/TemporalPart/')
+        self.TRE_validation_data_with_markers = process_TCR_data(TCR_folder)
+        "=============================================================="
+
+    def __len__(self):
+        return len(self.TRE_validation_data_with_markers)
+
+    def __getitem__(self, idx):
+        res = self.TRE_validation_data_with_markers[idx]
+        return res
+class TRE_test_dataset(Dataset):
+
+    def __init__(self, ):
+        super().__init__()
+
+        "=============================================================="
+        """Platinum (test data)"""
+        Platinum_folder = Path('./data/TBAQ-cleaned/platinum/')
+        Platinum_labeled_data = Path('./data/platinum.txt')
+        self.TRE_test_data_with_markers = final_data_process_for_markers(
+            Platinum_folder, Platinum_labeled_data
+        )
+        "=============================================================="
+
+    def __len__(self):
+        return len(self.TRE_test_data_with_markers)
+
+    def __getitem__(self, idx):
+        res = self.TRE_test_data_with_markers[idx]
+        return res
+

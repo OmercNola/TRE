@@ -1,5 +1,7 @@
-from datasets_and_loaders.data import (TRE_training_data_with_markers, TRE_test_data_with_markers,
-                  TRE_validation_data_with_markers)
+from datasets_and_loaders.data import \
+    (TRE_train_dataset,
+     TRE_val_dataset,
+     TRE_test_dataset)
 from torch.utils.data import DataLoader
 def create_dataloader(args, train_val_test):
     """
@@ -13,7 +15,7 @@ def create_dataloader(args, train_val_test):
     if train_val_test == 'train':
 
         dataloader = DataLoader(
-            TRE_training_data_with_markers,
+            TRE_train_dataset,
             batch_size=args.batch_size,
             shuffle=True
         )
@@ -21,7 +23,7 @@ def create_dataloader(args, train_val_test):
     elif train_val_test == 'val':
 
         dataloader = DataLoader(
-            TRE_validation_data_with_markers,
+            TRE_val_dataset,
             batch_size=args.batch_size,
             shuffle=True
         )
@@ -29,7 +31,7 @@ def create_dataloader(args, train_val_test):
     elif train_val_test == 'test':
 
         dataloader = DataLoader(
-            TRE_test_data_with_markers,
+            TRE_test_dataset,
             batch_size=args.batch_size,
             shuffle=True
         )
