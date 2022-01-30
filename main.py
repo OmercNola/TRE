@@ -50,7 +50,7 @@ parser.add_argument('--boolq_pre_trained_model_path', type=str,
                     help='this is a pre trained model on boolq dataset, with acc (0.82)')
 "============================================================================"
 "Hyper-parameters"
-parser.add_argument('--lr', type=float, default=0.00001,
+parser.add_argument('--learning_rate', type=float, default=0.00001,
                     help='learning rate (default: 0.00001)')
 parser.add_argument('--beta_1', type=float, default=0.9,
                     help='beta 1 for AdamW. default=0.9')
@@ -139,7 +139,6 @@ if __name__ == '__main__':
     # tell wandb to get started:
     with wandb.init(project="tre", entity='omerc', config=config_for_wandb):
 
-        # wandb.log({"seed": args.seed})
         wandb.config.update(args)
 
         """Training"""

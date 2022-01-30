@@ -17,7 +17,7 @@ def create_config_for_wandb(args, dataset):
     config = dict(
         epochs=args.epochs,
         batch_size=args.batch_size,
-        learning_rate=args.lr,
+        learning_rate=args.learning_rate,
         seed=args.seed,
         dropout_p=args.dropout_p,
         max_grad_norm=args.max_grad_norm,

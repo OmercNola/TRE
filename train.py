@@ -34,7 +34,7 @@ def train_tre_new_questions_with_markers(
     print('training tre with markers...')
 
     optimizer = AdamW(
-        model.parameters(), lr=args.lr,
+        model.parameters(), lr=args.learning_rate,
         betas=(args.beta_1, args.beta_2),
         weight_decay=args.weight_decay
     )
