@@ -63,7 +63,8 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
     )
 
     # Tell wandb to watch what the model gets up to: gradients, weights, and more!
-    # wandb.watch(model, criterion, log="all", log_freq=10)
+    if is_master():
+        wandb.watch(model, criterion, log="all", log_freq=10)
 
     # loss progress counters
     total_loss_for_print = 0
@@ -169,47 +170,50 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
                         batch_labels = []
 
             # Print and save progress once in a while...
-            if batch_counter % args.print_loss_every == 0:
-                # just print:
-                print_training_progress(
-                    t0, len(train_dataloader),
-                    epoch, batch_counter, total_loss_for_print
-                )
-                # save in wandb:
-                train_log(total_loss_for_print, epoch, batches_overall)
-                total_loss_for_print = 0
-
-            # save the model once in a while:
-            if batch_counter % args.save_model_every == 0:
-
-                # save:
-                if args.save_model_during_training:
-                    save_model_checkpoint(
-                        args, model, optimizer,
-                        scheduler, len(train_dataloader),
-                        batch_counter, epoch,
-                        total_loss_for_save
+            if is_master():
+                if batch_counter % args.print_loss_every == 0:
+                    # just print:
+                    print_training_progress(
+                        t0, len(train_dataloader),
+                        epoch, batch_counter, total_loss_for_print
                     )
-                    total_loss_for_save = 0
+                    # save in wandb:
 
-        # evaluate at the end of the epoch:
-        if args.eval_during_training:
-            tracker = results_tracker()
-            eval_tre_new_questions_with_markers(
-                model, args, test_dataloader,
-                tokenizer, tracker, checkpoint_path=None,
-                batches_overall=batches_overall
-            )
+                    train_log(total_loss_for_print, epoch, batches_overall)
+                    total_loss_for_print = 0
 
-        # save at the end of the epoch:
-        if args.save_model_during_training:
-            save_model_checkpoint(
-                args, model, optimizer,
-                scheduler, len(train_dataloader),
-                batch_counter, epoch,
-                total_loss_for_save
-            )
-            total_loss_for_save = 0
+                # save the model once in a while:
+                if batch_counter % args.save_model_every == 0:
+
+                    # save:
+                    if args.save_model_during_training:
+                        save_model_checkpoint(
+                            args, model, optimizer,
+                            scheduler, len(train_dataloader),
+                            batch_counter, epoch,
+                            total_loss_for_save
+                        )
+                        total_loss_for_save = 0
+
+        if is_master():
+            # evaluate at the end of the epoch:
+            if args.eval_during_training:
+                tracker = results_tracker()
+                eval_tre_new_questions_with_markers(
+                    model, args, test_dataloader,
+                    tokenizer, tracker, checkpoint_path=None,
+                    batches_overall=batches_overall
+                )
+
+            # save at the end of the epoch:
+            if args.save_model_during_training:
+                save_model_checkpoint(
+                    args, model, optimizer,
+                    scheduler, len(train_dataloader),
+                    batch_counter, epoch,
+                    total_loss_for_save
+                )
+                total_loss_for_save = 0
 def main(args, init_distributed=False):
 
     """
@@ -236,16 +240,17 @@ def main(args, init_distributed=False):
         # dist.all_reduce(torch.zeros(1).cuda())
         args.device = torch.device("cuda", args.rank)
 
-    # # config for the experiment:
-    # config_for_wandb = create_config_for_wandb(args, 'MTRES')
-    # # tell wandb to get started:
-    # wandb.init(project="tre", entity='omerc', config=config_for_wandb, group="DDP")
-    # wandb.config.update(args)
-
     # create model and tokenizer (after markers adition):
     model, tokenizer = create_pretrained_model_and_tokenizer(args)
     model = nn.DataParallel(model, device_ids=[args.rank])
     model.to(args.device)
+    "================================================================================="
+    if is_master():
+        # config for the experiment:
+        config_for_wandb = create_config_for_wandb(args, 'MTRES')
+        # tell wandb to get started:
+        wandb.init(project="tre", entity='omerc', config=config_for_wandb)
+        wandb.config.update(args)
     "================================================================================="
     "BOOLQ WITH MARKERS"
     # # # Datasets:
@@ -262,11 +267,9 @@ def main(args, init_distributed=False):
     # model.load_state_dict(torch.load(PATH))
     # model.to(args.device)
     # eval_boolq(model, args, test_dataloader, tokenizer)
-
     "================================================================================="
     "=========================  Temporal Relation Classification  ===================="
     "================================================================================="
-
     # boolq is a yes/no QA dataset, load the pretrained model:
     PATH = Path(args.boolq_pre_trained_model_path)
     model.load_state_dict(torch.load(PATH))
@@ -285,7 +288,6 @@ def main(args, init_distributed=False):
     "=================================================================="
     # Parallel
     if torch.cuda.is_available():
-
         # if we have more than 1 gpu:
         if args.world_size > 1:
 
@@ -319,7 +321,6 @@ def main(args, init_distributed=False):
     "=================================================================="
     """Evaluation"""
     if args.eval:
-
         tracker = results_tracker()
         eval_tre_new_questions_with_markers(
             model, args, test_dataloader,
@@ -327,7 +328,6 @@ def main(args, init_distributed=False):
         )
     "=================================================================="
 def distributed_main(device_id, args):
-
     """
     :param device_id:
     :type device_id:
@@ -336,17 +336,12 @@ def distributed_main(device_id, args):
     :return:
     :rtype:
     """
-
     args.device_id = device_id
-
     if args.rank is None:
         args.rank = args.start_rank + device_id
-
     main(args, init_distributed=True)
-
 if __name__ == '__main__':
     __file__ = 'main.py'
-
     "============================================================================"
     parser = argparse.ArgumentParser(description='TRE')
     "============================================================================"
@@ -413,50 +408,37 @@ if __name__ == '__main__':
     parser.add_argument('--Size_of_longfor', type=str, default='base',
                         help='Size_of_longformer (default: "base")')
     "============================================================================"
-
     os.environ['OMP_NUM_THREADS'] = '1'
     print('Available devices ', torch.cuda.device_count())
-
     "================================================================================="
     args = parser.parse_known_args()[0]
-
+    "================================================================================="
     # login to W&B:
     wandb.login()
-
+    "================================================================================="
     # Ensure deterministic behavior
     if args.seed is None:
         args.seed = random.randint(1, 10000)
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
-
     # not relly sure what it is, needs to check !!!!
     torch.backends.cudnn.deterministic = True
     "================================================================================="
     # Distributed
     args.world_size = torch.cuda.device_count()
     # args.world_size = args.gpus * args.nodes
-
-    print(f'args.world_size: {args.world_size}')
-
     if args.world_size == 1:
         args.device_id = 0
         main(args)
-
     if args.world_size > 1:
         args.batch_size = int(args.batch_size / args.world_size)
         port = random.randint(10000, 20000)
-        # args.init_method = f"tcp://localhost:{port}"
-        args.init_method = 'tcp://127.0.0.1:23456'
-        # args.init_method = "env://"
+        args.init_method = f"tcp://localhost:{port}" if platform != "win32" else 'tcp://127.0.0.1:23456'
         args.rank = None
         args.start_rank = 0
         args.backend = 'nccl' if platform != "win32" else 'gloo'
-        mp.spawn(
-            fn=distributed_main,
-            args=(args,),
-            nprocs=args.world_size,
-        )
+        mp.spawn(fn=distributed_main, args=(args,), nprocs=args.world_size,)
     else:
         args.device = torch.device("cpu")
         main(args)
