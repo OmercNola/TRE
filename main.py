@@ -15,7 +15,6 @@ from pathlib import Path
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch import distributed as dist
 import torch.multiprocessing as mp
-from torch.utils.data.distributed import DistributedSampler
 import wandb
 import time
 from tqdm import tqdm
@@ -284,11 +283,6 @@ def main(args, init_distributed=False):
                 None, None
             )
     "=================================================================="
-    # Dataset:
-    train_dataset = TRE_train_dataset()
-    val_dataset = TRE_val_dataset()
-    test_dataset = TRE_test_dataset()
-    "=================================================================="
     # Parallel
     if torch.cuda.is_available():
 
@@ -306,53 +300,18 @@ def main(args, init_distributed=False):
                 broadcast_buffers=False
             ).cuda()
 
-            train_sampler = DistributedSampler(
-                train_dataset,
-                shuffle=args.shuffle,
-            )
-
-            train_dataloader = DataLoader(
-                train_dataset,
-                shuffle=False,
-                drop_last=True,
-                batch_size=args.batch_size,
-                num_workers=args.num_workers,
-                sampler=train_sampler,
-                pin_memory=True
-            )
-
-            val_dataloader = DataLoader(
-                val_dataset,
-                shuffle=False,
-                drop_last=True,
-                batch_size=args.batch_size,
-                num_workers=args.num_workers,
-                sampler=train_sampler,
-                pin_memory=True
-            )
+            ddp = True
+            train_dataloader = create_dataloader(args, 'train', ddp)
+            val_dataloader = create_dataloader(args, 'val', ddp)
+            test_dataloader = create_dataloader(args, 'test', ddp)
 
         # if we have just 1 gpu:
         else:
-
             model = model.to(args.device)
-
-            train_dataloader = DataLoader(
-                train_dataset,
-                shuffle=args.shuffle,
-                drop_last=True,
-                batch_size=args.batch_size,
-                num_workers=args.num_workers,
-                pin_memory=True
-            )
-
-            val_dataloader = DataLoader(
-                val_dataset,
-                shuffle=args.shuffle,
-                drop_last=True,
-                batch_size=args.batch_size,
-                num_workers=args.num_workers,
-                pin_memory=True
-            )
+            ddp = False
+            train_dataloader = create_dataloader(args, 'train', ddp)
+            val_dataloader = create_dataloader(args, 'val', ddp)
+            test_dataloader = create_dataloader(args, 'test', ddp)
     "=================================================================="
     """Training"""
     if not args.eval:
@@ -362,16 +321,6 @@ def main(args, init_distributed=False):
     if args.eval:
 
         tracker = results_tracker()
-
-        test_dataloader = DataLoader(
-            test_dataset,
-            shuffle=args.shuffle,
-            drop_last=True,
-            batch_size=args.batch_size,
-            num_workers=args.num_workers,
-            pin_memory=True
-        )
-
         eval_tre_new_questions_with_markers(
             model, args, test_dataloader,
             tokenizer, tracker, checkpoint_path=checkpoint_path
@@ -466,7 +415,6 @@ if __name__ == '__main__':
     "============================================================================"
 
     os.environ['OMP_NUM_THREADS'] = '1'
-    os.environ['WANDB_NOTEBOOK_NAME'] = 'omer tre'
     print('Available devices ', torch.cuda.device_count())
 
     "================================================================================="
