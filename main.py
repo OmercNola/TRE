@@ -364,7 +364,7 @@ if __name__ == '__main__':
                         help='when to save the model - number of batches')
     parser.add_argument('--epochs', type=int, default=6,
                         help='number of epochs')
-    parser.add_argument('--batch_size', type=int, default=4,
+    parser.add_argument('--batch_size', type=int, default=6,
                         help='batch_size (default: 2)')  # 6 is good for 3 3090 GPU'S, 8 for 8 GPU'S..
     parser.add_argument('--checkpoint_path', type=str,
                         default=None,  # 'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
@@ -398,7 +398,7 @@ if __name__ == '__main__':
     parser.add_argument('--sync-bn', action='store_true',
                         default=False, help='sync batchnorm')
     parser.add_argument('--num_workers', type=int,
-                        default=4, help='num_workers')
+                        default=6, help='num_workers')
     "============================================================================"
     "Model settings"
     parser.add_argument('--output_size', type=int, default=2,
