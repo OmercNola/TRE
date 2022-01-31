@@ -1,5 +1,7 @@
+from __future__ import absolute_import, division, print_function
 from torch import nn
-from transformers import AutoTokenizer, AutoModel, AutoModelForQuestionAnswering, BertTokenizer
+from transformers import \
+    (AutoTokenizer, AutoModel, AutoModelForQuestionAnswering, BertTokenizer)
 from transformers import RobertaTokenizer, AutoConfig
 class Longformer(nn.Module):
 

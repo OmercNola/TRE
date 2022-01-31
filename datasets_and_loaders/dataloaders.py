@@ -1,3 +1,4 @@
+from __future__ import absolute_import, division, print_function
 from datasets_and_loaders.data import \
     (TRE_train_dataset,
      TRE_val_dataset,
