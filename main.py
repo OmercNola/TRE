@@ -215,7 +215,7 @@ def main(args, init_distributed=False):
     :return:
     :rtype:
     """
-
+    "================================================================================="
     if torch.cuda.is_available():
         torch.cuda.set_device(args.device_id)
         torch.cuda.init()
@@ -230,11 +230,6 @@ def main(args, init_distributed=False):
         )
         # dist.all_reduce(torch.zeros(1).cuda())
         args.device = torch.device("cuda", args.rank)
-
-    # create model and tokenizer (after markers adition):
-    model, tokenizer = create_pretrained_model_and_tokenizer(args)
-    model = nn.DataParallel(model, device_ids=[args.rank])
-    model.to(args.device)
     "================================================================================="
     if is_master():
         # config for the experiment:
@@ -243,7 +238,8 @@ def main(args, init_distributed=False):
         wandb.init(project="tre", entity='omerc', config=config_for_wandb)
         wandb.config.update(args)
     "================================================================================="
-    "BOOLQ WITH MARKERS"
+    "==============================  BOOLQ WITH MARKERS  ============================="
+    "================================================================================="
     # # # Datasets:
     # dataset_boolq = load_dataset("boolq")
     # # Dataloaders:
@@ -261,19 +257,22 @@ def main(args, init_distributed=False):
     "================================================================================="
     "=========================  Temporal Relation Classification  ===================="
     "================================================================================="
-    # boolq is a yes/no QA dataset, load the pretrained model:
-    PATH = Path(args.boolq_pre_trained_model_path)
-    model.load_state_dict(torch.load(PATH))
+    # create model and tokenizer (after markers adition):
+    model, tokenizer = create_pretrained_model_and_tokenizer(args)
+    "================================================================================="
+    # if train mode and no checkpoint - load the pretrained boolq model:
+    if not args.eval and args.checkpoint_path is None:
+        PATH = Path(args.boolq_pre_trained_model_path)
+        model = nn.DataParallel(model, device_ids=[args.rank]).to(args.device)
+        model.load_state_dict(torch.load(PATH))
     "=================================================================="
     # prepare checkpoint path:
     checkpoint_path = None
     if args.checkpoint_path is not None:
         checkpoint_path = Path(args.checkpoint_path)
-    # if there is a checkpoint, load it:
-    if checkpoint_path is not None:
         (model, _, _, _, _, _) = \
             load_model_checkpoint(
-                checkpoint_path, model,
+                args, checkpoint_path, model.to(args.device),
                 None, None
             )
     "=================================================================="
@@ -357,10 +356,10 @@ if __name__ == '__main__':
                         help='if True - ignor vague lable in training')
     parser.add_argument('--epochs', type=int, default=6,
                         help='number of epochs')
-    parser.add_argument('--batch_size', type=int, default=6,
+    parser.add_argument('--batch_size', type=int, default=2,
                         help='batch_size (default: 2)')  # 6 is good for 3 3090 GPU'S, 8 for 8 GPU'S..
     parser.add_argument('--checkpoint_path', type=str,
-                        default=None,  # 'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
+                        default=None,# 'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
                         help='checkpoint path for evaluation or proceed training ,'
                              'if set to None then ignor checkpoint')
     "============================================================================"
@@ -424,6 +423,7 @@ if __name__ == '__main__':
     # args.world_size = args.gpus * args.nodes
     if args.world_size == 1:
         args.device_id = 0
+        args.rank = 0
         main(args)
     if args.world_size > 1:
         args.batch_size = int(args.batch_size / args.world_size)
