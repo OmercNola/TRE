@@ -1,4 +1,4 @@
-from utils.logger import (load_model_checkpoint)
+from utils.saver import (load_model_checkpoint)
 from utils.utils import (question_1_for_regular_markers, question_2_for_regular_markers)
 import torch
 import wandb

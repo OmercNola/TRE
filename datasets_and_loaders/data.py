@@ -14,7 +14,6 @@ from datetime import datetime
 from collections import namedtuple
 import xml
 from torch.utils.data import Dataset
-File = namedtuple('File', 'name path size modified_date')
 "================================================================================="
 def process_data(tml_folder_path, annotation_file_path):
     """
@@ -254,7 +253,7 @@ def process_TCR_data(tml_folder_path):
     # passage is the result from new_context_with_markers_from_tokens_and_two_eids func
     # instance is like: [first_word, second_word, relation]
     data = []
-
+    File = namedtuple('File', 'name path size modified_date')
     tml_files = []
     for item in tml_folder_path.glob('**/*'):
         if item.suffix == '.tml':

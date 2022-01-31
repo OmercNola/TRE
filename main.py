@@ -8,7 +8,9 @@ import argparse
 from eval import eval_tre_new_questions_with_markers
 from transformers import get_linear_schedule_with_warmup, AdamW
 from model.model import create_pretrained_model_and_tokenizer
-from utils.logger import create_config_for_wandb
+from utils.logger import *
+from utils.saver import *
+from utils.utils import *
 from datasets_and_loaders.dataloaders import create_dataloader
 from utils.utils import results_tracker
 from pathlib import Path
@@ -21,14 +23,7 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from datasets_and_loaders.data import \
     (TRE_train_dataset, TRE_val_dataset, TRE_test_dataset)
-from utils.utils import \
-    (question_1_for_regular_markers,
-     question_2_for_regular_markers,
-     get_label, results_tracker)
-from utils.logger import \
-    (train_log, save_model_checkpoint,
-     load_model_checkpoint,
-     print_training_progress)
+
 def is_master():
     return not dist.is_initialized() or dist.get_rank() == 0
 def train(model, args, train_dataloader, test_dataloader, tokenizer):
@@ -82,7 +77,12 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
     # total nuber of batches counter:
     batches_overall = 0
 
-    for epoch in tqdm(range(epoch_start, args.epochs+1, 1)):
+    if is_master():
+        epoch_itrator = tqdm(range(epoch_start, args.epochs+1, 1))
+    else:
+        epoch_itrator = range(epoch_start, args.epochs+1, 1)
+
+    for epoch in epoch_itrator:
 
         batch_input_ids = []
         batch_attention_mask = []
@@ -99,6 +99,10 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
 
             zip_object = zip(passages, first_words, second_words, word_labels)
             for passage, first_word, second_word, Label in zip_object:
+
+                if args.ignor_vague_lable_in_training:
+                    if Label.strip() == 'VAGUE':
+                        continue
 
                 question_1 = question_1_for_regular_markers(
                     first_word, second_word) + tokenizer.sep_token
@@ -204,16 +208,6 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
                     tokenizer, tracker, checkpoint_path=None,
                     batches_overall=batches_overall
                 )
-
-            # save at the end of the epoch:
-            if args.save_model_during_training:
-                save_model_checkpoint(
-                    args, model, optimizer,
-                    scheduler, len(train_dataloader),
-                    batch_counter, epoch,
-                    total_loss_for_save
-                )
-                total_loss_for_save = 0
 def main(args, init_distributed=False):
 
     """
@@ -362,6 +356,8 @@ if __name__ == '__main__':
                         help='save table of results (with text) after eval ?')
     parser.add_argument('--save_model_every', type=int, default=1000,
                         help='when to save the model - number of batches')
+    parser.add_argument('--ignor_vague_lable_in_training', type=bool, default=True,
+                        help='if True - ignor vague lable in training')
     parser.add_argument('--epochs', type=int, default=6,
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=6,
@@ -409,6 +405,7 @@ if __name__ == '__main__':
                         help='Size_of_longformer (default: "base")')
     "============================================================================"
     os.environ['OMP_NUM_THREADS'] = '1'
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
     print('Available devices ', torch.cuda.device_count())
     "================================================================================="
     args = parser.parse_known_args()[0]
