@@ -1,5 +1,5 @@
 from __future__ import absolute_import, division, print_function
-from datasets_and_loaders.data import \
+from datasets_and_loaders.data_preprocess import \
     (TRE_train_dataset,
      TRE_val_dataset,
      TRE_test_dataset)

@@ -11,6 +11,7 @@ from model.model import create_pretrained_model_and_tokenizer
 from utils.logger import *
 from utils.saver import *
 from utils.utils import *
+from datasets_and_loaders.datasets import *
 from datasets_and_loaders.dataloaders import create_dataloader
 from utils.utils import results_tracker
 from pathlib import Path
@@ -21,9 +22,6 @@ import wandb
 import time
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from datasets_and_loaders.data import \
-    (TRE_train_dataset, TRE_val_dataset, TRE_test_dataset)
-
 def is_master():
     return not dist.is_initialized() or dist.get_rank() == 0
 def train(model, args, train_dataloader, test_dataloader, tokenizer):
