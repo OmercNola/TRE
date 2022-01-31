@@ -12,13 +12,13 @@ from sys import platform
 from utils.utils import *
 from utils.saver import *
 from utils.logger import *
+from data.datasets import *
 import torch.multiprocessing as mp
 from torch import distributed as dist
-from datasets_and_loaders.datasets import *
+from data.dataloaders import create_dataloader
 from eval import eval_tre_new_questions_with_markers
 from torch.nn.parallel import DistributedDataParallel as DDP
 from model.model import create_pretrained_model_and_tokenizer
-from datasets_and_loaders.dataloaders import create_dataloader
 from transformers import get_linear_schedule_with_warmup, AdamW
 
 def is_master():
