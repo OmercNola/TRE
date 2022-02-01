@@ -35,10 +35,7 @@ def load_model_checkpoint(args, path_, model, optimizer=None, scheduler=None):
     # load the checkpoint:
     checkpoint = torch.load(path_, map_location=f'cuda:{args.rank}')
 
-    try:
-        model.load_state_dict(checkpoint['model_state_dict'])
-    except Exception as e:
-        print(e)
+    model.load_state_dict(checkpoint['model_state_dict'])
 
     if optimizer is not None:
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])

@@ -16,7 +16,6 @@ from data.datasets import *
 import torch.multiprocessing as mp
 from torch import distributed as dist
 from data.dataloaders import create_dataloader
-from eval import eval_tre_new_questions_with_markers
 from torch.nn.parallel import DistributedDataParallel as DDP
 from model.model import create_pretrained_model_and_tokenizer
 from transformers import get_linear_schedule_with_warmup, AdamW
@@ -179,14 +178,11 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
                         epoch, batch_counter, total_loss_for_print
                     )
                     # save in wandb:
-
                     train_log(total_loss_for_print, epoch, batches_overall)
                     total_loss_for_print = 0
 
                 # save the model once in a while:
                 if batch_counter % args.save_model_every == 0:
-
-                    # save:
                     if args.save_model_during_training:
                         save_model_checkpoint(
                             args, model, optimizer,
@@ -200,13 +196,157 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
             # evaluate at the end of the epoch:
             if args.eval_during_training:
                 tracker = results_tracker()
-                eval_tre_new_questions_with_markers(
+                eval(
                     model, args, test_dataloader,
                     tokenizer, tracker, checkpoint_path=None,
                     batches_overall=batches_overall
                 )
+def eval(model, args, test_dataloader, tokenizer, tracker, checkpoint_path=None, batches_overall=None):
+
+    """
+    :param model:
+    :type model:
+    :param args:
+    :type args:
+    :param test_dataloader:
+    :type test_dataloader:
+    :param tokenizer:
+    :type tokenizer:
+    :param tracker:
+    :type tracker:
+    :param checkpoint_path:
+    :type checkpoint_path:
+    :param batches_overall:
+    :type batches_overall:
+    :return:
+    :rtype:
+    """
+
+    # if there is a checkpoint_path, then load it:
+    # we need just the model for evaluation
+    if checkpoint_path is not None:
+        (model, _, _, _, _, _) = \
+            load_model_checkpoint(args, checkpoint_path, model)
+
+    # evaluation mode:
+    model.eval()
+
+    # create wandb table for traking the rsults:
+    table = wandb.Table(
+        columns=[
+            'passage', 'passage length',
+            'word_1', 'word_2',
+            'ans_1', 'ans_2',
+            'pred_label', 'real_label',
+            'correct answer'
+        ]
+    )
+
+    for batch_counter, instances in enumerate(test_dataloader, start=1):
+
+        passages = instances[0]
+        first_words, second_words = instances[1][0], instances[1][1]
+        word_labels = instances[1][2]
+
+        zip_object = zip(passages, first_words, second_words, word_labels)
+        for passage, first_word, second_word, Label in zip_object:
+
+            # get the questions:
+            question_1 = question_1_for_regular_markers(
+                first_word, second_word) + tokenizer.sep_token
+            question_2 = question_2_for_regular_markers(
+                first_word, second_word) + tokenizer.sep_token
+
+            questions_list = [
+                ('question_1', question_1),
+                ('question_2', question_2)
+            ]
+
+            # 2 Questions for each instance:
+            results = []
+            for question_name, question in questions_list:
+
+                # tokenize question and text as a pair, Roberta
+                encodings = tokenizer(
+                    question,
+                    passage,
+                    max_length=args.Max_Len,
+                    padding='max_length',
+                    truncation=True
+                )
+
+                input_ids = encodings['input_ids']
+                attention_mask = encodings['attention_mask']
+
+                input_ids = torch.tensor(
+                    [input_ids], requires_grad=False).to(args.device)
+                attention_mask = torch.tensor(
+                    [attention_mask], requires_grad=False).to(args.device)
+
+                # ensure no gradients for eval:
+                with torch.no_grad():
+
+                    outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+
+                    # our prediction:
+                    pred = torch.argmax(torch.softmax(outputs, dim=1), dim=1)
+
+                    # move to cpu and numpy:
+                    pred = pred.clone().detach().cpu().numpy()[0]
+
+                    # results:
+                    results.append([question_name, pred])
+
+            # now we 2 questions ready, we update results tracker:
+            ans1, ans2 = results[0][1], results[1][1]
+            pred_label = tracker.update(Label, ans1, ans2)
+
+            # raw_data for logging in wandb:
+            passage_length = len(passage)
+
+            if Label.strip() == 'SIMULTANEOUS':
+                correct_answer = pred_label == 'EQUAL'
+            else:
+                correct_answer = pred_label == Label.strip()
+
+            real_label = Label.strip()
+
+            # add raw_data to the wandb table:
+            table.add_data(
+                passage, passage_length, first_word, second_word,
+                ans1, ans2, pred_label, real_label, correct_answer
+            )
+
+        if batch_counter % args.print_eval_every == 0:
+
+            # get f1 macro and f1 micro results:
+            macro, micro = tracker.f1_macro_and_micro()
+
+            eval_precent = (batch_counter / len(test_dataloader)) * 100
+            print(f'f1 macro: {macro}, f1 micro: {micro}, '
+                  f'evaluation percent: {eval_precent:.3f}')
+
+    # at the end of the evaluation:
+    macro, micro = tracker.f1_macro_and_micro()
+
+    # save then to wandb:
+    if is_master():
+        wandb.log({"batches_overall": batches_overall,
+                   "f1 macro": macro, "f1 micro": micro})
+
+    eval_precent = (batch_counter / len(test_dataloader)) * 100
+    print(f'f1 macro: {macro}, f1 micro: {micro}, '
+          f'evaluation percent: {eval_precent:.3f}')
+
+    if args.save_table_of_results_after_eval and is_master():
+        wandb.log({f'results table {wandb.run.name}': table})
+
+    # finish the session just when eval:
+    if args.eval and is_master():
+        wandb.finish()
 def main(args, init_distributed=False):
 
+    print('main')
     """
     :param args:
     :type args:
@@ -267,12 +407,11 @@ def main(args, init_distributed=False):
         model.load_state_dict(torch.load(PATH))
     "=================================================================="
     # prepare checkpoint path:
-    checkpoint_path = None
     if args.checkpoint_path is not None:
-        checkpoint_path = Path(args.checkpoint_path)
+        # model = nn.DataParallel(model, device_ids=[args.rank]).to(args.device)
         (model, _, _, _, _, _) = \
             load_model_checkpoint(
-                args, checkpoint_path, model.to(args.device),
+                args, Path(args.checkpoint_path), model.to(args.device),
                 None, None
             )
     "=================================================================="
@@ -295,10 +434,10 @@ def main(args, init_distributed=False):
             ddp = True
             train_dataloader = create_dataloader(args, 'train', ddp)
             val_dataloader = create_dataloader(args, 'val', ddp)
-            test_dataloader = create_dataloader(args, 'test', ddp)
+            # test_dataloader = create_dataloader(args, 'test', ddp)
 
         # if we have just 1 gpu:
-        else:
+        elif args.world_size == 1:
             model = model.to(args.device)
             ddp = False
             train_dataloader = create_dataloader(args, 'train', ddp)
@@ -312,10 +451,7 @@ def main(args, init_distributed=False):
     """Evaluation"""
     if args.eval:
         tracker = results_tracker()
-        eval_tre_new_questions_with_markers(
-            model, args, test_dataloader,
-            tokenizer, tracker, checkpoint_path=checkpoint_path
-        )
+        eval(model, args, test_dataloader, tokenizer, tracker, checkpoint_path=None)
     "=================================================================="
 def distributed_main(device_id, args):
     """
@@ -340,7 +476,7 @@ if __name__ == '__main__':
                         help='device type')
     "============================================================================"
     "Train settings 1"
-    parser.add_argument('--eval', type=bool, default=False,
+    parser.add_argument('--eval', type=bool, default=True,
                         help='eval mode ? if False then training mode')
     parser.add_argument('--shuffle', type=bool, default=True,
                         help='shuffle')
@@ -356,10 +492,10 @@ if __name__ == '__main__':
                         help='if True - ignor vague lable in training')
     parser.add_argument('--epochs', type=int, default=6,
                         help='number of epochs')
-    parser.add_argument('--batch_size', type=int, default=2,
+    parser.add_argument('--batch_size', type=int, default=6,
                         help='batch_size (default: 2)')  # 6 is good for 3 3090 GPU'S, 8 for 8 GPU'S..
     parser.add_argument('--checkpoint_path', type=str,
-                        default=None,# 'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
+                        default='models/still-oath-122_epoch_3_iter_5000_.pt', #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
                         help='checkpoint path for evaluation or proceed training ,'
                              'if set to None then ignor checkpoint')
     "============================================================================"
@@ -385,10 +521,10 @@ if __name__ == '__main__':
                         help='weight_decay for AdamW. default=0.001')
     parser.add_argument('--max_grad_norm', type=float, default=40,
                         help='value loss coefficient (default: 50)')
-    parser.add_argument('--dropout_p', type=float, default=0.15,
+    parser.add_argument('--dropout_p', type=float, default=0.2,
                         help='dropout_p (default: 0.1)')
     parser.add_argument('--sync-bn', action='store_true',
-                        default=False, help='sync batchnorm')
+                        default=True, help='sync batchnorm')
     parser.add_argument('--num_workers', type=int,
                         default=6, help='num_workers')
     "============================================================================"
@@ -418,17 +554,29 @@ if __name__ == '__main__':
     # not relly sure what it is, needs to check !!!!
     torch.backends.cudnn.deterministic = True
     "================================================================================="
-    # Distributed
-    args.world_size = torch.cuda.device_count()
+    # Distributed:
+
+    # multiple nodes:
     # args.world_size = args.gpus * args.nodes
+
+    # single node:
+    args.world_size = torch.cuda.device_count()
+
+    # single GPU for evaluation:
+    if args.eval:
+        args.world_size = 1
+
+    # if single GPU:
     if args.world_size == 1:
         args.device_id = 0
         args.rank = 0
         main(args)
-    if args.world_size > 1:
+
+    # DDP for multiple GPU'S:
+    elif args.world_size > 1:
         args.batch_size = int(args.batch_size / args.world_size)
         port = random.randint(10000, 20000)
-        args.init_method = f"tcp://localhost:{port}" if platform != "win32" else 'tcp://127.0.0.1:23456'
+        args.init_method = f'tcp://127.0.0.1:{port}'
         args.rank = None
         args.start_rank = 0
         args.backend = 'nccl' if platform != "win32" else 'gloo'
