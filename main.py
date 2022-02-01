@@ -19,7 +19,6 @@ from data.dataloaders import create_dataloader
 from torch.nn.parallel import DistributedDataParallel as DDP
 from model.model import create_pretrained_model_and_tokenizer
 from transformers import get_linear_schedule_with_warmup, AdamW
-
 def is_master():
     return not dist.is_initialized() or dist.get_rank() == 0
 def train(model, args, train_dataloader, test_dataloader, tokenizer):
@@ -153,7 +152,8 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
                         loss.backward()
 
                         # This is to help prevent the "exploding gradients" problem:
-                        torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+                        if args.clip_grad_norm:
+                            nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
 
                         # update parameters
                         optimizer.step()
@@ -476,7 +476,7 @@ if __name__ == '__main__':
                         help='device type')
     "============================================================================"
     "Train settings 1"
-    parser.add_argument('--eval', type=bool, default=True,
+    parser.add_argument('--eval', type=bool, default=False,
                         help='eval mode ? if False then training mode')
     parser.add_argument('--shuffle', type=bool, default=True,
                         help='shuffle')
@@ -489,13 +489,13 @@ if __name__ == '__main__':
     parser.add_argument('--save_model_every', type=int, default=1000,
                         help='when to save the model - number of batches')
     parser.add_argument('--ignor_vague_lable_in_training', type=bool, default=True,
-                        help='if True - ignor vague lable in training')
+                        help='if True - ignors vague lable in training')
     parser.add_argument('--epochs', type=int, default=6,
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=6,
-                        help='batch_size (default: 2)')  # 6 is good for 3 3090 GPU'S, 8 for 8 GPU'S..
+                        help='batch_size (default: 6)')  # 6 is good for 3 3090 GPU'S, 8 for 8 GPU'S..
     parser.add_argument('--checkpoint_path', type=str,
-                        default='models/still-oath-122_epoch_3_iter_5000_.pt', #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
+                        default=None, #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
                         help='checkpoint path for evaluation or proceed training ,'
                              'if set to None then ignor checkpoint')
     "============================================================================"
@@ -517,16 +517,17 @@ if __name__ == '__main__':
                         help='beta 1 for AdamW. default=0.9')
     parser.add_argument('--beta_2', type=float, default=0.999,
                         help='beta 2 for AdamW. default=0.999')
-    parser.add_argument('--weight_decay', type=float, default=0.001,
-                        help='weight_decay for AdamW. default=0.001')
+    parser.add_argument('--weight_decay', type=float, default=0.0001,
+                        help='weight_decay for AdamW. default=0.0001')
+    parser.add_argument('--clip_grad_norm', type=bool, default=False,
+                        help='clip grad norm to args.max_grad_norm')
     parser.add_argument('--max_grad_norm', type=float, default=40,
-                        help='value loss coefficient (default: 50)')
+                        help='max grad norm for cliping')
     parser.add_argument('--dropout_p', type=float, default=0.2,
                         help='dropout_p (default: 0.1)')
-    parser.add_argument('--sync-bn', action='store_true',
-                        default=True, help='sync batchnorm')
-    parser.add_argument('--num_workers', type=int,
-                        default=6, help='num_workers')
+    parser.add_argument('--sync-bn', action='store_true', default=True,
+                        help='sync batchnorm')
+    parser.add_argument('--num_workers', type=int, default=6, help='num_workers')
     "============================================================================"
     "Model settings"
     parser.add_argument('--output_size', type=int, default=2,
@@ -584,4 +585,4 @@ if __name__ == '__main__':
     else:
         args.device = torch.device("cpu")
         main(args)
-
+    "================================================================================="
