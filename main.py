@@ -39,12 +39,13 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
     :rtype:
     """
 
+    criterion = nn.CrossEntropyLoss()
+
     optimizer = AdamW(
         model.parameters(), lr=args.learning_rate,
         betas=(args.beta_1, args.beta_2),
         weight_decay=args.weight_decay
     )
-    criterion = nn.CrossEntropyLoss()
 
     # Create the learning rate scheduler.
     total_steps = len(train_dataloader) * args.epochs
@@ -398,7 +399,7 @@ def main(args, init_distributed=False):
     "=================================================================="
     # prepare checkpoint path:
     if args.checkpoint_path is not None:
-        # model = nn.DataParallel(model, device_ids=[args.rank]).to(args.device)
+        model = nn.DataParallel(model, device_ids=[args.rank]).to(args.device)
         (model, _, _, _, _, _) = \
             load_model_checkpoint(
                 args, Path(args.checkpoint_path), model.to(args.device),
@@ -424,7 +425,6 @@ def main(args, init_distributed=False):
             ddp = True
             train_dataloader = create_dataloader(args, 'train', ddp)
             val_dataloader = create_dataloader(args, 'val', ddp)
-            # test_dataloader = create_dataloader(args, 'test', ddp)
 
         # if we have just 1 gpu:
         elif args.world_size == 1:
@@ -500,11 +500,13 @@ if __name__ == '__main__':
     "Hyper-parameters"
     parser.add_argument('--epochs', type=int, default=6,
                         help='number of epochs')
-    parser.add_argument('--batch_size', type=int, default=6,
-                        help='batch_size (default: 6)')  # every 2 instances are using 1 "3090 GPU"
+    parser.add_argument('--batch_size', type=int, default=4,
+                        help='batch size')  # every 2 instances are using 1 "3090 GPU"
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')
-    parser.add_argument('--num_warmup_steps', type=int, default=500,
+    parser.add_argument('--part_of_train_data', type=float, default=0.5,
+                        help='amount of train data for training, (between 0 and 1)')
+    parser.add_argument('--num_warmup_steps', type=int, default=100,
                         help='number of warmup steps in the scheduler')
     parser.add_argument('--beta_1', type=float, default=0.9,
                         help='beta 1 for AdamW. default=0.9')
@@ -520,7 +522,7 @@ if __name__ == '__main__':
                         help='dropout_p (default: 0.1)')
     parser.add_argument('--sync-bn', action='store_true', default=True,
                         help='sync batchnorm')
-    parser.add_argument('--num_workers', type=int, default=6, help='num_workers')
+    parser.add_argument('--num_workers', type=int, default=0, help='num_workers')
     parser.add_argument('--seed', type=int, default=1,
                         help='random seed (default: 1)')
     "============================================================================"

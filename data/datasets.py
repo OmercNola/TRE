@@ -2,10 +2,11 @@ from __future__ import absolute_import, division, print_function
 import os
 from data.data_preprocess import *
 from torch.utils.data import Dataset
+import random
 from pathlib import Path, PureWindowsPath, PurePosixPath
 class TRE_train_dataset(Dataset):
 
-    def __init__(self, ):
+    def __init__(self, args):
         super().__init__()
 
         "=============================================================="
@@ -26,6 +27,12 @@ class TRE_train_dataset(Dataset):
         """Aquaint and Timebank with markers (train raw_data)"""
         self.TRE_training_data_with_markers = \
             Aq_data_with_markers + TimeBank_data_with_markers
+
+        # take sample without replacment:
+        self.TRE_training_data_with_markers = \
+            random.sample(
+                self.TRE_training_data_with_markers,
+                int(len(self.TRE_training_data_with_markers) * args.part_of_train_data))
         "=============================================================="
 
     def __len__(self):

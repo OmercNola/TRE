@@ -18,12 +18,14 @@ def create_dataloader(args, train_val_test, ddp=False):
 
     if train_val_test == 'train':
 
-        train_dataset = TRE_train_dataset()
+        train_dataset = TRE_train_dataset(args)
 
         if ddp:
 
             train_sampler = DistributedSampler(
-                train_dataset,
+                dataset=train_dataset,
+                num_replicas=args.world_size,
+                rank=args.rank,
                 shuffle=args.shuffle,
             )
 
@@ -55,7 +57,9 @@ def create_dataloader(args, train_val_test, ddp=False):
         if ddp:
 
             val_sampler = DistributedSampler(
-                val_dataset,
+                dataset=val_dataset,
+                num_replicas=args.world_size,
+                rank=args.rank,
                 shuffle=args.shuffle,
             )
 
