@@ -501,7 +501,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=6,
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=6,
-                        help='batch_size (default: 6)')  # 6 is good for 3 3090 GPU'S, 8 for 8 GPU'S..
+                        help='batch_size (default: 6)')  # every 2 instances are using 1 "3090 GPU"
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')
     parser.add_argument('--num_warmup_steps', type=int, default=500,
