@@ -492,27 +492,23 @@ if __name__ == '__main__':
                         help='when to save the model - number of batches')
     parser.add_argument('--ignor_vague_lable_in_training', type=bool, default=True,
                         help='if True - ignors vague lable in training')
-    parser.add_argument('--epochs', type=int, default=6,
-                        help='number of epochs')
-    parser.add_argument('--batch_size', type=int, default=6,
-                        help='batch_size (default: 6)')  # 6 is good for 3 3090 GPU'S, 8 for 8 GPU'S..
+    parser.add_argument('--boolq_pre_trained_model_path', type=str,
+                        default='models/model_boolq_with_markers_epoch_10_.pt',
+                        help='this is a pre trained model on boolq dataset, with acc (0.82)')
+    parser.add_argument('--print_loss_every', type=int, default=50,
+                        help='when to print the loss - number of batches')
+    parser.add_argument('--print_eval_every', type=int, default=50,
+                        help='when to print f1 scores during eval - number of batches')
     parser.add_argument('--checkpoint_path', type=str,
                         default=None, #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
                         help='checkpoint path for evaluation or proceed training ,'
                              'if set to None then ignor checkpoint')
     "============================================================================"
-    "Train settings 2"
-    parser.add_argument('--print_loss_every', type=int, default=50,
-                        help='when to print the loss - number of batches')
-    parser.add_argument('--print_eval_every', type=int, default=50,
-                        help='when to print f1 scores during eval - number of batches')
-    parser.add_argument('--seed', type=int, default=1,
-                        help='random seed (default: 1)')
-    parser.add_argument('--boolq_pre_trained_model_path', type=str,
-                        default='models/model_boolq_with_markers_epoch_10_.pt',
-                        help='this is a pre trained model on boolq dataset, with acc (0.82)')
-    "============================================================================"
     "Hyper-parameters"
+    parser.add_argument('--epochs', type=int, default=6,
+                        help='number of epochs')
+    parser.add_argument('--batch_size', type=int, default=6,
+                        help='batch_size (default: 6)')  # 6 is good for 3 3090 GPU'S, 8 for 8 GPU'S..
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')
     parser.add_argument('--num_warmup_steps', type=int, default=500,
@@ -532,6 +528,8 @@ if __name__ == '__main__':
     parser.add_argument('--sync-bn', action='store_true', default=True,
                         help='sync batchnorm')
     parser.add_argument('--num_workers', type=int, default=6, help='num_workers')
+    parser.add_argument('--seed', type=int, default=1,
+                        help='random seed (default: 1)')
     "============================================================================"
     "Model settings"
     parser.add_argument('--output_size', type=int, default=2,
