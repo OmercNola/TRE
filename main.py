@@ -200,10 +200,9 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
                 tracker = results_tracker()
                 eval(
                     model, args, test_dataloader,
-                    tokenizer, tracker, checkpoint_path=None,
-                    batches_overall=batches_overall
+                    tokenizer, tracker, batches_overall=batches_overall
                 )
-def eval(model, args, test_dataloader, tokenizer, tracker, checkpoint_path=None, batches_overall=None):
+def eval(model, args, test_dataloader, tokenizer, tracker, batches_overall=None):
 
     """
     :param model:
@@ -223,12 +222,6 @@ def eval(model, args, test_dataloader, tokenizer, tracker, checkpoint_path=None,
     :return:
     :rtype:
     """
-
-    # if there is a checkpoint_path, then load it:
-    # we need just the model for evaluation
-    if checkpoint_path is not None:
-        (model, _, _, _, _, _) = \
-            load_model_checkpoint(args, checkpoint_path, model)
 
     # evaluation mode:
     model.eval()
@@ -348,7 +341,6 @@ def eval(model, args, test_dataloader, tokenizer, tracker, checkpoint_path=None,
         wandb.finish()
 def main(args, init_distributed=False):
 
-    print('main')
     """
     :param args:
     :type args:
@@ -449,11 +441,14 @@ def main(args, init_distributed=False):
     """Training"""
     if not args.eval:
         train(model, args, train_dataloader, val_dataloader, tokenizer)
+        # finish the session:
+        if is_master():
+            wandb.finish()
     "=================================================================="
     """Evaluation"""
     if args.eval:
         tracker = results_tracker()
-        eval(model, args, test_dataloader, tokenizer, tracker, checkpoint_path=None)
+        eval(model, args, test_dataloader, tokenizer, tracker)
     "=================================================================="
 def distributed_main(device_id, args):
     """
