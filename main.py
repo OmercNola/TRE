@@ -335,10 +335,6 @@ def eval(model, args, test_dataloader, tokenizer, tracker, batches_overall=None)
 
     if args.save_table_of_results_after_eval and is_master():
         wandb.log({f'results table {wandb.run.name}': table})
-
-    # finish the session just when eval:
-    if args.eval and is_master():
-        wandb.finish()
 def main(args, init_distributed=False):
 
     """
@@ -449,6 +445,8 @@ def main(args, init_distributed=False):
     if args.eval:
         tracker = results_tracker()
         eval(model, args, test_dataloader, tokenizer, tracker)
+        # finish the session:
+        wandb.finish()
     "=================================================================="
 def distributed_main(device_id, args):
     """
