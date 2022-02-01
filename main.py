@@ -49,7 +49,9 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
     # Create the learning rate scheduler.
     total_steps = len(train_dataloader) * args.epochs
     scheduler = get_linear_schedule_with_warmup(
-        optimizer, num_warmup_steps=0, num_training_steps=total_steps
+        optimizer,
+        num_warmup_steps=args.num_warmup_steps,
+        num_training_steps=total_steps
     )
 
     # Tell wandb to watch what the model gets up to: gradients, weights, and more!
@@ -512,7 +514,9 @@ if __name__ == '__main__':
     "============================================================================"
     "Hyper-parameters"
     parser.add_argument('--learning_rate', type=float, default=0.00001,
-                        help='learning rate (default: 0.00001)')
+                        help='learning rate (default: 0.00001) took from longformer paper')
+    parser.add_argument('--num_warmup_steps', type=int, default=500,
+                        help='number of warmup steps in the scheduler')
     parser.add_argument('--beta_1', type=float, default=0.9,
                         help='beta 1 for AdamW. default=0.9')
     parser.add_argument('--beta_2', type=float, default=0.999,
