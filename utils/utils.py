@@ -44,6 +44,35 @@ def question_2_for_regular_markers(first_word, second_word):
     """
     res = f'Is it possible that @ {second_word} @ started before @ {first_word} @ ?'
     return res
+#questions:
+def question_1(args, first_word, second_word):
+    """
+    :param first_word:
+    :type first_word:
+    :param second_word:
+    :type second_word:
+    :return:
+    :rtype:
+    """
+    if args.use_E_markers:
+        res = question_1_for_markers(first_word, second_word)
+    else:
+        res = question_1_for_regular_markers(first_word, second_word)
+    return res
+def question_2(args, first_word, second_word):
+    """
+    :param first_word:
+    :type first_word:
+    :param second_word:
+    :type second_word:
+    :return:
+    :rtype:
+    """
+    if args.use_E_markers:
+        res = question_2_for_markers(first_word, second_word)
+    else:
+        res = question_2_for_regular_markers(first_word, second_word)
+    return res
 # class that computes l1 scores (macro and micro):
 class results_tracker:
 

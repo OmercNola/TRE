@@ -14,14 +14,14 @@ class TRE_train_dataset(Dataset):
         TimeBank_folder = Path('./raw_data/TBAQ-cleaned/TimeBank/')
         TimeBank_labeled_data = Path('./raw_data/timebank.txt')
         TimeBank_data_with_markers = final_data_process_for_markers(
-            TimeBank_folder, TimeBank_labeled_data
+            args, TimeBank_folder, TimeBank_labeled_data
         )
         "=============================================================="
         """Aquaint"""
         Aq_folder = Path('./raw_data/TBAQ-cleaned/AQUAINT/')
         Aq_labeled_data = Path('./raw_data/aquaint.txt')
         Aq_data_with_markers = final_data_process_for_markers(
-            Aq_folder, Aq_labeled_data
+            args, Aq_folder, Aq_labeled_data
         )
         "=============================================================="
         """Aquaint and Timebank with markers (train raw_data)"""
@@ -43,13 +43,13 @@ class TRE_train_dataset(Dataset):
         return res
 class TRE_val_dataset(Dataset):
 
-    def __init__(self, ):
+    def __init__(self, args):
         super().__init__()
 
         "=============================================================="
         """TCR (val raw_data)"""
         TCR_folder = Path('./raw_data/TBAQ-cleaned/TemporalPart/')
-        self.TRE_validation_data_with_markers = process_TCR_data(TCR_folder)
+        self.TRE_validation_data_with_markers = process_TCR_data(args, TCR_folder)
         "=============================================================="
 
     def __len__(self):
@@ -60,7 +60,7 @@ class TRE_val_dataset(Dataset):
         return res
 class TRE_test_dataset(Dataset):
 
-    def __init__(self, ):
+    def __init__(self, args):
         super().__init__()
 
         "=============================================================="
@@ -68,7 +68,7 @@ class TRE_test_dataset(Dataset):
         Platinum_folder = Path('./raw_data/TBAQ-cleaned/platinum/')
         Platinum_labeled_data = Path('./raw_data/platinum.txt')
         self.TRE_test_data_with_markers = final_data_process_for_markers(
-            Platinum_folder, Platinum_labeled_data
+            args, Platinum_folder, Platinum_labeled_data
         )
         "=============================================================="
 

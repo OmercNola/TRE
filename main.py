@@ -102,10 +102,11 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
                     if Label.strip() == 'VAGUE':
                         continue
 
-                question_1 = question_1_for_regular_markers(
-                    first_word, second_word) + tokenizer.sep_token
-                question_2 = question_2_for_regular_markers(
-                    first_word, second_word) + tokenizer.sep_token
+
+                question_1 = question_1(
+                    args, first_word, second_word) + tokenizer.sep_token
+                question_2 = question_2(
+                    args, first_word, second_word) + tokenizer.sep_token
 
                 questions_list = [
                     ('question_1', question_1),
@@ -425,6 +426,7 @@ def main(args, init_distributed=False):
             ddp = True
             train_dataloader = create_dataloader(args, 'train', ddp)
             val_dataloader = create_dataloader(args, 'val', ddp)
+            test_dataloader = create_dataloader(args, 'test', ddp)
 
         # if we have just 1 gpu:
         elif args.world_size == 1:
@@ -436,10 +438,13 @@ def main(args, init_distributed=False):
     "=================================================================="
     """Training"""
     if not args.eval:
-        train(model, args, train_dataloader, val_dataloader, tokenizer)
+        train(model, args, train_dataloader, test_dataloader, tokenizer)
         # finish the session:
         if is_master():
             wandb.finish()
+        # empty cache:
+        if "cuda" in str(args.device):
+            torch.cuda.empty_cache()
     "=================================================================="
     """Evaluation"""
     if args.eval:
@@ -447,6 +452,9 @@ def main(args, init_distributed=False):
         eval(model, args, test_dataloader, tokenizer, tracker)
         # finish the session:
         wandb.finish()
+        # empty cache:
+        if "cuda" in str(args.device):
+            torch.cuda.empty_cache()
     "=================================================================="
 def distributed_main(device_id, args):
     """
@@ -471,10 +479,13 @@ if __name__ == '__main__':
                         help='device type')
     "============================================================================"
     "Train settings 1"
-    parser.add_argument('--eval', type=bool, default=False,
+    parser.add_argument('--eval', type=bool, default=True,
                         help='eval mode ? if False then training mode')
     parser.add_argument('--shuffle', type=bool, default=True,
                         help='shuffle')
+    parser.add_argument('--use_E_markers', type=bool, default=True,
+                        help='it True then use ([E1] word1 [/E1]) like markers, '
+                             'else (@ word @) markers')
     parser.add_argument('--eval_during_training', type=bool, default=True,
                         help='eval during training ?')
     parser.add_argument('--save_model_during_training', type=bool, default=True,
@@ -493,18 +504,18 @@ if __name__ == '__main__':
     parser.add_argument('--print_eval_every', type=int, default=50,
                         help='when to print f1 scores during eval - number of batches')
     parser.add_argument('--checkpoint_path', type=str,
-                        default=None, #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
+                        default='models/beaming-dumpling-151_epoch_2_iter_2000_.pt', #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
                         help='checkpoint path for evaluation or proceed training ,'
                              'if set to None then ignor checkpoint')
     "============================================================================"
     "Hyper-parameters"
-    parser.add_argument('--epochs', type=int, default=6,
+    parser.add_argument('--epochs', type=int, default=4,
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=4,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')
-    parser.add_argument('--part_of_train_data', type=float, default=0.5,
+    parser.add_argument('--part_of_train_data', type=float, default=1,
                         help='amount of train data for training, (between 0 and 1)')
     parser.add_argument('--num_warmup_steps', type=int, default=100,
                         help='number of warmup steps in the scheduler')
@@ -512,7 +523,7 @@ if __name__ == '__main__':
                         help='beta 1 for AdamW. default=0.9')
     parser.add_argument('--beta_2', type=float, default=0.999,
                         help='beta 2 for AdamW. default=0.999')
-    parser.add_argument('--weight_decay', type=float, default=0.0001,
+    parser.add_argument('--weight_decay', type=float, default=0,
                         help='weight_decay for AdamW. default=0.0001')
     parser.add_argument('--clip_grad_norm', type=bool, default=False,
                         help='clip grad norm to args.max_grad_norm')
@@ -560,7 +571,7 @@ if __name__ == '__main__':
     # single node:
     args.world_size = torch.cuda.device_count()
 
-    # single GPU for evaluation:
+    # set single GPU for evaluation:
     if args.eval:
         args.world_size = 1
 

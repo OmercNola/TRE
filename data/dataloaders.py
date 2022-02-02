@@ -52,7 +52,7 @@ def create_dataloader(args, train_val_test, ddp=False):
 
     elif train_val_test == 'val':
 
-        val_dataset = TRE_val_dataset()
+        val_dataset = TRE_val_dataset(args)
 
         if ddp:
 
@@ -60,7 +60,7 @@ def create_dataloader(args, train_val_test, ddp=False):
                 dataset=val_dataset,
                 num_replicas=args.world_size,
                 rank=args.rank,
-                shuffle=args.shuffle,
+                shuffle=False,
             )
 
             dataloader = DataLoader(
@@ -86,13 +86,13 @@ def create_dataloader(args, train_val_test, ddp=False):
 
     elif train_val_test == 'test':
 
-        test_dataset = TRE_test_dataset()
+        test_dataset = TRE_test_dataset(args)
 
         if ddp:
 
             test_sampler = DistributedSampler(
                 test_dataset,
-                shuffle=args.shuffle,
+                shuffle=False,
             )
 
             dataloader = DataLoader(
