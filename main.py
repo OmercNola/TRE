@@ -102,16 +102,9 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
                     if Label.strip() == 'VAGUE':
                         continue
 
-
-                question_1 = question_1(
-                    args, first_word, second_word) + tokenizer.sep_token
-                question_2 = question_2(
-                    args, first_word, second_word) + tokenizer.sep_token
-
-                questions_list = [
-                    ('question_1', question_1),
-                    ('question_2', question_2)
-                ]
+                q_1 = question_1(args, first_word, second_word) + tokenizer.sep_token
+                q_2 = question_2(args, first_word, second_word) + tokenizer.sep_token
+                questions_list = [('question_1', q_1), ('question_2', q_2)]
 
                 for question_name, question in questions_list:
 
@@ -249,14 +242,14 @@ def eval(model, args, test_dataloader, tokenizer, tracker, batches_overall=None)
         for passage, first_word, second_word, Label in zip_object:
 
             # get the questions:
-            question_1 = question_1_for_regular_markers(
-                first_word, second_word) + tokenizer.sep_token
-            question_2 = question_2_for_regular_markers(
-                first_word, second_word) + tokenizer.sep_token
+            q_1 = question_1(
+                args, first_word, second_word) + tokenizer.sep_token
+            q_2 = question_2(
+                args, first_word, second_word) + tokenizer.sep_token
 
             questions_list = [
-                ('question_1', question_1),
-                ('question_2', question_2)
+                ('question_1', q_1),
+                ('question_2', q_2)
             ]
 
             # 2 Questions for each instance:
@@ -479,7 +472,7 @@ if __name__ == '__main__':
                         help='device type')
     "============================================================================"
     "Train settings 1"
-    parser.add_argument('--eval', type=bool, default=True,
+    parser.add_argument('--eval', type=bool, default=False,
                         help='eval mode ? if False then training mode')
     parser.add_argument('--shuffle', type=bool, default=True,
                         help='shuffle')
@@ -504,12 +497,12 @@ if __name__ == '__main__':
     parser.add_argument('--print_eval_every', type=int, default=50,
                         help='when to print f1 scores during eval - number of batches')
     parser.add_argument('--checkpoint_path', type=str,
-                        default='models/beaming-dumpling-151_epoch_2_iter_2000_.pt', #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
+                        default=None, #'models/beaming-dumpling-151_epoch_2_iter_2000_.pt', #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
                         help='checkpoint path for evaluation or proceed training ,'
                              'if set to None then ignor checkpoint')
     "============================================================================"
     "Hyper-parameters"
-    parser.add_argument('--epochs', type=int, default=4,
+    parser.add_argument('--epochs', type=int, default=2,
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=4,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
@@ -517,7 +510,7 @@ if __name__ == '__main__':
                         help='learning rate (default: 0.00001) took from longformer paper')
     parser.add_argument('--part_of_train_data', type=float, default=1,
                         help='amount of train data for training, (between 0 and 1)')
-    parser.add_argument('--num_warmup_steps', type=int, default=100,
+    parser.add_argument('--num_warmup_steps', type=int, default=50,
                         help='number of warmup steps in the scheduler')
     parser.add_argument('--beta_1', type=float, default=0.9,
                         help='beta 1 for AdamW. default=0.9')
