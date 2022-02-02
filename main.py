@@ -48,16 +48,19 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
     )
 
     # Create the learning rate scheduler.
-    total_steps = len(train_dataloader) * args.epochs
-    scheduler = get_linear_schedule_with_warmup(
-        optimizer,
-        num_warmup_steps=args.num_warmup_steps,
-        num_training_steps=total_steps
-    )
+    if args.use_scheduler:
+        total_steps = len(train_dataloader) * args.epochs
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=args.num_warmup_steps,
+            num_training_steps=total_steps
+        )
+    else:
+        scheduler = None
 
     # Tell wandb to watch what the model gets up to: gradients, weights, and more!
     if is_master():
-        wandb.watch(model, criterion, log="all", log_freq=50)
+        wandb.watch(model, criterion, log="all", log_freq=50, log_graph=(False))
 
     # loss progress counters
     total_loss_for_print = 0
@@ -157,7 +160,8 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
                         optimizer.step()
 
                         # Update the learning rate.
-                        scheduler.step()
+                        if args.use_scheduler:
+                            scheduler.step()
 
                         # save training loss:
                         total_loss_for_print += loss.item()
@@ -503,9 +507,9 @@ if __name__ == '__main__':
                              'if set to None then ignor checkpoint')
     "============================================================================"
     "Hyper-parameters"
-    parser.add_argument('--epochs', type=int, default=2,
+    parser.add_argument('--epochs', type=int, default=3,
                         help='number of epochs')
-    parser.add_argument('--batch_size', type=int, default=4,
+    parser.add_argument('--batch_size', type=int, default=6,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')
@@ -519,6 +523,8 @@ if __name__ == '__main__':
                         help='beta 2 for AdamW. default=0.999')
     parser.add_argument('--weight_decay', type=float, default=0,
                         help='weight_decay for AdamW. default=0.0001')
+    parser.add_argument('--use_scheduler', type=bool, default=False,
+                        help='use scheduler ?')
     parser.add_argument('--clip_grad_norm', type=bool, default=False,
                         help='clip grad norm to args.max_grad_norm')
     parser.add_argument('--max_grad_norm', type=float, default=40,
@@ -527,7 +533,7 @@ if __name__ == '__main__':
                         help='dropout_p (default: 0.1)')
     parser.add_argument('--sync-bn', action='store_true', default=True,
                         help='sync batchnorm')
-    parser.add_argument('--num_workers', type=int, default=2,
+    parser.add_argument('--num_workers', type=int, default=4,
                         help='number of workers')
     parser.add_argument('--prefetch_factor', type=int, default=2,
                         help='prefetch factor')

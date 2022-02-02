@@ -14,12 +14,14 @@ def save_model_checkpoint(
     PATH = Path(f"models/{wandb.run.name}_epoch_{epoch}_iter_{batch_counter}_.pt")
 
     model_state_dict = model.module.state_dict() if hasattr(model, "module") else model.state_dict()
+    scheduler_state_dict = scheduler.state_dict() if scheduler is not None else None
+
     torch.save({
             'epoch': epoch,
             'epoch percent': epoch_percent,
             'model_state_dict': model_state_dict,
             'optimizer_state_dict': optimizer.state_dict(),
-            'scheduler_state_dict': scheduler.state_dict(),
+            'scheduler_state_dict': scheduler_state_dict,
             'loss': loss / args.save_model_every
         }, PATH)
 
@@ -41,7 +43,10 @@ def load_model_checkpoint(args, path_, model, optimizer=None, scheduler=None):
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
     if scheduler is not None:
-        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        try:
+            scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        except Exception as e:
+            print(e)
 
     epoch = checkpoint['epoch']
     loss = checkpoint['loss']
