@@ -35,6 +35,8 @@ def create_dataloader(args, train_val_test, ddp=False):
                 drop_last=True,
                 batch_size=args.batch_size,
                 num_workers=args.num_workers,
+                persistent_workers=True,
+                prefetch_factor=args.prefetch_factor,
                 sampler=train_sampler,
                 pin_memory=True
             )
@@ -46,7 +48,9 @@ def create_dataloader(args, train_val_test, ddp=False):
                 shuffle=args.shuffle,
                 drop_last=True,
                 batch_size=args.batch_size,
+                prefetch_factor=args.prefetch_factor,
                 num_workers=args.num_workers,
+                persistent_workers=True,
                 pin_memory=True
             )
 
@@ -68,7 +72,9 @@ def create_dataloader(args, train_val_test, ddp=False):
                 shuffle=False,
                 drop_last=True,
                 batch_size=args.batch_size,
+                prefetch_factor=args.prefetch_factor,
                 num_workers=args.num_workers,
+                persistent_workers=True,
                 sampler=val_sampler,
                 pin_memory=True
             )
@@ -80,7 +86,9 @@ def create_dataloader(args, train_val_test, ddp=False):
                 shuffle=args.shuffle,
                 drop_last=True,
                 batch_size=args.batch_size,
+                prefetch_factor=args.prefetch_factor,
                 num_workers=args.num_workers,
+                persistent_workers=True,
                 pin_memory=True
             )
 
@@ -100,7 +108,9 @@ def create_dataloader(args, train_val_test, ddp=False):
                 shuffle=False,
                 drop_last=True,
                 batch_size=args.batch_size,
+                prefetch_factor=args.prefetch_factor,
                 num_workers=args.num_workers,
+                persistent_workers=True,
                 sampler=test_sampler,
                 pin_memory=True
             )
@@ -112,7 +122,9 @@ def create_dataloader(args, train_val_test, ddp=False):
                 shuffle=args.shuffle,
                 drop_last=True,
                 batch_size=args.batch_size,
+                prefetch_factor=args.prefetch_factor,
                 num_workers=args.num_workers,
+                persistent_workers=True,
                 pin_memory=True
             )
 

@@ -57,7 +57,7 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
 
     # Tell wandb to watch what the model gets up to: gradients, weights, and more!
     if is_master():
-        wandb.watch(model, criterion, log="all", log_freq=10)
+        wandb.watch(model, criterion, log="all", log_freq=50)
 
     # loss progress counters
     total_loss_for_print = 0
@@ -130,13 +130,14 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
                     if len(batch_input_ids) == args.batch_size:
 
                         batch_input_ids = torch.tensor(
-                            batch_input_ids, requires_grad=False).to(args.device)
+                            batch_input_ids, requires_grad=False, device=args.device)
                         batch_attention_mask = torch.tensor(
-                            batch_attention_mask, requires_grad=False).to(args.device)
+                            batch_attention_mask, requires_grad=False, device=args.device)
                         batch_labels = torch.tensor(
-                            batch_labels, requires_grad=False).to(args.device)
+                            batch_labels, requires_grad=False, device=args.device)
 
                         # zero gradients before update:
+                        #optimizer.zero_grad(set_to_none=True)
                         optimizer.zero_grad()
 
                         # forward pass:
@@ -526,7 +527,10 @@ if __name__ == '__main__':
                         help='dropout_p (default: 0.1)')
     parser.add_argument('--sync-bn', action='store_true', default=True,
                         help='sync batchnorm')
-    parser.add_argument('--num_workers', type=int, default=0, help='num_workers')
+    parser.add_argument('--num_workers', type=int, default=2,
+                        help='number of workers')
+    parser.add_argument('--prefetch_factor', type=int, default=2,
+                        help='prefetch factor')
     parser.add_argument('--seed', type=int, default=1,
                         help='random seed (default: 1)')
     "============================================================================"
