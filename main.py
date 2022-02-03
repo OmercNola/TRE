@@ -153,7 +153,7 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer, tracker):
                         loss.backward()
 
                         # This is to help prevent the "exploding gradients" problem:
-                        if args.clip_grad_norm:
+                        if args.use_clip_grad_norm:
                             nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
 
                         # update parameters
@@ -519,8 +519,11 @@ if __name__ == '__main__':
                         help='learning rate (default: 0.00001) took from longformer paper')
     parser.add_argument('--part_of_train_data', type=float, default=1,
                         help='amount of train data for training, (between 0 and 1)')
+    parser.add_argument('--use_scheduler', type=bool, default=False,
+                        help='use linear scheduler with warmup ?')
     parser.add_argument('--num_warmup_steps', type=int, default=50,
-                        help='number of warmup steps in the scheduler')
+                        help='number of warmup steps in the scheduler, '
+                             '(just if args.use_scheduler is True)')
     parser.add_argument('--beta_1', type=float, default=0.9,
                         help='beta 1 for AdamW. default=0.9')
     parser.add_argument('--beta_2', type=float, default=0.999,
@@ -529,18 +532,17 @@ if __name__ == '__main__':
                         help='dropout_p (default: 0.1)')
     parser.add_argument('--weight_decay', type=float, default=0,
                         help='weight_decay for AdamW. default=0.0001')
-    parser.add_argument('--use_scheduler', type=bool, default=False,
-                        help='use scheduler ?')
-    parser.add_argument('--clip_grad_norm', type=bool, default=False,
+    parser.add_argument('--use_clip_grad_norm', type=bool, default=False,
                         help='clip grad norm to args.max_grad_norm')
     parser.add_argument('--max_grad_norm', type=float, default=40,
-                        help='max grad norm for cliping')
+                        help='max norm for gradients cliping '
+                             '(just if args.use_clip_grad_norm is True)')
     parser.add_argument('--sync-bn', action='store_true', default=True,
                         help='sync batchnorm')
     parser.add_argument('--num_workers', type=int, default=4,
-                        help='number of workers')
+                        help='number of workers in dataloader')
     parser.add_argument('--prefetch_factor', type=int, default=3,
-                        help='prefetch factor')
+                        help='prefetch factor in dataloader')
     parser.add_argument('--seed', type=int, default=1,
                         help='random seed (default: 1)')
     "============================================================================"
