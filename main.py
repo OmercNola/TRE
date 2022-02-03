@@ -129,8 +129,8 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer, tracker):
                     batch_attention_mask.append(attention_mask)
                     batch_labels.append(label)
 
-                    # compute loss and update weights every args.ddp_batch_size:
-                    if len(batch_input_ids) == args.ddp_batch_size:
+                    # compute loss and update weights every args.single_rank_batch_size:
+                    if len(batch_input_ids) == args.single_rank_batch_size:
 
                         batch_input_ids = torch.tensor(
                             batch_input_ids, requires_grad=False, device=args.device)
@@ -583,14 +583,14 @@ if __name__ == '__main__':
 
     # if single GPU:
     if args.world_size == 1:
-        args.ddp_batch_size = args.batch_size
+        args.single_rank_batch_size = args.batch_size
         args.device_id = 0
         args.rank = 0
         main(args)
 
     # DDP for multiple GPU'S:
     elif args.world_size > 1:
-        args.ddp_batch_size = int(args.batch_size / args.world_size)
+        args.single_rank_batch_size = int(args.batch_size / args.world_size)
         port = random.randint(10000, 20000)
         args.init_method = f'tcp://127.0.0.1:{port}'
         args.rank = None
@@ -599,6 +599,6 @@ if __name__ == '__main__':
         mp.spawn(fn=distributed_main, args=(args,), nprocs=args.world_size,)
     else:
         args.device = torch.device("cpu")
-        args.ddp_batch_size = args.batch_size
+        args.single_rank_batch_size = args.batch_size
         main(args)
     "================================================================================="
