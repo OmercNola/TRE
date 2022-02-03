@@ -485,8 +485,9 @@ if __name__ == '__main__':
     parser.add_argument('--shuffle', type=bool, default=True,
                         help='shuffle')
     parser.add_argument('--use_E_markers', type=bool, default=True,
-                        help='it True then use ([E1] word1 [/E1]) like markers, '
-                             'else (@ word @) markers')
+                        help='if True then use ([E1] word1 [/E1]) like markers, else (@ word @) markers')
+    parser.add_argument('--short_passage', type=bool, default=True,
+                        help='if True then cut the passage after the first "." after second verb')
     parser.add_argument('--eval_during_training', type=bool, default=True,
                         help='eval during training ?')
     parser.add_argument('--save_model_during_training', type=bool, default=True,

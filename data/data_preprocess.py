@@ -62,7 +62,7 @@ def get_text_and_eiid_to_eid_map_from_tml_file(filepath):
     elements = mydoc.getElementsByTagName("TEXT")
 
     return elements, ei_e_map
-def new_context_with_markers_from_tokens_and_two_eids(elements_, eid1_, eid2_):
+def new_context_with_markers_from_tokens_and_two_eids(args, elements_, eid1_, eid2_):
     """
     :param elements_:
     :type elements_:
@@ -79,16 +79,29 @@ def new_context_with_markers_from_tokens_and_two_eids(elements_, eid1_, eid2_):
     new_context_ = ""
 
     for index, child in enumerate(elements_[0].childNodes):
+
+        # e1:
         if type(child) is minidom.Element and child.nodeName == "EVENT" and \
                 child.attributes["eid"].value == eid1_:
-            new_context_ += f'[E1] {child.firstChild.data} [/E1]'
+            if args.use_E_markers:
+                new_context_ += f'[E1] {child.firstChild.data} [/E1]'
+            else:  # use @ markers
+                new_context_ += f'@ {child.firstChild.data} @'
+
+        # e2:
         elif type(child) is minidom.Element and child.nodeName == "EVENT" and \
                 child.attributes["eid"].value == eid2_:
-            new_context_ += f'[E2] {child.firstChild.data} [/E2]'
+            if args.use_E_markers:
+                new_context_ += f'[E2] {child.firstChild.data} [/E2]'
+            else:
+                new_context_ += f'@ {child.firstChild.data} @'
+
         elif type(child) is minidom.Element and (child.nodeName == "TIMEX" or child.nodeName == "TIMEX3"):
             new_context_ += child.firstChild.data
+
         elif type(child) is minidom.Element:
             new_context_ += child.firstChild.data
+
         else:
             new_context_ += child.data
 
@@ -182,11 +195,16 @@ def final_data_process_for_markers(args, folder_path, labeled_data_path):
                 eid1 = Map[f'ei{eiid1}']
                 eid2 = Map[f'ei{eiid2}']
 
-                # here we get all passage with markers:
-                # passage = new_context_with_markers_from_tokens_and_two_eids(text_elements, eid1, eid2)
-
-                # here we get passage with markers and cut it just after the first "." after [E2]:
-                passage = new_short_context_with_markers_from_tokens_and_two_eids(args, text_elements, eid1, eid2)
+                if args.short_passage:
+                    # here we get passage with markers and cut it just after the first "." after [E2]:
+                    passage = new_short_context_with_markers_from_tokens_and_two_eids(
+                        args, text_elements, eid1, eid2
+                    )
+                else:
+                    # here we get all passage with markers:
+                    passage = new_context_with_markers_from_tokens_and_two_eids(
+                        args, text_elements, eid1, eid2
+                    )
 
                 first_word = instance[0]
                 second_word = instance[1]
@@ -277,11 +295,18 @@ def process_TCR_data(args, tml_folder_path):
             eid1, first_word = event1[0], event1[1]
             eid2, second_word = event2[0], event2[1]
 
-            # here we get all passage with markers:
-            # passage = new_context_with_markers_from_tokens_and_two_eids(text_elements, eid1, eid2)
 
-            # here we get passage with markers and cut it just after the first "." after [E2]:
-            passage = new_short_context_with_markers_from_tokens_and_two_eids(args, text_elements, eid1, eid2)
+
+            if args.short_passage:
+                # here we get passage with markers and cut it just after the first "." after [E2]:
+                passage = new_short_context_with_markers_from_tokens_and_two_eids(
+                    args, text_elements, eid1, eid2
+                )
+            else:
+                # here we get all passage with markers:
+                passage = new_context_with_markers_from_tokens_and_two_eids(
+                    args, text_elements, eid1, eid2
+                )
 
             data.append([passage, [first_word, second_word, relation]])
 
