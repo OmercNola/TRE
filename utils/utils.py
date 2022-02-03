@@ -285,6 +285,28 @@ class results_tracker:
             micro_f1 = 0
 
         return (float(f'{macro_f1:.4f}'), float(f'{micro_f1:.4f}'))
+
+    def reset(self):
+
+        self.TP_BEFORE = 0
+        self.TN_BEFORE = 0
+        self.FP_BEFORE = 0
+        self.FN_BEFORE = 0
+
+        self.TP_AFTER = 0
+        self.TN_AFTER = 0
+        self.FP_AFTER = 0
+        self.FN_AFTER = 0
+
+        self.TP_EQUAL = 0
+        self.TN_EQUAL = 0
+        self.FP_EQUAL = 0
+        self.FN_EQUAL = 0
+
+        self.TP_VAGUE = 0
+        self.TN_VAGUE = 0
+        self.FP_VAGUE = 0
+        self.FN_VAGUE = 0
 # get the label (number) from label string:
 def get_label(question_name, label):
     """

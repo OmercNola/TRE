@@ -21,7 +21,7 @@ from model.model import create_pretrained_model_and_tokenizer
 from transformers import get_linear_schedule_with_warmup, AdamW
 def is_master():
     return not dist.is_initialized() or dist.get_rank() == 0
-def train(model, args, train_dataloader, test_dataloader, tokenizer):
+def train(model, args, train_dataloader, test_dataloader, tokenizer, tracker):
     """
     :param model:
     :type model:
@@ -129,8 +129,8 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
                     batch_attention_mask.append(attention_mask)
                     batch_labels.append(label)
 
-                    # compute loss and update weights every args.batch_size:
-                    if len(batch_input_ids) == args.batch_size:
+                    # compute loss and update weights every args.ddp_batch_size:
+                    if len(batch_input_ids) == args.ddp_batch_size:
 
                         batch_input_ids = torch.tensor(
                             batch_input_ids, requires_grad=False, device=args.device)
@@ -197,7 +197,6 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer):
         if is_master():
             # evaluate at the end of the epoch:
             if args.eval_during_training:
-                tracker = results_tracker()
                 eval(
                     model, args, test_dataloader,
                     tokenizer, tracker, batches_overall=batches_overall
@@ -225,6 +224,9 @@ def eval(model, args, test_dataloader, tokenizer, tracker, batches_overall=None)
 
     # evaluation mode:
     model.eval()
+
+    # reset Tracker:
+    tracker.reset()
 
     # create wandb table for traking the rsults:
     table = wandb.Table(
@@ -434,9 +436,11 @@ def main(args, init_distributed=False):
             val_dataloader = create_dataloader(args, 'val', ddp)
             test_dataloader = create_dataloader(args, 'test', ddp)
     "=================================================================="
+    tracker = results_tracker() if is_master() else None
+    "=================================================================="
     """Training"""
     if not args.eval:
-        train(model, args, train_dataloader, test_dataloader, tokenizer)
+        train(model, args, train_dataloader, test_dataloader, tokenizer, tracker)
         # finish the session:
         if is_master():
             wandb.finish()
@@ -446,7 +450,6 @@ def main(args, init_distributed=False):
     "=================================================================="
     """Evaluation"""
     if args.eval:
-        tracker = results_tracker()
         eval(model, args, test_dataloader, tokenizer, tracker)
         # finish the session:
         wandb.finish()
@@ -502,12 +505,12 @@ if __name__ == '__main__':
     parser.add_argument('--print_eval_every', type=int, default=50,
                         help='when to print f1 scores during eval - number of batches')
     parser.add_argument('--checkpoint_path', type=str,
-                        default=None, #'models/beaming-dumpling-151_epoch_2_iter_2000_.pt', #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
+                        default=None, #'models/eternal-star-165_epoch_2_iter_2000_.pt', #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
                         help='checkpoint path for evaluation or proceed training ,'
                              'if set to None then ignor checkpoint')
     "============================================================================"
     "Hyper-parameters"
-    parser.add_argument('--epochs', type=int, default=3,
+    parser.add_argument('--epochs', type=int, default=4,
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=6,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
@@ -521,6 +524,8 @@ if __name__ == '__main__':
                         help='beta 1 for AdamW. default=0.9')
     parser.add_argument('--beta_2', type=float, default=0.999,
                         help='beta 2 for AdamW. default=0.999')
+    parser.add_argument('--dropout_p', type=float, default=0.25,
+                        help='dropout_p (default: 0.1)')
     parser.add_argument('--weight_decay', type=float, default=0,
                         help='weight_decay for AdamW. default=0.0001')
     parser.add_argument('--use_scheduler', type=bool, default=False,
@@ -529,13 +534,11 @@ if __name__ == '__main__':
                         help='clip grad norm to args.max_grad_norm')
     parser.add_argument('--max_grad_norm', type=float, default=40,
                         help='max grad norm for cliping')
-    parser.add_argument('--dropout_p', type=float, default=0.2,
-                        help='dropout_p (default: 0.1)')
     parser.add_argument('--sync-bn', action='store_true', default=True,
                         help='sync batchnorm')
     parser.add_argument('--num_workers', type=int, default=4,
                         help='number of workers')
-    parser.add_argument('--prefetch_factor', type=int, default=2,
+    parser.add_argument('--prefetch_factor', type=int, default=3,
                         help='prefetch factor')
     parser.add_argument('--seed', type=int, default=1,
                         help='random seed (default: 1)')
@@ -580,13 +583,14 @@ if __name__ == '__main__':
 
     # if single GPU:
     if args.world_size == 1:
+        args.ddp_batch_size = args.batch_size
         args.device_id = 0
         args.rank = 0
         main(args)
 
     # DDP for multiple GPU'S:
     elif args.world_size > 1:
-        args.batch_size = int(args.batch_size / args.world_size)
+        args.ddp_batch_size = int(args.batch_size / args.world_size)
         port = random.randint(10000, 20000)
         args.init_method = f'tcp://127.0.0.1:{port}'
         args.rank = None
@@ -595,5 +599,6 @@ if __name__ == '__main__':
         mp.spawn(fn=distributed_main, args=(args,), nprocs=args.world_size,)
     else:
         args.device = torch.device("cpu")
+        args.ddp_batch_size = args.batch_size
         main(args)
     "================================================================================="
