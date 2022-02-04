@@ -524,11 +524,11 @@ if __name__ == '__main__':
     parser.add_argument('--num_warmup_steps', type=int, default=50,
                         help='number of warmup steps in the scheduler, '
                              '(just if args.use_scheduler is True)')
-    parser.add_argument('--beta_1', type=float, default=0.9,
+    parser.add_argument('--beta_1', type=float, default=0.8,
                         help='beta 1 for AdamW. default=0.9')
     parser.add_argument('--beta_2', type=float, default=0.999,
                         help='beta 2 for AdamW. default=0.999')
-    parser.add_argument('--dropout_p', type=float, default=0.25,
+    parser.add_argument('--dropout_p', type=float, default=0.1,
                         help='dropout_p (default: 0.1)')
     parser.add_argument('--weight_decay', type=float, default=0,
                         help='weight_decay for AdamW. default=0.0001')
