@@ -139,3 +139,20 @@ def eval_boolq(model, args, test_dataloader, tokenizer):
         # copmute accuracy:
         if instances_counter % print_every == 0:
             print(f'acc): {right / (right + wrong)}\n')
+"================================================================================="
+"==============================  BOOLQ WITH MARKERS  ============================="
+"================================================================================="
+# # # Datasets:
+# dataset_boolq = load_dataset("boolq")
+# # Dataloaders:
+# train_dataloader = DataLoader(dataset_boolq['train'], batch_size=args.batch_size, shuffle=True)
+#
+# # # Training
+# #train_boolq(model, args, train_dataloader, tokenizer, num_epochs=10)
+#
+# # Evaluation
+# test_dataloader = DataLoader(dataset_boolq['validation'], batch_size=4, shuffle=False)
+# PATH = Path('models/model_boolq_with_markers_epoch_10_.pt')
+# model.load_state_dict(torch.load(PATH))
+# model.to(args.device)
+# eval_boolq(model, args, test_dataloader, tokenizer)
