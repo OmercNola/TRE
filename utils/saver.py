@@ -36,7 +36,7 @@ def load_model_checkpoint(args, path_, model, optimizer=None, scheduler=None):
 
     # load the checkpoint:
 
-    checkpoint = torch.load(path_, map_location=f'cuda:{args.rank}')
+    checkpoint = torch.load(path_, map_location=torch.device('cpu'))
 
     model.load_state_dict(checkpoint['model_state_dict'])
 
@@ -49,8 +49,19 @@ def load_model_checkpoint(args, path_, model, optimizer=None, scheduler=None):
         except Exception as e:
             print(e)
 
-    epoch = checkpoint['epoch']
-    loss = checkpoint['loss']
-    epoch_percent = checkpoint['epoch percent']
+    try:
+        epoch = checkpoint['epoch']
+    except:
+        epoch = None
+
+    try:
+        loss = checkpoint['loss']
+    except:
+        loss = None
+
+    try:
+        epoch_percent = checkpoint['epoch percent']
+    except:
+        epoch_percent = None
 
     return model, optimizer, scheduler, epoch, loss, epoch_percent

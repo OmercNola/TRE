@@ -412,14 +412,14 @@ def main(args, init_distributed=False):
         model.load_state_dict(checkpoint['model_state_dict'])
         model.to(args.device)
     "=================================================================="
-    # prepare checkpoint path:
-    if args.checkpoint_path is not None:
-        model = nn.DataParallel(model, device_ids=[args.rank]).to(args.device)
+    # if there is a checkpoint, load it:
+    if (args.checkpoint_path is not None):
         (model, _, _, _, _, _) = \
             load_model_checkpoint(
                 args, Path(args.checkpoint_path), model,
                 None, None
             )
+        model.to(args.device)
     "=================================================================="
     # Parallel
     is_distributed = args.world_size > 1
@@ -530,7 +530,7 @@ if __name__ == '__main__':
     "Hyper-parameters"
     parser.add_argument('--epochs', type=int, default=4,
                         help='number of epochs')
-    parser.add_argument('--batch_size', type=int, default=2,
+    parser.add_argument('--batch_size', type=int, default=4,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')
