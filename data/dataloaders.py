@@ -17,13 +17,15 @@ def create_dataloader(args, train_val_test, is_distributed=False):
     :rtype:
     """
 
+    sampler = None
+
     if train_val_test == 'train':
 
         train_dataset = TRE_train_dataset(args)
 
         if is_distributed:
 
-            train_sampler = DistributedSampler(
+            sampler = DistributedSampler(
                 dataset=train_dataset,
                 num_replicas=args.world_size,
                 rank=args.rank,
@@ -38,7 +40,7 @@ def create_dataloader(args, train_val_test, is_distributed=False):
                 num_workers=args.num_workers,
                 persistent_workers=True,
                 prefetch_factor=args.prefetch_factor,
-                sampler=train_sampler,
+                sampler=sampler,
                 pin_memory=True
             )
 
@@ -61,7 +63,7 @@ def create_dataloader(args, train_val_test, is_distributed=False):
 
         if is_distributed:
 
-            val_sampler = DistributedEvalSampler(
+            sampler = DistributedEvalSampler(
                 dataset=val_dataset,
                 num_replicas=args.world_size,
                 rank=args.rank,
@@ -77,7 +79,7 @@ def create_dataloader(args, train_val_test, is_distributed=False):
                 prefetch_factor=args.prefetch_factor,
                 num_workers=args.num_workers,
                 persistent_workers=True,
-                #sampler=val_sampler,
+                #sampler=sampler,
                 pin_memory=True
             )
 
@@ -85,7 +87,7 @@ def create_dataloader(args, train_val_test, is_distributed=False):
         else:
             dataloader = DataLoader(
                 val_dataset,
-                shuffle=args.shuffle,
+                shuffle=False,
                 drop_last=True,
                 batch_size=args.batch_size,
                 prefetch_factor=args.prefetch_factor,
@@ -100,7 +102,7 @@ def create_dataloader(args, train_val_test, is_distributed=False):
 
         if is_distributed:
 
-            test_sampler = DistributedEvalSampler(
+            sampler = DistributedEvalSampler(
                 test_dataset,
                 num_replicas=args.world_size,
                 rank=args.rank,
@@ -116,7 +118,7 @@ def create_dataloader(args, train_val_test, is_distributed=False):
                 prefetch_factor=args.prefetch_factor,
                 num_workers=args.num_workers,
                 persistent_workers=True,
-                #sampler=test_sampler,
+                #sampler=sampler,
                 pin_memory=True
             )
 
@@ -124,7 +126,7 @@ def create_dataloader(args, train_val_test, is_distributed=False):
         else:
             dataloader = DataLoader(
                 test_dataset,
-                shuffle=args.shuffle,
+                shuffle=False,
                 drop_last=True,
                 batch_size=args.batch_size,
                 prefetch_factor=args.prefetch_factor,
@@ -133,4 +135,4 @@ def create_dataloader(args, train_val_test, is_distributed=False):
                 pin_memory=True
             )
 
-    return dataloader
+    return dataloader, sampler

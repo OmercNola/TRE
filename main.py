@@ -23,7 +23,7 @@ def is_master():
     return not dist.is_initialized() or dist.get_rank() == 0
 def cleanup():
     dist.destroy_process_group()
-def train(model, args, train_dataloader, test_dataloader, tokenizer, tracker):
+def train(model, args, train_dataloader, train_sampler, test_dataloader, tokenizer):
     """
     :param model:
     :type model:
@@ -31,15 +31,16 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer, tracker):
     :type args:
     :param train_dataloader:
     :type train_dataloader:
+    :param train_sampler:
+    :type train_sampler:
+    :param test_dataloader:
+    :type test_dataloader:
     :param tokenizer:
     :type tokenizer:
-    :param args.epochs:
-    :type args.epochs:
-    :param checkpoint_path:
-    :type checkpoint_path:
     :return:
     :rtype:
     """
+
     print('train')
     criterion = nn.CrossEntropyLoss()
 
@@ -86,6 +87,9 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer, tracker):
         epoch_itrator = range(epoch_start, args.epochs+1, 1)
 
     for epoch in epoch_itrator:
+
+        if is_distributed:
+            train_sampler.set_epoch(epoch)
 
         batch_input_ids = []
         batch_attention_mask = []
@@ -207,12 +211,10 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer, tracker):
         if is_master():
             # evaluate at the end of the epoch:
             if args.eval_during_training:
-                eval(
-                    model, args, test_dataloader,
-                    tokenizer, tracker, batches_overall=batches_overall
-                )
+                eval(model, args, test_dataloader, tokenizer, batches_overall=batches_overall)
+
         dist.barrier()
-def eval(model, args, test_dataloader, tokenizer, tracker, batches_overall=None):
+def eval(model, args, test_dataloader, tokenizer, batches_overall=None):
 
     """
     :param model:
@@ -235,6 +237,9 @@ def eval(model, args, test_dataloader, tokenizer, tracker, batches_overall=None)
 
     # evaluation mode:
     model.eval()
+
+    # create Tracker:
+    tracker = results_tracker()
 
     # reset Tracker:
     tracker.reset()
@@ -346,7 +351,7 @@ def eval(model, args, test_dataloader, tokenizer, tracker, batches_overall=None)
     print(f'f1 macro: {macro}, f1 micro: {micro}, '
           f'evaluation percent: {eval_precent:.3f}')
 
-    if args.save_table_of_results_after_eval and is_master():
+    if (args.save_table_of_results_after_eval) and (is_master()):
         wandb.log({f'results table {wandb.run.name}': table})
 def main(args, init_distributed=False):
 
@@ -423,7 +428,6 @@ def main(args, init_distributed=False):
     "=================================================================="
     # Parallel
     is_distributed = args.world_size > 1
-
     if torch.cuda.is_available():
         # if we have more than 1 gpu:
         if args.world_size > 1:
@@ -440,22 +444,23 @@ def main(args, init_distributed=False):
             )
             model.to(args.device)
 
-            train_dataloader = create_dataloader(args, 'train', is_distributed)
-            val_dataloader = create_dataloader(args, 'val', is_distributed)
-            test_dataloader = create_dataloader(args, 'test', is_distributed)
+            # Dataloaders:
+            train_dataloader, train_sampler = create_dataloader(args, 'train', is_distributed)
+            val_dataloader, _ = create_dataloader(args, 'val', is_distributed)
+            test_dataloader, _ = create_dataloader(args, 'test', is_distributed)
 
         # if we have just 1 gpu:
         elif args.world_size == 1:
             model = model.to(args.device)
-            train_dataloader = create_dataloader(args, 'train', is_distributed)
-            val_dataloader = create_dataloader(args, 'val', is_distributed)
-            test_dataloader = create_dataloader(args, 'test', is_distributed)
-    "=================================================================="
-    tracker = results_tracker() if is_master() else None
+
+            # Dataloaders:
+            train_dataloader, train_sampler = create_dataloader(args, 'train', is_distributed)
+            val_dataloader, _ = create_dataloader(args, 'val', is_distributed)
+            test_dataloader, _ = create_dataloader(args, 'test', is_distributed)
     "=================================================================="
     """Training"""
     if not args.eval:
-        train(model, args, train_dataloader, test_dataloader, tokenizer, tracker)
+        train(model, args, train_dataloader, train_sampler, test_dataloader, tokenizer)
         # finish the session:
         if is_master():
             wandb.finish()
@@ -465,7 +470,7 @@ def main(args, init_distributed=False):
     "=================================================================="
     """Evaluation"""
     if args.eval:
-        eval(model, args, test_dataloader, tokenizer, tracker)
+        eval(model, args, test_dataloader, tokenizer)
         # finish the session:
         wandb.finish()
         # empty cache:
