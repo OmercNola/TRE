@@ -388,8 +388,6 @@ def main(args, init_distributed=False):
         wandb.init(project="tre", entity='omerc', config=config_for_wandb)
         wandb.config.update(args)
     "================================================================================="
-    "=========================  Temporal Relation Classification  ===================="
-    "================================================================================="
     # create model and tokenizer (after markers adition):
     model, tokenizer = create_pretrained_model_and_tokenizer(args)
     "================================================================================="
@@ -399,7 +397,7 @@ def main(args, init_distributed=False):
         checkpoint = torch.load(PATH, map_location=torch.device('cpu'))
         model.load_state_dict(checkpoint['model_state_dict'])
         model.to(args.device)
-    "=================================================================="
+    "================================================================================="
     # if there is a checkpoint, load it:
     if (args.checkpoint_path is not None):
         (model, _, _, _, _, _) = \
@@ -408,7 +406,7 @@ def main(args, init_distributed=False):
                 None, None
             )
         model.to(args.device)
-    "=================================================================="
+    "================================================================================="
     # Parallel
     is_distributed = args.world_size > 1
     if torch.cuda.is_available():
@@ -437,10 +435,10 @@ def main(args, init_distributed=False):
             model = model.to(args.device)
 
             # Dataloaders:
-            train_dataloader, train_sampler = create_dataloader(args, 'train', is_distributed)
-            val_dataloader, _ = create_dataloader(args, 'val', is_distributed)
-            test_dataloader, _ = create_dataloader(args, 'test', is_distributed)
-    "=================================================================="
+            train_dataloader, train_sampler = create_dataloader(args, 'train')
+            val_dataloader, _ = create_dataloader(args, 'val')
+            test_dataloader, _ = create_dataloader(args, 'test')
+    "================================================================================="
     """Training"""
     if not args.eval:
         train(model, args, train_dataloader, train_sampler, test_dataloader, tokenizer)
@@ -450,7 +448,7 @@ def main(args, init_distributed=False):
         # empty cache:
         if "cuda" in str(args.device):
             torch.cuda.empty_cache()
-    "=================================================================="
+    "================================================================================="
     """Evaluation"""
     if args.eval:
         eval(model, args, test_dataloader, tokenizer)
@@ -459,7 +457,7 @@ def main(args, init_distributed=False):
         # empty cache:
         if "cuda" in str(args.device):
             torch.cuda.empty_cache()
-    "=================================================================="
+    "================================================================================="
     if is_distributed:
         cleanup()
 def distributed_main(device_id, args):
@@ -477,13 +475,13 @@ def distributed_main(device_id, args):
     main(args, init_distributed=True)
 if __name__ == '__main__':
     __file__ = 'main.py'
-    "============================================================================"
+    "================================================================================="
     parser = argparse.ArgumentParser(description='TRE')
-    "============================================================================"
+    "================================================================================="
     parser.add_argument('--device', type=torch.device,
                         default=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
                         help='device type')
-    "============================================================================"
+    "================================================================================="
     "Train settings 1"
     parser.add_argument('--eval', type=bool, default=False,
                         help='eval mode ? if False then training mode')
@@ -514,7 +512,7 @@ if __name__ == '__main__':
                         default=None, #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
                         help='checkpoint path for evaluation or proceed training ,'
                              'if set to None then ignor checkpoint')
-    "============================================================================"
+    "================================================================================="
     "Hyper-parameters"
     parser.add_argument('--epochs', type=int, default=4,
                         help='number of epochs')
@@ -550,7 +548,7 @@ if __name__ == '__main__':
                         help='prefetch factor in dataloader')
     parser.add_argument('--seed', type=int, default=1,
                         help='random seed (default: 1)')
-    "============================================================================"
+    "================================================================================="
     "Model settings"
     parser.add_argument('--output_size', type=int, default=2,
                         help='output_size (default: 2)')
@@ -558,7 +556,7 @@ if __name__ == '__main__':
                         help='Max_Len (default: 4096)')
     parser.add_argument('--Size_of_longfor', type=str, default='base',
                         help='Size_of_longformer (default: "base")')
-    "============================================================================"
+    "================================================================================="
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     print('Available devices ', torch.cuda.device_count())

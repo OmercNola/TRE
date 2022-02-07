@@ -30,6 +30,7 @@ def create_dataloader(args, train_val_test, is_distributed=False):
                 num_replicas=args.world_size,
                 rank=args.rank,
                 shuffle=args.shuffle,
+                seed=args.seed
             )
 
             dataloader = DataLoader(
