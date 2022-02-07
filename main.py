@@ -542,9 +542,9 @@ if __name__ == '__main__':
                              '(just if args.use_clip_grad_norm is True)')
     parser.add_argument('--sync-bn', action='store_true', default=True,
                         help='sync batchnorm')
-    parser.add_argument('--num_workers', type=int, default=4,
+    parser.add_argument('--num_workers', type=int, default=6,
                         help='number of workers in dataloader')
-    parser.add_argument('--prefetch_factor', type=int, default=2,
+    parser.add_argument('--prefetch_factor', type=int, default=3,
                         help='prefetch factor in dataloader')
     parser.add_argument('--seed', type=int, default=1,
                         help='random seed (default: 1)')
