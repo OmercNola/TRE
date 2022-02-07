@@ -5,8 +5,9 @@ from data.datasets import \
      TRE_test_dataset)
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+from data.sampler import DistributedEvalSampler
 "=================================================================="
-def create_dataloader(args, train_val_test, ddp=False):
+def create_dataloader(args, train_val_test, is_distributed=False):
     """
     :param args:
     :type args:
@@ -20,7 +21,7 @@ def create_dataloader(args, train_val_test, ddp=False):
 
         train_dataset = TRE_train_dataset(args)
 
-        if ddp:
+        if is_distributed:
 
             train_sampler = DistributedSampler(
                 dataset=train_dataset,
@@ -41,7 +42,7 @@ def create_dataloader(args, train_val_test, ddp=False):
                 pin_memory=True
             )
 
-        # not ddp:
+        # not distributed:
         else:
             dataloader = DataLoader(
                 train_dataset,
@@ -58,13 +59,14 @@ def create_dataloader(args, train_val_test, ddp=False):
 
         val_dataset = TRE_val_dataset(args)
 
-        if ddp:
+        if is_distributed:
 
-            val_sampler = DistributedSampler(
+            val_sampler = DistributedEvalSampler(
                 dataset=val_dataset,
                 num_replicas=args.world_size,
                 rank=args.rank,
                 shuffle=False,
+                seed=args.seed
             )
 
             dataloader = DataLoader(
@@ -75,11 +77,11 @@ def create_dataloader(args, train_val_test, ddp=False):
                 prefetch_factor=args.prefetch_factor,
                 num_workers=args.num_workers,
                 persistent_workers=True,
-                sampler=val_sampler,
+                #sampler=val_sampler,
                 pin_memory=True
             )
 
-        # not ddp:
+        # not distributed:
         else:
             dataloader = DataLoader(
                 val_dataset,
@@ -96,11 +98,14 @@ def create_dataloader(args, train_val_test, ddp=False):
 
         test_dataset = TRE_test_dataset(args)
 
-        if ddp:
+        if is_distributed:
 
-            test_sampler = DistributedSampler(
+            test_sampler = DistributedEvalSampler(
                 test_dataset,
+                num_replicas=args.world_size,
+                rank=args.rank,
                 shuffle=False,
+                seed=args.seed
             )
 
             dataloader = DataLoader(
@@ -111,11 +116,11 @@ def create_dataloader(args, train_val_test, ddp=False):
                 prefetch_factor=args.prefetch_factor,
                 num_workers=args.num_workers,
                 persistent_workers=True,
-                sampler=test_sampler,
+                #sampler=test_sampler,
                 pin_memory=True
             )
 
-        # not ddp:
+        # not distributed:
         else:
             dataloader = DataLoader(
                 test_dataset,

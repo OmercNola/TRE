@@ -21,6 +21,8 @@ from model.model import create_pretrained_model_and_tokenizer
 from transformers import get_linear_schedule_with_warmup, AdamW
 def is_master():
     return not dist.is_initialized() or dist.get_rank() == 0
+def cleanup():
+    dist.destroy_process_group()
 def train(model, args, train_dataloader, test_dataloader, tokenizer, tracker):
     """
     :param model:
@@ -38,7 +40,7 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer, tracker):
     :return:
     :rtype:
     """
-
+    print('train')
     criterion = nn.CrossEntropyLoss()
 
     optimizer = AdamW(
@@ -144,7 +146,15 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer, tracker):
                         optimizer.zero_grad()
 
                         # forward pass:
-                        outputs = model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
+                        try:
+                            outputs = model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
+                        except RuntimeError as exception:
+                            if "out of memory" in str(exception):
+                                print("WARNING: out of memory")
+                                if hasattr(torch.cuda, 'empty_cache'):
+                                    torch.cuda.empty_cache()
+                            else:
+                                raise exception
 
                         # extract loss
                         loss = criterion(outputs, batch_labels)
@@ -160,7 +170,7 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer, tracker):
                         optimizer.step()
 
                         # Update the learning rate.
-                        if args.use_scheduler:
+                        if args.use_scheduler and scheduler is not None:
                             scheduler.step()
 
                         # save training loss:
@@ -201,6 +211,7 @@ def train(model, args, train_dataloader, test_dataloader, tokenizer, tracker):
                     model, args, test_dataloader,
                     tokenizer, tracker, batches_overall=batches_overall
                 )
+        dist.barrier()
 def eval(model, args, test_dataloader, tokenizer, tracker, batches_overall=None):
 
     """
@@ -326,7 +337,7 @@ def eval(model, args, test_dataloader, tokenizer, tracker, batches_overall=None)
     # at the end of the evaluation:
     macro, micro = tracker.f1_macro_and_micro()
 
-    # save then to wandb:
+    # log to wandb:
     if is_master():
         wandb.log({"batches_overall": batches_overall,
                    "f1 macro": macro, "f1 micro": micro})
@@ -350,6 +361,7 @@ def main(args, init_distributed=False):
     "================================================================================="
     if torch.cuda.is_available():
         torch.cuda.set_device(args.device_id)
+        torch.cuda.empty_cache()
         torch.cuda.init()
         args.device = torch.device("cuda")
 
@@ -362,6 +374,7 @@ def main(args, init_distributed=False):
         )
         # dist.all_reduce(torch.zeros(1).cuda())
         args.device = torch.device("cuda", args.rank)
+
     "================================================================================="
     if is_master():
         # config for the experiment:
@@ -393,21 +406,24 @@ def main(args, init_distributed=False):
     model, tokenizer = create_pretrained_model_and_tokenizer(args)
     "================================================================================="
     # if train mode and no checkpoint - load the pretrained boolq model:
-    if not args.eval and args.checkpoint_path is None:
+    if (not args.eval) and (args.checkpoint_path is None):
         PATH = Path(args.boolq_pre_trained_model_path)
-        model = nn.DataParallel(model, device_ids=[args.rank]).to(args.device)
-        model.load_state_dict(torch.load(PATH))
+        checkpoint = torch.load(PATH, map_location=torch.device('cpu'))
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model.to(args.device)
     "=================================================================="
     # prepare checkpoint path:
     if args.checkpoint_path is not None:
         model = nn.DataParallel(model, device_ids=[args.rank]).to(args.device)
         (model, _, _, _, _, _) = \
             load_model_checkpoint(
-                args, Path(args.checkpoint_path), model.to(args.device),
+                args, Path(args.checkpoint_path), model,
                 None, None
             )
     "=================================================================="
     # Parallel
+    is_distributed = args.world_size > 1
+
     if torch.cuda.is_available():
         # if we have more than 1 gpu:
         if args.world_size > 1:
@@ -421,20 +437,19 @@ def main(args, init_distributed=False):
                 output_device=args.rank,
                 find_unused_parameters=True,
                 broadcast_buffers=False
-            ).cuda()
+            )
+            model.to(args.device)
 
-            ddp = True
-            train_dataloader = create_dataloader(args, 'train', ddp)
-            val_dataloader = create_dataloader(args, 'val', ddp)
-            test_dataloader = create_dataloader(args, 'test', ddp)
+            train_dataloader = create_dataloader(args, 'train', is_distributed)
+            val_dataloader = create_dataloader(args, 'val', is_distributed)
+            test_dataloader = create_dataloader(args, 'test', is_distributed)
 
         # if we have just 1 gpu:
         elif args.world_size == 1:
             model = model.to(args.device)
-            ddp = False
-            train_dataloader = create_dataloader(args, 'train', ddp)
-            val_dataloader = create_dataloader(args, 'val', ddp)
-            test_dataloader = create_dataloader(args, 'test', ddp)
+            train_dataloader = create_dataloader(args, 'train', is_distributed)
+            val_dataloader = create_dataloader(args, 'val', is_distributed)
+            test_dataloader = create_dataloader(args, 'test', is_distributed)
     "=================================================================="
     tracker = results_tracker() if is_master() else None
     "=================================================================="
@@ -457,6 +472,8 @@ def main(args, init_distributed=False):
         if "cuda" in str(args.device):
             torch.cuda.empty_cache()
     "=================================================================="
+    if is_distributed:
+        cleanup()
 def distributed_main(device_id, args):
     """
     :param device_id:
@@ -484,7 +501,7 @@ if __name__ == '__main__':
                         help='eval mode ? if False then training mode')
     parser.add_argument('--shuffle', type=bool, default=True,
                         help='shuffle')
-    parser.add_argument('--use_E_markers', type=bool, default=True,
+    parser.add_argument('--use_E_markers', type=bool, default=False,
                         help='if True then use ([E1] word1 [/E1]) like markers, else (@ word @) markers')
     parser.add_argument('--short_passage', type=bool, default=True,
                         help='if True then cut the passage after the first "." after second verb')
@@ -499,21 +516,21 @@ if __name__ == '__main__':
     parser.add_argument('--ignor_vague_lable_in_training', type=bool, default=True,
                         help='if True - ignors vague lable in training')
     parser.add_argument('--boolq_pre_trained_model_path', type=str,
-                        default='models/model_boolq_with_markers_epoch_10_.pt',
+                        default='models/pretrained_boolq_with_markers.pt',
                         help='this is a pre trained model on boolq dataset, with acc (0.82)')
     parser.add_argument('--print_loss_every', type=int, default=50,
                         help='when to print the loss - number of batches')
     parser.add_argument('--print_eval_every', type=int, default=50,
                         help='when to print f1 scores during eval - number of batches')
     parser.add_argument('--checkpoint_path', type=str,
-                        default=None, #'models/eternal-star-165_epoch_2_iter_2000_.pt', #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
+                        default=None, #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
                         help='checkpoint path for evaluation or proceed training ,'
                              'if set to None then ignor checkpoint')
     "============================================================================"
     "Hyper-parameters"
     parser.add_argument('--epochs', type=int, default=4,
                         help='number of epochs')
-    parser.add_argument('--batch_size', type=int, default=6,
+    parser.add_argument('--batch_size', type=int, default=2,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')
@@ -541,7 +558,7 @@ if __name__ == '__main__':
                         help='sync batchnorm')
     parser.add_argument('--num_workers', type=int, default=4,
                         help='number of workers in dataloader')
-    parser.add_argument('--prefetch_factor', type=int, default=3,
+    parser.add_argument('--prefetch_factor', type=int, default=2,
                         help='prefetch factor in dataloader')
     parser.add_argument('--seed', type=int, default=1,
                         help='random seed (default: 1)')
@@ -580,6 +597,9 @@ if __name__ == '__main__':
     # single node:
     args.world_size = torch.cuda.device_count()
 
+    # check platform:
+    IsWindows = platform.platform().startswith('Win')
+
     # set single GPU for evaluation:
     if args.eval:
         args.world_size = 1
@@ -598,7 +618,7 @@ if __name__ == '__main__':
         args.init_method = f'tcp://127.0.0.1:{port}'
         args.rank = None
         args.start_rank = 0
-        args.backend = 'nccl' if platform != "win32" else 'gloo'
+        args.backend = 'gloo' if IsWindows else 'nccl'
         mp.spawn(fn=distributed_main, args=(args,), nprocs=args.world_size,)
     else:
         args.device = torch.device("cpu")

@@ -35,6 +35,7 @@ def load_model_checkpoint(args, path_, model, optimizer=None, scheduler=None):
     print('loading checkpoint..')
 
     # load the checkpoint:
+
     checkpoint = torch.load(path_, map_location=f'cuda:{args.rank}')
 
     model.load_state_dict(checkpoint['model_state_dict'])
