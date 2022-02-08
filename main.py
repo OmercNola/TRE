@@ -21,9 +21,7 @@ from model.model import create_pretrained_model_and_tokenizer
 from transformers import get_linear_schedule_with_warmup, AdamW
 def is_master():
     return not dist.is_initialized() or dist.get_rank() == 0
-def cleanup():
-    dist.destroy_process_group()
-def train(model, args, train_dataloader, train_sampler, test_dataloader, tokenizer):
+def train(model, args, train_dataloader, train_sampler, test_dataloader, tokenizer,):
     """
     :param model:
     :type model:
@@ -41,7 +39,6 @@ def train(model, args, train_dataloader, train_sampler, test_dataloader, tokeniz
     :rtype:
     """
 
-    print('train')
     criterion = nn.CrossEntropyLoss()
 
     optimizer = AdamW(
@@ -85,6 +82,8 @@ def train(model, args, train_dataloader, train_sampler, test_dataloader, tokeniz
         epoch_itrator = tqdm(range(epoch_start, args.epochs+1, 1))
     else:
         epoch_itrator = range(epoch_start, args.epochs+1, 1)
+
+    is_distributed = args.world_size > 1
 
     for epoch in epoch_itrator:
 
@@ -208,12 +207,14 @@ def train(model, args, train_dataloader, train_sampler, test_dataloader, tokeniz
                         )
                         total_loss_for_save = 0
 
+                    # evaluate:
+                    if args.eval_during_training:
+                        eval(model, args, test_dataloader, tokenizer, batches_overall=batches_overall)
+
         if is_master():
             # evaluate at the end of the epoch:
             if args.eval_during_training:
                 eval(model, args, test_dataloader, tokenizer, batches_overall=batches_overall)
-
-        dist.barrier()
 def eval(model, args, test_dataloader, tokenizer, batches_overall=None):
 
     """
@@ -234,6 +235,13 @@ def eval(model, args, test_dataloader, tokenizer, batches_overall=None):
     :return:
     :rtype:
     """
+
+    # the evaluation is currently done only on master (rank 0),
+    # the next line ensures localy evaluation (withot ddp comunication).
+    # without this line it will hung forever.
+    # see this post: https://discuss.pytorch.org/t/torch-distributed-barrier-hangs-in-ddp/114522
+    if hasattr(model, "module"):
+        model = model.module
 
     # evaluation mode:
     model.eval()
@@ -445,21 +453,16 @@ def main(args, init_distributed=False):
         # finish the session:
         if is_master():
             wandb.finish()
-        # empty cache:
-        if "cuda" in str(args.device):
-            torch.cuda.empty_cache()
     "================================================================================="
     """Evaluation"""
     if args.eval:
         eval(model, args, test_dataloader, tokenizer)
         # finish the session:
-        wandb.finish()
-        # empty cache:
-        if "cuda" in str(args.device):
-            torch.cuda.empty_cache()
+        if is_master():
+            wandb.finish()
     "================================================================================="
     if is_distributed:
-        cleanup()
+        dist.destroy_process_group()
 def distributed_main(device_id, args):
     """
     :param device_id:
@@ -488,7 +491,8 @@ if __name__ == '__main__':
     parser.add_argument('--shuffle', type=bool, default=True,
                         help='shuffle')
     parser.add_argument('--use_E_markers', type=bool, default=False,
-                        help='if True then use ([E1] word1 [/E1]) like markers, else (@ word @) markers')
+                        help='if True then use ([E1] word1 [/E1]) / ([E2] word2 [/E2]) markers, '
+                             'else use (@ word @) markers')
     parser.add_argument('--short_passage', type=bool, default=True,
                         help='if True then cut the passage after the first "." after second verb')
     parser.add_argument('--eval_during_training', type=bool, default=True,
@@ -497,7 +501,7 @@ if __name__ == '__main__':
                         help='save model during training ? ')
     parser.add_argument('--save_table_of_results_after_eval', type=bool, default=False,
                         help='save table of results (with text) after eval ?')
-    parser.add_argument('--save_model_every', type=int, default=1000,
+    parser.add_argument('--save_model_every', type=int, default=600,
                         help='when to save the model - number of batches')
     parser.add_argument('--ignor_vague_lable_in_training', type=bool, default=True,
                         help='if True - ignors vague lable in training')
@@ -509,12 +513,12 @@ if __name__ == '__main__':
     parser.add_argument('--print_eval_every', type=int, default=50,
                         help='when to print f1 scores during eval - number of batches')
     parser.add_argument('--checkpoint_path', type=str,
-                        default=None, #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
+                        default=None, #'models/fluent-rain-249_epoch_3_iter_1200_.pt', #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
                         help='checkpoint path for evaluation or proceed training ,'
                              'if set to None then ignor checkpoint')
     "================================================================================="
     "Hyper-parameters"
-    parser.add_argument('--epochs', type=int, default=4,
+    parser.add_argument('--epochs', type=int, default=3,
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=4,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
@@ -527,11 +531,11 @@ if __name__ == '__main__':
     parser.add_argument('--num_warmup_steps', type=int, default=50,
                         help='number of warmup steps in the scheduler, '
                              '(just if args.use_scheduler is True)')
-    parser.add_argument('--beta_1', type=float, default=0.8,
+    parser.add_argument('--beta_1', type=float, default=0.9,
                         help='beta 1 for AdamW. default=0.9')
     parser.add_argument('--beta_2', type=float, default=0.999,
                         help='beta 2 for AdamW. default=0.999')
-    parser.add_argument('--dropout_p', type=float, default=0.1,
+    parser.add_argument('--dropout_p', type=float, default=0.25,
                         help='dropout_p (default: 0.1)')
     parser.add_argument('--weight_decay', type=float, default=0,
                         help='weight_decay for AdamW. default=0.0001')
