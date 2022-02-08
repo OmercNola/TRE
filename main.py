@@ -11,13 +11,13 @@ from pathlib import Path
 from sys import platform
 from utils.utils import *
 from utils.saver import *
+from model.model import *
 from utils.logger import *
 from data.datasets import *
 import torch.multiprocessing as mp
 from torch import distributed as dist
 from data.dataloaders import create_dataloader
 from torch.nn.parallel import DistributedDataParallel as DDP
-from model.model import create_pretrained_model_and_tokenizer
 from transformers import get_linear_schedule_with_warmup, AdamW
 def is_master():
     return not dist.is_initialized() or dist.get_rank() == 0
@@ -396,8 +396,11 @@ def main(args, init_distributed=False):
         wandb.init(project="tre", entity='omerc', config=config_for_wandb)
         wandb.config.update(args)
     "================================================================================="
-    # create model and tokenizer (after markers adition):
+    # create our model and tokenizer (after markers adition):
     model, tokenizer = create_pretrained_model_and_tokenizer(args)
+    # create baseline model and tokenizer (after markers adition):
+    baseline_model, baseline_tokenizer = \
+        create_baesline_pretrained_model_and_tokenizer(args)
     "================================================================================="
     # if train mode and no checkpoint - load the pretrained boolq model:
     if (not args.eval) and (args.checkpoint_path is None):

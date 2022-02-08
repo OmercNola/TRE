@@ -81,22 +81,6 @@ class Longformer(nn.Module):
         output = self.out(last_hidden_state.view(-1, self.max_len * self.hidden_size))
 
         return output
-def create_longformer(model, args):
-    """
-    :param model:
-    :type model:
-    :param args:
-    :type args:
-    :return:
-    :rtype:
-    """
-
-    model_ = Longformer(
-        model, args.output_size, args.dropout_p,
-        args.Size_of_longfor, args.Max_Len
-    )
-
-    return model_
 def create_pretrained_model_and_tokenizer(args):
     """
     :return:
@@ -120,11 +104,90 @@ def create_pretrained_model_and_tokenizer(args):
     tokenizer.add_special_tokens(special_tokens_dict)
 
     # load the pretrained longformer model:
-    model_ = AutoModel.from_pretrained("allenai/longformer-base-4096", config=config)
+    pre_trained_model = AutoModel.from_pretrained(
+        "allenai/longformer-base-4096", config=config
+    )
 
     # change embeddings size after adding new tokens:
-    model_.resize_token_embeddings(len(tokenizer))
+    pre_trained_model.resize_token_embeddings(len(tokenizer))
 
-    model_ = create_longformer(model_, args)
+    model = Longformer(
+        pre_trained_model, args.output_size, args.dropout_p,
+        args.Size_of_longfor, args.Max_Len
+    )
 
-    return model_, tokenizer
+    return model, tokenizer
+# baseline model:
+class Longformer_baseline(nn.Module):
+
+    def __init__(self, longformer_, Output_size, size_of_longformer, Max_len):
+        super().__init__()
+
+        self.model = longformer_
+
+        # Get all of the model's parameters as a list of tuples.
+        self.params = list(self.model.named_parameters())
+
+        # size:
+        if size_of_longformer == 'base':
+            self.hidden_size = 768
+
+        elif size_of_longformer == 'large':
+            self.hidden_size = 1024
+
+        # linear layer:
+        self.output_size = Output_size
+        self.max_len = Max_len
+        self.out = nn.Linear(self.max_len * self.hidden_size, self.output_size)
+
+    def forward(self, input_ids, attention_mask):
+
+
+        Output = self.model(input_ids=input_ids, attention_mask=attention_mask)
+
+        # all the hidden states from the last layer:
+        last_hidden_state = Output.last_hidden_state
+
+        output = self.out(last_hidden_state.view(-1, self.max_len * self.hidden_size))
+
+        return output
+def create_baesline_pretrained_model_and_tokenizer(args):
+    """
+    :return:
+    :rtype:
+    """
+
+    # get the config:
+    config = AutoConfig.from_pretrained(
+        "allenai/longformer-base-4096"
+    )
+
+    # change longformer dropout prob, default to 0.1:
+    config.attention_probs_dropout_prob = args.dropout_p
+    config.hidden_dropout_prob = args.dropout_p
+
+    # load tokenizer, add new tokens:
+    tokenizer = AutoTokenizer.from_pretrained("allenai/longformer-base-4096")
+    special_tokens_dict = {
+        'additional_special_tokens': ['[E1]', '[/E1]', '[E2]', '[/E2]']
+    }
+    tokenizer.add_special_tokens(special_tokens_dict)
+
+    # load the pretrained longformer model:
+    pre_trained_model = AutoModel.from_pretrained(
+        "allenai/longformer-base-4096", config=config
+    )
+
+    # change embeddings size after adding new tokens:
+    pre_trained_model.resize_token_embeddings(len(tokenizer))
+
+    # we have 4 lables ('BEFORE', 'AFTER', 'EQUAL', 'VAGUE')
+    output_size_for_baseline_classification = 4
+
+    model = Longformer_baseline(
+        pre_trained_model,
+        output_size_for_baseline_classification,
+        args.Size_of_longfor, args.Max_Len
+    )
+
+    return model, tokenizer
