@@ -338,3 +338,21 @@ def get_label(question_name, label):
             res = 0
 
     return res
+def get_label_for_baseline(label):
+    """
+    :param label:
+    :type label:
+    :return:
+    :rtype:
+    """
+
+    if label.strip() == 'BEFORE':
+        res = [0]
+    elif label.strip() == 'AFTER':
+        res = [1]
+    elif label.strip() == 'VAGUE':
+        res = [2]
+    elif label.strip() == 'EQUAL':
+        res = [3]
+
+    return res

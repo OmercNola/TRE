@@ -173,7 +173,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                         optimizer.step()
 
                         # Update the learning rate.
-                        if args.use_scheduler and scheduler is not None:
+                        if (args.use_scheduler) and (scheduler is not None):
                             scheduler.step()
 
                         # save training loss:
@@ -215,6 +215,194 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
             # evaluate at the end of the epoch:
             if args.eval_during_training:
                 eval(model, args, test_loader, tokenizer, batches_overall=batches_overall)
+def train_baseline(model, args, train_loader, train_sampler, test_loader, tokenizer,):
+    """
+    :param model:
+    :type model:
+    :param args:
+    :type args:
+    :param train_loader:
+    :type train_loader:
+    :param train_sampler:
+    :type train_sampler:
+    :param test_loader:
+    :type test_loader:
+    :param tokenizer:
+    :type tokenizer:
+    :return:
+    :rtype:
+    """
+
+    criterion = nn.CrossEntropyLoss()
+
+    optimizer = AdamW(
+        model.parameters(), lr=args.learning_rate,
+        betas=(args.beta_1, args.beta_2),
+        weight_decay=args.weight_decay
+    )
+
+    # Create the learning rate scheduler.
+    if args.use_scheduler:
+        total_steps = len(train_loader) * args.epochs
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=args.num_warmup_steps,
+            num_training_steps=total_steps
+        )
+    else:
+        scheduler = None
+
+    # Tell wandb to watch what the model gets up to: gradients, weights, and more!
+    if is_master():
+        wandb.watch(model, criterion, log="all", log_freq=50, log_graph=(False))
+
+    # loss progress counters
+    total_loss_for_print = 0
+    total_loss_for_save = 0
+
+    # set epoch_start to 1, it we have checkpoint, will load it from there.
+    epoch_start = 1
+
+    # training mode:
+    model.train()
+
+    # start time:
+    t0 = time.time()
+
+    # total nuber of batches counter:
+    batches_overall = 0
+
+    if is_master():
+        epoch_itrator = tqdm(range(epoch_start, args.epochs+1, 1))
+    else:
+        epoch_itrator = range(epoch_start, args.epochs+1, 1)
+
+    is_distributed = args.world_size > 1
+
+    for epoch in epoch_itrator:
+
+        if is_distributed:
+            train_sampler.set_epoch(epoch)
+
+        batch_input_ids = []
+        batch_attention_mask = []
+        batch_labels = []
+
+        for batch_counter, instances in enumerate(train_loader, start=1):
+
+            batches_overall += 1
+
+            passages = instances[0]
+            word_labels = instances[1][2]
+
+            for passage, Label in zip(passages, word_labels):
+
+                if args.ignor_vague_lable_in_training:
+                    if Label.strip() == 'VAGUE':
+                        continue
+
+                label = get_label_for_baseline(Label)
+
+                # tokenize question and text as a pair, Roberta
+                encodings = tokenizer(
+                    passage,
+                    max_length=args.Max_Len,
+                    padding='max_length',
+                    truncation=True
+                )
+
+                input_ids = encodings['input_ids']
+                attention_mask = encodings['attention_mask']
+
+                batch_input_ids.append(input_ids)
+                batch_attention_mask.append(attention_mask)
+                batch_labels.append(label)
+
+                # compute loss and update weights every args.single_rank_batch_size:
+                if len(batch_input_ids) == args.single_rank_batch_size:
+
+                    batch_input_ids = torch.tensor(
+                        batch_input_ids, requires_grad=False, device=args.device)
+                    batch_attention_mask = torch.tensor(
+                        batch_attention_mask, requires_grad=False, device=args.device)
+                    batch_labels = torch.tensor(
+                        batch_labels, requires_grad=False, device=args.device)
+
+                    # zero gradients before update:
+                    #optimizer.zero_grad(set_to_none=True)
+                    optimizer.zero_grad()
+
+                    # forward pass:
+                    try:
+                        outputs = model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
+                    except RuntimeError as exception:
+                        if "out of memory" in str(exception):
+                            print("WARNING: out of memory")
+                            if hasattr(torch.cuda, 'empty_cache'):
+                                torch.cuda.empty_cache()
+                        else:
+                            raise exception
+
+                    # extract loss
+                    loss = criterion(outputs, batch_labels.squeeze(1))
+
+                    # compute gradients:
+                    loss.backward()
+
+                    # This is to help prevent the "exploding gradients" problem:
+                    if args.use_clip_grad_norm:
+                        nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+
+                    # update parameters
+                    optimizer.step()
+
+                    # Update the learning rate.
+                    if (args.use_scheduler) and (scheduler is not None):
+                        scheduler.step()
+
+                    # save training loss:
+                    total_loss_for_print += loss.item()
+                    total_loss_for_save += loss.item()
+
+                    batch_input_ids = []
+                    batch_attention_mask = []
+                    batch_labels = []
+
+            # Print and save progress once in a while...
+            if is_master():
+                if batch_counter % args.print_loss_every == 0:
+                    # just print:
+                    print_training_progress(
+                        t0, len(train_loader),
+                        epoch, batch_counter, total_loss_for_print
+                    )
+                    # save in wandb:
+                    train_log(total_loss_for_print, epoch, batches_overall)
+                    total_loss_for_print = 0
+
+                # save the model once in a while:
+                if batch_counter % args.save_model_every == 0:
+                    if args.save_model_during_training:
+                        save_model_checkpoint(
+                            args, model, optimizer,
+                            scheduler, len(train_loader),
+                            batch_counter, epoch,
+                            total_loss_for_save
+                        )
+                        total_loss_for_save = 0
+
+                    # evaluate:
+                    if args.eval_during_training:
+                        eval_baseline(
+                            model, args, test_loader, tokenizer, batches_overall=batches_overall
+                        )
+
+        if is_master():
+            # evaluate at the end of the epoch:
+            if args.eval_during_training:
+                eval_baseline(
+                    model, args, test_loader, tokenizer, batches_overall=batches_overall
+                )
 def eval(model, args, test_loader, tokenizer, batches_overall=None):
 
     """
@@ -361,6 +549,146 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
 
     if (args.save_table_of_results_after_eval) and (is_master()):
         wandb.log({f'results table {wandb.run.name}': table})
+def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
+
+    """
+    :param model:
+    :type model:
+    :param args:
+    :type args:
+    :param test_loader:
+    :type test_loader:
+    :param tokenizer:
+    :type tokenizer:
+    :param tracker:
+    :type tracker:
+    :param checkpoint_path:
+    :type checkpoint_path:
+    :param batches_overall:
+    :type batches_overall:
+    :return:
+    :rtype:
+    """
+
+    # the evaluation is currently done only on master (rank 0),
+    # the next line ensures localy evaluation (withot ddp comunication).
+    # without this line it will hung forever.
+    # see this post: https://discuss.pytorch.org/t/torch-distributed-barrier-hangs-in-ddp/114522
+    if hasattr(model, "module"):
+        model = model.module
+
+    # evaluation mode:
+    model.eval()
+
+    # create Tracker:
+    tracker = results_tracker()
+
+    # reset Tracker:
+    tracker.reset()
+
+    # create wandb table for traking the rsults:
+    table = wandb.Table(
+        columns=[
+            'passage', 'passage length',
+            'word_1', 'word_2',
+            'ans_1', 'ans_2',
+            'pred_label', 'real_label',
+            'correct answer'
+        ]
+    )
+
+    for batch_counter, instances in enumerate(test_loader, start=1):
+
+        passages = instances[0]
+        word_labels = instances[1][2]
+
+        batch_input_ids = []
+        batch_attention_mask = []
+        batch_labels = []
+
+        for passage, Label in zip(passages, word_labels):
+
+            label = get_label_for_baseline(Label)
+
+            # tokenize question and text as a pair, Roberta
+            encodings = tokenizer(
+                passage,
+                max_length=args.Max_Len,
+                padding='max_length',
+                truncation=True
+            )
+
+            input_ids = encodings['input_ids']
+            attention_mask = encodings['attention_mask']
+
+            batch_input_ids.append(input_ids)
+            batch_attention_mask.append(attention_mask)
+            batch_labels.append(label)
+
+
+        batch_input_ids = torch.tensor(
+            batch_input_ids, requires_grad=False, device=args.device)
+        batch_attention_mask = torch.tensor(
+            batch_attention_mask, requires_grad=False, device=args.device)
+
+        # forward pass:
+        try:
+            with torch.no_grad():
+                outputs = model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
+
+                # prediction:
+                pred = torch.argmax(torch.softmax(outputs, dim=1), dim=1)
+
+                # move to cpu and numpy:
+                pred = pred.clone().detach().cpu().numpy()[0]
+
+        except RuntimeError as exception:
+            if "out of memory" in str(exception):
+                print("WARNING: out of memory")
+                if hasattr(torch.cuda, 'empty_cache'):
+                    torch.cuda.empty_cache()
+            else:
+                raise exception
+
+        # raw_data for logging in wandb:
+        passage_length = len(passage)
+
+        if Label.strip() == 'SIMULTANEOUS':
+            correct_answer = pred_label == 'EQUAL'
+        else:
+            correct_answer = pred_label == Label.strip()
+
+        real_label = Label.strip()
+
+        # add raw_data to the wandb table:
+        table.add_data(
+            passage, passage_length, first_word, second_word,
+            ans1, ans2, pred_label, real_label, correct_answer
+        )
+
+        if batch_counter % args.print_eval_every == 0:
+
+            # get f1 macro and f1 micro results:
+            macro, micro = tracker.f1_macro_and_micro()
+
+            eval_precent = (batch_counter / len(test_loader)) * 100
+            print(f'f1 macro: {macro}, f1 micro: {micro}, '
+                  f'evaluation percent: {eval_precent:.3f}')
+
+    # at the end of the evaluation:
+    macro, micro = tracker.f1_macro_and_micro()
+
+    # log to wandb:
+    if is_master():
+        wandb.log({"batches_overall": batches_overall,
+                   "f1 macro": macro, "f1 micro": micro})
+
+    eval_precent = (batch_counter / len(test_loader)) * 100
+    print(f'f1 macro: {macro}, f1 micro: {micro}, '
+          f'evaluation percent: {eval_precent:.3f}')
+
+    if (args.save_table_of_results_after_eval) and (is_master()):
+        wandb.log({f'results table {wandb.run.name}': table})
 def main(args, init_distributed=False):
 
     """
@@ -400,6 +728,7 @@ def main(args, init_distributed=False):
         # create baseline model and tokenizer (after markers adition):
         model, tokenizer = \
             create_baesline_pretrained_model_and_tokenizer(args)
+        model.to(args.device)
     else:
         # create our model and tokenizer (after markers adition):
         model, tokenizer = create_pretrained_model_and_tokenizer(args)
@@ -456,8 +785,8 @@ def main(args, init_distributed=False):
     if not args.eval:
         if args.use_baseline_model:
             train_baseline(
-                model, args, bl_train_loader,
-                bl_train_sampler, bl_test_loader, tokenizer)
+                model, args, train_loader,
+                train_sampler, test_loader, tokenizer)
         else:
             train(
                 model, args, train_loader,
@@ -469,9 +798,11 @@ def main(args, init_distributed=False):
     """Evaluation"""
     if args.eval:
         if args.use_baseline_model:
-            eval_baseline(model, args, bl_test_loader, tokenizer)
+            eval_baseline(
+                model, args, test_loader, tokenizer)
         else:
-            eval(model, args, test_loader, tokenizer)
+            eval(
+                model, args, test_loader, tokenizer)
         # finish the session:
         if is_master():
             wandb.finish()
@@ -504,7 +835,7 @@ if __name__ == '__main__':
     "Train settings 1"
     parser.add_argument('--eval', type=bool, default=False,
                         help='eval mode ? if False then training mode')
-    parser.add_argument('--use_baseline_model', type=bool, default=False,
+    parser.add_argument('--use_baseline_model', type=bool, default=True,
                         help='if True - uses baseline model, else our model')
     parser.add_argument('--shuffle', type=bool, default=True,
                         help='shuffle')
@@ -513,9 +844,9 @@ if __name__ == '__main__':
                              'else use (@ word @) markers')
     parser.add_argument('--short_passage', type=bool, default=True,
                         help='if True then cut the passage after the first "." after second verb')
-    parser.add_argument('--eval_during_training', type=bool, default=True,
+    parser.add_argument('--eval_during_training', type=bool, default=False,
                         help='eval during training ?')
-    parser.add_argument('--save_model_during_training', type=bool, default=True,
+    parser.add_argument('--save_model_during_training', type=bool, default=False,
                         help='save model during training ? ')
     parser.add_argument('--save_table_of_results_after_eval', type=bool, default=False,
                         help='save table of results (with text) after eval ?')
@@ -536,7 +867,7 @@ if __name__ == '__main__':
                              'if set to None then ignor checkpoint')
     "================================================================================="
     "Hyper-parameters"
-    parser.add_argument('--epochs', type=int, default=3,
+    parser.add_argument('--epochs', type=int, default=1,
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=4,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
@@ -570,6 +901,8 @@ if __name__ == '__main__':
                         help='prefetch factor in dataloader')
     parser.add_argument('--seed', type=int, default=1,
                         help='random seed (default: 1)')
+    parser.add_argument('--world_size', type=int, default=1,
+                        help='if None - will be number of devices')
     "================================================================================="
     "Model settings"
     parser.add_argument('--output_size', type=int, default=2,
@@ -603,7 +936,8 @@ if __name__ == '__main__':
     # args.world_size = args.gpus * args.nodes
 
     # single node:
-    args.world_size = torch.cuda.device_count()
+    if args.world_size is None:
+        args.world_size = torch.cuda.device_count()
 
     # check platform:
     IsWindows = platform.platform().startswith('Win')
@@ -614,9 +948,11 @@ if __name__ == '__main__':
 
     # if single GPU:
     if args.world_size == 1:
-        args.single_rank_batch_size = args.batch_size
+        args.batch_size = 2
+        args.single_rank_batch_size = 2
         args.device_id = 0
         args.rank = 0
+        # on nvidia 3090:
         main(args)
 
     # DDP for multiple GPU'S:
