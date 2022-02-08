@@ -21,18 +21,18 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from transformers import get_linear_schedule_with_warmup, AdamW
 def is_master():
     return not dist.is_initialized() or dist.get_rank() == 0
-def train(model, args, train_dataloader, train_sampler, test_dataloader, tokenizer,):
+def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
     """
     :param model:
     :type model:
     :param args:
     :type args:
-    :param train_dataloader:
-    :type train_dataloader:
+    :param train_loader:
+    :type train_loader:
     :param train_sampler:
     :type train_sampler:
-    :param test_dataloader:
-    :type test_dataloader:
+    :param test_loader:
+    :type test_loader:
     :param tokenizer:
     :type tokenizer:
     :return:
@@ -49,7 +49,7 @@ def train(model, args, train_dataloader, train_sampler, test_dataloader, tokeniz
 
     # Create the learning rate scheduler.
     if args.use_scheduler:
-        total_steps = len(train_dataloader) * args.epochs
+        total_steps = len(train_loader) * args.epochs
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=args.num_warmup_steps,
@@ -94,7 +94,7 @@ def train(model, args, train_dataloader, train_sampler, test_dataloader, tokeniz
         batch_attention_mask = []
         batch_labels = []
 
-        for batch_counter, instances in enumerate(train_dataloader, start=1):
+        for batch_counter, instances in enumerate(train_loader, start=1):
 
             batches_overall += 1
 
@@ -189,7 +189,7 @@ def train(model, args, train_dataloader, train_sampler, test_dataloader, tokeniz
                 if batch_counter % args.print_loss_every == 0:
                     # just print:
                     print_training_progress(
-                        t0, len(train_dataloader),
+                        t0, len(train_loader),
                         epoch, batch_counter, total_loss_for_print
                     )
                     # save in wandb:
@@ -201,7 +201,7 @@ def train(model, args, train_dataloader, train_sampler, test_dataloader, tokeniz
                     if args.save_model_during_training:
                         save_model_checkpoint(
                             args, model, optimizer,
-                            scheduler, len(train_dataloader),
+                            scheduler, len(train_loader),
                             batch_counter, epoch,
                             total_loss_for_save
                         )
@@ -209,21 +209,21 @@ def train(model, args, train_dataloader, train_sampler, test_dataloader, tokeniz
 
                     # evaluate:
                     if args.eval_during_training:
-                        eval(model, args, test_dataloader, tokenizer, batches_overall=batches_overall)
+                        eval(model, args, test_loader, tokenizer, batches_overall=batches_overall)
 
         if is_master():
             # evaluate at the end of the epoch:
             if args.eval_during_training:
-                eval(model, args, test_dataloader, tokenizer, batches_overall=batches_overall)
-def eval(model, args, test_dataloader, tokenizer, batches_overall=None):
+                eval(model, args, test_loader, tokenizer, batches_overall=batches_overall)
+def eval(model, args, test_loader, tokenizer, batches_overall=None):
 
     """
     :param model:
     :type model:
     :param args:
     :type args:
-    :param test_dataloader:
-    :type test_dataloader:
+    :param test_loader:
+    :type test_loader:
     :param tokenizer:
     :type tokenizer:
     :param tracker:
@@ -263,7 +263,7 @@ def eval(model, args, test_dataloader, tokenizer, batches_overall=None):
         ]
     )
 
-    for batch_counter, instances in enumerate(test_dataloader, start=1):
+    for batch_counter, instances in enumerate(test_loader, start=1):
 
         passages = instances[0]
         first_words, second_words = instances[1][0], instances[1][1]
@@ -343,7 +343,7 @@ def eval(model, args, test_dataloader, tokenizer, batches_overall=None):
             # get f1 macro and f1 micro results:
             macro, micro = tracker.f1_macro_and_micro()
 
-            eval_precent = (batch_counter / len(test_dataloader)) * 100
+            eval_precent = (batch_counter / len(test_loader)) * 100
             print(f'f1 macro: {macro}, f1 micro: {micro}, '
                   f'evaluation percent: {eval_precent:.3f}')
 
@@ -355,7 +355,7 @@ def eval(model, args, test_dataloader, tokenizer, batches_overall=None):
         wandb.log({"batches_overall": batches_overall,
                    "f1 macro": macro, "f1 micro": micro})
 
-    eval_precent = (batch_counter / len(test_dataloader)) * 100
+    eval_precent = (batch_counter / len(test_loader)) * 100
     print(f'f1 macro: {macro}, f1 micro: {micro}, '
           f'evaluation percent: {eval_precent:.3f}')
 
@@ -396,21 +396,23 @@ def main(args, init_distributed=False):
         wandb.init(project="tre", entity='omerc', config=config_for_wandb)
         wandb.config.update(args)
     "================================================================================="
-    # create our model and tokenizer (after markers adition):
-    model, tokenizer = create_pretrained_model_and_tokenizer(args)
-    # create baseline model and tokenizer (after markers adition):
-    baseline_model, baseline_tokenizer = \
-        create_baesline_pretrained_model_and_tokenizer(args)
+    if args.use_baseline_model:
+        # create baseline model and tokenizer (after markers adition):
+        model, tokenizer = \
+            create_baesline_pretrained_model_and_tokenizer(args)
+    else:
+        # create our model and tokenizer (after markers adition):
+        model, tokenizer = create_pretrained_model_and_tokenizer(args)
     "================================================================================="
-    # if train mode and no checkpoint - load the pretrained boolq model:
-    if (not args.eval) and (args.checkpoint_path is None):
+    # if train mode and no checkpoint and not a baseline model - load the pretrained boolq model:
+    if (not args.eval) and (args.checkpoint_path is None) and (not args.use_baseline_model):
         PATH = Path(args.boolq_pre_trained_model_path)
         checkpoint = torch.load(PATH, map_location=torch.device('cpu'))
         model.load_state_dict(checkpoint['model_state_dict'])
         model.to(args.device)
     "================================================================================="
-    # if there is a checkpoint, load it:
-    if (args.checkpoint_path is not None):
+    # if there is a checkpoint and not a baseline model - load it:
+    if (args.checkpoint_path is not None) and (not args.use_baseline_model):
         (model, _, _, _, _, _) = \
             load_model_checkpoint(
                 args, Path(args.checkpoint_path), model,
@@ -418,7 +420,7 @@ def main(args, init_distributed=False):
             )
         model.to(args.device)
     "================================================================================="
-    # Parallel
+    """Parallel"""
     is_distributed = args.world_size > 1
     if torch.cuda.is_available():
         # if we have more than 1 gpu:
@@ -437,33 +439,44 @@ def main(args, init_distributed=False):
             model.to(args.device)
 
             # Dataloaders:
-            train_dataloader, train_sampler = create_dataloader(args, 'train', is_distributed)
+            train_loader, train_sampler = create_dataloader(args, 'train', is_distributed)
             val_dataloader, _ = create_dataloader(args, 'val', is_distributed)
-            test_dataloader, _ = create_dataloader(args, 'test', is_distributed)
+            test_loader, _ = create_dataloader(args, 'test', is_distributed)
 
         # if we have just 1 gpu:
         elif args.world_size == 1:
             model = model.to(args.device)
 
             # Dataloaders:
-            train_dataloader, train_sampler = create_dataloader(args, 'train')
+            train_loader, train_sampler = create_dataloader(args, 'train')
             val_dataloader, _ = create_dataloader(args, 'val')
-            test_dataloader, _ = create_dataloader(args, 'test')
+            test_loader, _ = create_dataloader(args, 'test')
     "================================================================================="
     """Training"""
     if not args.eval:
-        train(model, args, train_dataloader, train_sampler, test_dataloader, tokenizer)
+        if args.use_baseline_model:
+            train_baseline(
+                model, args, bl_train_loader,
+                bl_train_sampler, bl_test_loader, tokenizer)
+        else:
+            train(
+                model, args, train_loader,
+                train_sampler, test_loader, tokenizer)
         # finish the session:
         if is_master():
             wandb.finish()
     "================================================================================="
     """Evaluation"""
     if args.eval:
-        eval(model, args, test_dataloader, tokenizer)
+        if args.use_baseline_model:
+            eval_baseline(model, args, bl_test_loader, tokenizer)
+        else:
+            eval(model, args, test_loader, tokenizer)
         # finish the session:
         if is_master():
             wandb.finish()
     "================================================================================="
+    """cleanup"""
     if is_distributed:
         dist.destroy_process_group()
 def distributed_main(device_id, args):
@@ -491,6 +504,8 @@ if __name__ == '__main__':
     "Train settings 1"
     parser.add_argument('--eval', type=bool, default=False,
                         help='eval mode ? if False then training mode')
+    parser.add_argument('--use_baseline_model', type=bool, default=False,
+                        help='if True - uses baseline model, else our model')
     parser.add_argument('--shuffle', type=bool, default=True,
                         help='shuffle')
     parser.add_argument('--use_E_markers', type=bool, default=False,
