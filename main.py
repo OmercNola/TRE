@@ -571,7 +571,7 @@ def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
     """
 
     # the evaluation is currently done only on master (rank 0),
-    # the next line ensures localy evaluation (withot ddp comunication).
+    # the next line ensures localy evaluation (without DDP comunication).
     # without this line it will hung forever.
     # see this post: https://discuss.pytorch.org/t/torch-distributed-barrier-hangs-in-ddp/114522
     if hasattr(model, "module"):
@@ -581,21 +581,10 @@ def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
     model.eval()
 
     # create Tracker:
-    tracker = results_tracker()
+    tracker = baseline_results_tracker()
 
     # reset Tracker:
     tracker.reset()
-
-    # create wandb table for traking the rsults:
-    table = wandb.Table(
-        columns=[
-            'passage', 'passage length',
-            'word_1', 'word_2',
-            'ans_1', 'ans_2',
-            'pred_label', 'real_label',
-            'correct answer'
-        ]
-    )
 
     for batch_counter, instances in enumerate(test_loader, start=1):
 
@@ -607,8 +596,6 @@ def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
         batch_labels = []
 
         for passage, Label in zip(passages, word_labels):
-
-            label = get_label_for_baseline(Label)
 
             # tokenize question and text as a pair, Roberta
             encodings = tokenizer(
@@ -623,8 +610,7 @@ def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
 
             batch_input_ids.append(input_ids)
             batch_attention_mask.append(attention_mask)
-            batch_labels.append(label)
-
+            batch_labels.append(Label.strip())
 
         batch_input_ids = torch.tensor(
             batch_input_ids, requires_grad=False, device=args.device)
@@ -632,39 +618,18 @@ def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
             batch_attention_mask, requires_grad=False, device=args.device)
 
         # forward pass:
-        try:
-            with torch.no_grad():
-                outputs = model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
+        with torch.no_grad():
 
-                # prediction:
-                pred = torch.argmax(torch.softmax(outputs, dim=1), dim=1)
+            outputs = model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
 
-                # move to cpu and numpy:
-                pred = pred.clone().detach().cpu().numpy()[0]
+            # prediction:
+            preds = torch.argmax(torch.softmax(outputs, dim=1), dim=1)
 
-        except RuntimeError as exception:
-            if "out of memory" in str(exception):
-                print("WARNING: out of memory")
-                if hasattr(torch.cuda, 'empty_cache'):
-                    torch.cuda.empty_cache()
-            else:
-                raise exception
+            # move to cpu and numpy:
+            preds = preds.clone().detach().cpu().numpy()[0]
 
-        # raw_data for logging in wandb:
-        passage_length = len(passage)
-
-        if Label.strip() == 'SIMULTANEOUS':
-            correct_answer = pred_label == 'EQUAL'
-        else:
-            correct_answer = pred_label == Label.strip()
-
-        real_label = Label.strip()
-
-        # add raw_data to the wandb table:
-        table.add_data(
-            passage, passage_length, first_word, second_word,
-            ans1, ans2, pred_label, real_label, correct_answer
-        )
+            for pred, label in zip(preds, batch_labels):
+                tracker.update(pred, label)
 
         if batch_counter % args.print_eval_every == 0:
 
@@ -686,9 +651,6 @@ def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
     eval_precent = (batch_counter / len(test_loader)) * 100
     print(f'f1 macro: {macro}, f1 micro: {micro}, '
           f'evaluation percent: {eval_precent:.3f}')
-
-    if (args.save_table_of_results_after_eval) and (is_master()):
-        wandb.log({f'results table {wandb.run.name}': table})
 def main(args, init_distributed=False):
 
     """
@@ -833,7 +795,7 @@ if __name__ == '__main__':
                         help='device type')
     "================================================================================="
     "Train settings 1"
-    parser.add_argument('--eval', type=bool, default=False,
+    parser.add_argument('--eval', type=bool, default=True,
                         help='eval mode ? if False then training mode')
     parser.add_argument('--use_baseline_model', type=bool, default=True,
                         help='if True - uses baseline model, else our model')
