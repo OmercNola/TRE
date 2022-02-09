@@ -307,6 +307,22 @@ class results_tracker:
         self.TN_VAGUE = 0
         self.FP_VAGUE = 0
         self.FN_VAGUE = 0
+
+    def get_list_of_values(self):
+
+        return [
+            self.TP_BEFORE, self.TN_BEFORE, self.FP_BEFORE, self.FN_BEFORE,
+            self.TP_AFTER, self.TN_AFTER, self.FP_AFTER, self.FN_AFTER,
+            self.TP_EQUAL, self.TN_EQUAL, self.FP_EQUAL, self.FN_EQUAL,
+            self.TP_VAGUE, self.TN_VAGUE, self.FP_VAGUE, self.FN_VAGUE
+        ]
+
+    def update_values_from_list(self, list):
+
+        self.TP_BEFORE, self.TN_BEFORE, self.FP_BEFORE, self.FN_BEFORE,\
+        self.TP_AFTER, self.TN_AFTER, self.FP_AFTER, self.FN_AFTER,\
+        self.TP_EQUAL, self.TN_EQUAL, self.FP_EQUAL, self.FN_EQUAL,\
+        self.TP_VAGUE, self.TN_VAGUE, self.FP_VAGUE, self.FN_VAGUE = list
 class baseline_results_tracker:
 
     def __init__(self):

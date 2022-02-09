@@ -59,7 +59,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
         scheduler = None
 
     # Tell wandb to watch what the model gets up to: gradients, weights, and more!
-    if is_master():
+    if is_master() and args.use_wandb_logger:
         wandb.watch(model, criterion, log="all", log_freq=50, log_graph=(False))
 
     # loss progress counters
@@ -193,7 +193,8 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                         epoch, batch_counter, total_loss_for_print
                     )
                     # save in wandb:
-                    train_log(total_loss_for_print, epoch, batches_overall)
+                    if args.use_wandb_logger:
+                        train_log(total_loss_for_print, epoch, batches_overall)
                     total_loss_for_print = 0
 
                 # save the model once in a while:
@@ -212,6 +213,17 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                         eval(model, args, test_loader, tokenizer, batches_overall=batches_overall)
 
         if is_master():
+
+            # just print:
+            print_training_progress(
+                t0, len(train_loader),
+                epoch, batch_counter, total_loss_for_print
+            )
+            # save in wandb:
+            if args.use_wandb_logger:
+                train_log(total_loss_for_print, epoch, batches_overall)
+            total_loss_for_print = 0
+
             # evaluate at the end of the epoch:
             if args.eval_during_training:
                 eval(model, args, test_loader, tokenizer, batches_overall=batches_overall)
@@ -253,7 +265,7 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
         scheduler = None
 
     # Tell wandb to watch what the model gets up to: gradients, weights, and more!
-    if is_master():
+    if is_master() and args.use_wandb_logger:
         wandb.watch(model, criterion, log="all", log_freq=50, log_graph=(False))
 
     # loss progress counters
@@ -377,7 +389,8 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
                         epoch, batch_counter, total_loss_for_print
                     )
                     # save in wandb:
-                    train_log(total_loss_for_print, epoch, batches_overall)
+                    if args.use_wandb_logger:
+                        train_log(total_loss_for_print, epoch, batches_overall)
                     total_loss_for_print = 0
 
                 # save the model once in a while:
@@ -398,6 +411,17 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
                         )
 
         if is_master():
+
+            # just print:
+            print_training_progress(
+                t0, len(train_loader),
+                epoch, batch_counter, total_loss_for_print
+            )
+            # save in wandb:
+            if args.use_wandb_logger:
+                train_log(total_loss_for_print, epoch, batches_overall)
+            total_loss_for_print = 0
+
             # evaluate at the end of the epoch:
             if args.eval_during_training:
                 eval_baseline(
@@ -441,15 +465,16 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
     tracker.reset()
 
     # create wandb table for traking the rsults:
-    table = wandb.Table(
-        columns=[
-            'passage', 'passage length',
-            'word_1', 'word_2',
-            'ans_1', 'ans_2',
-            'pred_label', 'real_label',
-            'correct answer'
-        ]
-    )
+    if args.use_wandb_logger:
+        table = wandb.Table(
+            columns=[
+                'passage', 'passage length',
+                'word_1', 'word_2',
+                'ans_1', 'ans_2',
+                'pred_label', 'real_label',
+                'correct answer'
+            ]
+        )
 
     for batch_counter, instances in enumerate(test_loader, start=1):
 
@@ -508,47 +533,66 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
 
             # now we 2 questions ready, we update results tracker:
             ans1, ans2 = results[0][1], results[1][1]
+
             pred_label = tracker.update(Label, ans1, ans2)
 
             # raw_data for logging in wandb:
-            passage_length = len(passage)
+            if args.use_wandb_logger and args.save_table_of_results_after_eval:
 
-            if Label.strip() == 'SIMULTANEOUS':
-                correct_answer = pred_label == 'EQUAL'
-            else:
-                correct_answer = pred_label == Label.strip()
+                passage_length = len(passage)
 
-            real_label = Label.strip()
+                if Label.strip() == 'SIMULTANEOUS':
+                    correct_answer = pred_label == 'EQUAL'
+                else:
+                    correct_answer = pred_label == Label.strip()
 
-            # add raw_data to the wandb table:
-            table.add_data(
-                passage, passage_length, first_word, second_word,
-                ans1, ans2, pred_label, real_label, correct_answer
-            )
+                real_label = Label.strip()
+
+                # add raw_data to the wandb table:
+                table.add_data(
+                    passage, passage_length, first_word, second_word,
+                    ans1, ans2, pred_label, real_label, correct_answer
+                )
 
         if batch_counter % args.print_eval_every == 0:
 
             # get f1 macro and f1 micro results:
             macro, micro = tracker.f1_macro_and_micro()
 
-            eval_precent = (batch_counter / len(test_loader)) * 100
-            print(f'f1 macro: {macro}, f1 micro: {micro}, '
-                  f'evaluation percent: {eval_precent:.3f}')
+            if is_master():
+                eval_precent = (batch_counter / len(test_loader)) * 100
+                print(f'f1 macro: {macro}, f1 micro: {micro}, '
+                      f'evaluation percent: {eval_precent:.3f}')
 
-    # at the end of the evaluation:
+
+    # if we are in Distributed mode, then we need to collect the results from
+    # all processes:
+    if args.world_size > 1:
+        # tracker.get_list_of_values() gives us list of [tracker.TP_BEFORE, tracker.TN_BEFORE... etc]
+        tensor = torch.tensor(tracker.get_list_of_values(), device=args.device)
+        # here we sum up the values from all processes:
+        dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
+        # convert tensor to numpy:
+        list_of_values_after_all_reduce = tensor.clone().detach().cpu().numpy()
+        # update the tracker with reduce results before computing F1 scores:
+        tracker.update_values_from_list(list_of_values_after_all_reduce)
+
+    # F1 scores at the end of the evaluation:
     macro, micro = tracker.f1_macro_and_micro()
 
-    # log to wandb:
+    # print results and log to wandb:
     if is_master():
-        wandb.log({"batches_overall": batches_overall,
-                   "f1 macro": macro, "f1 micro": micro})
 
-    eval_precent = (batch_counter / len(test_loader)) * 100
-    print(f'f1 macro: {macro}, f1 micro: {micro}, '
-          f'evaluation percent: {eval_precent:.3f}')
+        if args.use_wandb_logger:
+            wandb.log({"batches_overall": batches_overall,
+                       "f1 macro": macro, "f1 micro": micro})
 
-    if (args.save_table_of_results_after_eval) and (is_master()):
-        wandb.log({f'results table {wandb.run.name}': table})
+        eval_precent = (batch_counter / len(test_loader)) * 100
+        print(f'f1 macro: {macro}, f1 micro: {micro}, '
+              f'evaluation percent: {eval_precent:.3f}')
+
+        if args.save_table_of_results_after_eval:
+            wandb.log({f'results table {wandb.run.name}': table})
 def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
 
     """
@@ -626,7 +670,8 @@ def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
             preds = torch.argmax(torch.softmax(outputs, dim=1), dim=1)
 
             # move to cpu and numpy:
-            preds = preds.clone().detach().cpu().numpy()[0]
+            preds = preds.clone().detach().cpu().numpy()
+            print(f'preds:{preds}')
 
             for pred, label in zip(preds, batch_labels):
                 tracker.update(pred, label)
@@ -645,12 +690,14 @@ def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
 
     # log to wandb:
     if is_master():
-        wandb.log({"batches_overall": batches_overall,
-                   "f1 macro": macro, "f1 micro": micro})
 
-    eval_precent = (batch_counter / len(test_loader)) * 100
-    print(f'f1 macro: {macro}, f1 micro: {micro}, '
-          f'evaluation percent: {eval_precent:.3f}')
+        if args.use_wandb_logger:
+            wandb.log({"batches_overall": batches_overall,
+                       "f1 macro": macro, "f1 micro": micro})
+
+        eval_precent = (batch_counter / len(test_loader)) * 100
+        print(f'f1 macro: {macro}, f1 micro: {micro}, '
+              f'evaluation percent: {eval_precent:.3f}')
 def main(args, init_distributed=False):
 
     """
@@ -679,7 +726,7 @@ def main(args, init_distributed=False):
         args.device = torch.device("cuda", args.rank)
 
     "================================================================================="
-    if is_master():
+    if is_master() and args.use_wandb_logger:
         # config for the experiment:
         config_for_wandb = create_config_for_wandb(args, 'MTRES')
         # tell wandb to get started:
@@ -695,8 +742,8 @@ def main(args, init_distributed=False):
         # create our model and tokenizer (after markers adition):
         model, tokenizer = create_pretrained_model_and_tokenizer(args)
     "================================================================================="
-    # if train mode and no checkpoint and not a baseline model - load the pretrained boolq model:
-    if (not args.eval) and (args.checkpoint_path is None) and (not args.use_baseline_model):
+    # if no checkpoint and not a baseline model - load the pretrained boolq model:
+    if (args.checkpoint_path is None) and (not args.use_baseline_model):
         PATH = Path(args.boolq_pre_trained_model_path)
         checkpoint = torch.load(PATH, map_location=torch.device('cpu'))
         model.load_state_dict(checkpoint['model_state_dict'])
@@ -754,7 +801,7 @@ def main(args, init_distributed=False):
                 model, args, train_loader,
                 train_sampler, test_loader, tokenizer)
         # finish the session:
-        if is_master():
+        if is_master() and args.use_wandb_logger:
             wandb.finish()
     "================================================================================="
     """Evaluation"""
@@ -766,10 +813,11 @@ def main(args, init_distributed=False):
             eval(
                 model, args, test_loader, tokenizer)
         # finish the session:
-        if is_master():
+        if is_master() and args.use_wandb_logger:
             wandb.finish()
     "================================================================================="
     """cleanup"""
+    print(f'rank: {args.rank}')
     if is_distributed:
         dist.destroy_process_group()
 def distributed_main(device_id, args):
@@ -797,16 +845,14 @@ if __name__ == '__main__':
     "Train settings 1"
     parser.add_argument('--eval', type=bool, default=True,
                         help='eval mode ? if False then training mode')
-    parser.add_argument('--use_baseline_model', type=bool, default=True,
+    parser.add_argument('--use_baseline_model', type=bool, default=False,
                         help='if True - uses baseline model, else our model')
-    parser.add_argument('--shuffle', type=bool, default=True,
-                        help='shuffle')
+    parser.add_argument('--use_wandb_logger', type=bool, default=False,
+                        help='use wandb logger ?')
     parser.add_argument('--use_E_markers', type=bool, default=False,
                         help='if True then use ([E1] word1 [/E1]) / ([E2] word2 [/E2]) markers, '
                              'else use (@ word @) markers')
-    parser.add_argument('--short_passage', type=bool, default=True,
-                        help='if True then cut the passage after the first "." after second verb')
-    parser.add_argument('--eval_during_training', type=bool, default=False,
+    parser.add_argument('--eval_during_training', type=bool, default=True,
                         help='eval during training ?')
     parser.add_argument('--save_model_during_training', type=bool, default=False,
                         help='save model during training ? ')
@@ -816,6 +862,8 @@ if __name__ == '__main__':
                         help='when to save the model - number of batches')
     parser.add_argument('--ignor_vague_lable_in_training', type=bool, default=True,
                         help='if True - ignors vague lable in training')
+    parser.add_argument('--short_passage', type=bool, default=True,
+                        help='if True then cut the passage after the first "." after second verb')
     parser.add_argument('--boolq_pre_trained_model_path', type=str,
                         default='models/pretrained_boolq_with_markers.pt',
                         help='this is a pre trained model on boolq dataset, with acc (0.82)')
@@ -824,19 +872,24 @@ if __name__ == '__main__':
     parser.add_argument('--print_eval_every', type=int, default=50,
                         help='when to print f1 scores during eval - number of batches')
     parser.add_argument('--checkpoint_path', type=str,
-                        default=None, #'models/fluent-rain-249_epoch_3_iter_1200_.pt', #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
+                        default='models/fluent-rain-249_epoch_3_iter_1200_.pt',
+                        #'models/fluent-rain-249_epoch_3_iter_1200_.pt', #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
                         help='checkpoint path for evaluation or proceed training ,'
                              'if set to None then ignor checkpoint')
     "================================================================================="
     "Hyper-parameters"
-    parser.add_argument('--epochs', type=int, default=1,
+    parser.add_argument('--world_size', type=int, default=2,
+                        help='if None - will be number of devices')
+    parser.add_argument('--epochs', type=int, default=5,
                         help='number of epochs')
-    parser.add_argument('--batch_size', type=int, default=4,
+    parser.add_argument('--batch_size', type=int, default=8,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')
-    parser.add_argument('--part_of_train_data', type=float, default=1,
-                        help='amount of train data for training, (between 0 and 1)')
+    parser.add_argument('--dropout_p', type=float, default=0.25,
+                        help='dropout_p (default: 0.1)')
+    parser.add_argument('--part_of_train_data', type=float, default=10, # [10, 20, 50, 100, 150, 200...]
+                        help='amount of train instances for training, (between 1 and 12736)')
     parser.add_argument('--use_scheduler', type=bool, default=False,
                         help='use linear scheduler with warmup ?')
     parser.add_argument('--num_warmup_steps', type=int, default=50,
@@ -846,8 +899,6 @@ if __name__ == '__main__':
                         help='beta 1 for AdamW. default=0.9')
     parser.add_argument('--beta_2', type=float, default=0.999,
                         help='beta 2 for AdamW. default=0.999')
-    parser.add_argument('--dropout_p', type=float, default=0.25,
-                        help='dropout_p (default: 0.1)')
     parser.add_argument('--weight_decay', type=float, default=0,
                         help='weight_decay for AdamW. default=0.0001')
     parser.add_argument('--use_clip_grad_norm', type=bool, default=False,
@@ -857,14 +908,14 @@ if __name__ == '__main__':
                              '(just if args.use_clip_grad_norm is True)')
     parser.add_argument('--sync-bn', action='store_true', default=True,
                         help='sync batchnorm')
+    parser.add_argument('--shuffle', type=bool, default=True,
+                        help='shuffle')
     parser.add_argument('--num_workers', type=int, default=6,
                         help='number of workers in dataloader')
     parser.add_argument('--prefetch_factor', type=int, default=3,
                         help='prefetch factor in dataloader')
     parser.add_argument('--seed', type=int, default=1,
                         help='random seed (default: 1)')
-    parser.add_argument('--world_size', type=int, default=1,
-                        help='if None - will be number of devices')
     "================================================================================="
     "Model settings"
     parser.add_argument('--output_size', type=int, default=2,
@@ -881,7 +932,8 @@ if __name__ == '__main__':
     args = parser.parse_known_args()[0]
     "================================================================================="
     # login to W&B:
-    wandb.login()
+    if args.use_wandb_logger:
+        wandb.login()
     "================================================================================="
     # Ensure deterministic behavior
     if args.seed is None:
@@ -905,8 +957,8 @@ if __name__ == '__main__':
     IsWindows = platform.platform().startswith('Win')
 
     # set single GPU for evaluation:
-    if args.eval:
-        args.world_size = 1
+    # if args.eval:
+    #     args.world_size = 1
 
     # if single GPU:
     if args.world_size == 1:

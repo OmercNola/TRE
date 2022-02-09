@@ -29,10 +29,12 @@ class TRE_train_dataset(Dataset):
             Aq_data_with_markers + TimeBank_data_with_markers
 
         # take sample without replacment:
-        self.TRE_training_data_with_markers = \
-            random.sample(
-                self.TRE_training_data_with_markers,
-                int(len(self.TRE_training_data_with_markers) * args.part_of_train_data))
+        assert (0 <= args.part_of_train_data <= 12736)
+        if args.part_of_train_data == 0:
+            self.TRE_training_data_with_markers = []
+        else:
+            self.TRE_training_data_with_markers = \
+                random.sample(self.TRE_training_data_with_markers, args.part_of_train_data)
         "=============================================================="
 
     def __len__(self):
