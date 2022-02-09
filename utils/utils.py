@@ -201,63 +201,63 @@ class results_tracker:
         "BEFORE"
         try:
             precision_before = self.TP_BEFORE / (self.TP_BEFORE + self.FP_BEFORE)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, RuntimeWarning):
             precision_before = 0
         try:
             recall_before = self.TP_BEFORE / (self.TP_BEFORE + self.FN_BEFORE)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, RuntimeWarning):
             recall_before = 0
         try:
             f1_before = 2 * (precision_before * recall_before) / (precision_before + recall_before)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, RuntimeWarning):
             f1_before = 0
         "====================================================================================="
         "AFTER"
         try:
             precision_after = self.TP_AFTER / (self.TP_AFTER + self.FP_AFTER)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, RuntimeWarning):
             precision_after = 0
 
         try:
             recall_after = self.TP_AFTER / (self.TP_AFTER + self.FN_AFTER)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, RuntimeWarning):
             recall_after = 0
 
         try:
             f1_after = 2 * (precision_after * recall_after) / (precision_after + recall_after)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, RuntimeWarning):
             f1_after = 0
         "====================================================================================="
         "EQUAL"
         try:
             precision_equal = self.TP_EQUAL / (self.TP_EQUAL + self.FP_EQUAL)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, RuntimeWarning):
             precision_equal = 0
 
         try:
             recall_equal = self.TP_EQUAL / (self.TP_EQUAL + self.FN_EQUAL)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, RuntimeWarning):
             recall_equal = 0
 
         try:
             f1_equal = 2 * (precision_equal * recall_equal) / (precision_equal + recall_equal)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, RuntimeWarning):
             f1_equal= 0
         "====================================================================================="
         "VAGUE"
         try:
             precision_vague = self.TP_VAGUE / (self.TP_VAGUE + self.FP_VAGUE)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, RuntimeWarning):
             precision_vague = 0
 
         try:
             recall_vague = self.TP_VAGUE / (self.TP_VAGUE + self.FN_VAGUE)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, RuntimeWarning):
             recall_vague = 0
 
         try:
             f1_vague = 2 * (precision_vague * recall_vague) / (precision_vague + recall_vague)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, RuntimeWarning):
             f1_vague = 0
         "====================================================================================="
         "F1, MACRO, MICRO"
@@ -273,15 +273,15 @@ class results_tracker:
 
         try:
             micro_precision = TP_sum_all_classes / (TP_sum_all_classes + FP_sum_all_classes)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, RuntimeWarning):
             micro_precision = 0
         try:
             micro_recall = TP_sum_all_classes/(TP_sum_all_classes + FN_sum_all_classes)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, RuntimeWarning):
             micro_recall = 0
         try:
             micro_f1 = 2 * (micro_precision * micro_recall) / (micro_precision + micro_recall)
-        except ZeroDivisionError:
+        except (ZeroDivisionError, RuntimeWarning):
             micro_f1 = 0
 
         return (float(f'{macro_f1:.4f}'), float(f'{micro_f1:.4f}'))

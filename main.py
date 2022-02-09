@@ -185,8 +185,9 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                         batch_labels = []
 
             # Print and save progress once in a while...
-            if is_master():
-                if batch_counter % args.print_loss_every == 0:
+            if batch_counter % args.print_loss_every == 0:
+
+                if is_master():
                     # just print:
                     print_training_progress(
                         t0, len(train_loader),
@@ -197,8 +198,10 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                         train_log(total_loss_for_print, epoch, batches_overall)
                     total_loss_for_print = 0
 
-                # save the model once in a while:
-                if batch_counter % args.save_model_every == 0:
+            # save the model once in a while:
+            if batch_counter % args.save_model_every == 0:
+
+                if is_master():
                     if args.save_model_during_training:
                         save_model_checkpoint(
                             args, model, optimizer,
@@ -208,10 +211,11 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                         )
                         total_loss_for_save = 0
 
-                    # evaluate:
-                    if args.eval_during_training:
-                        eval(model, args, test_loader, tokenizer, batches_overall=batches_overall)
+                # evaluate:
+                if args.eval_during_training:
+                    eval(model, args, test_loader, tokenizer, batches_overall=batches_overall)
 
+        # at the end of the epoch:
         if is_master():
 
             # just print:
@@ -224,9 +228,9 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                 train_log(total_loss_for_print, epoch, batches_overall)
             total_loss_for_print = 0
 
-            # evaluate at the end of the epoch:
-            if args.eval_during_training:
-                eval(model, args, test_loader, tokenizer, batches_overall=batches_overall)
+        # evaluate at the end of the epoch:
+        if args.eval_during_training:
+            eval(model, args, test_loader, tokenizer, batches_overall=batches_overall)
 def train_baseline(model, args, train_loader, train_sampler, test_loader, tokenizer,):
     """
     :param model:
@@ -458,6 +462,9 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
     # evaluation mode:
     model.eval()
 
+    # check if Distributed mode:
+    is_distributed = args.world_size > 1
+
     # create Tracker:
     tracker = results_tracker()
 
@@ -559,7 +566,7 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
             # get f1 macro and f1 micro results:
             macro, micro = tracker.f1_macro_and_micro()
 
-            if is_master():
+            if is_master() and (not is_distributed):
                 eval_precent = (batch_counter / len(test_loader)) * 100
                 print(f'f1 macro: {macro}, f1 micro: {micro}, '
                       f'evaluation percent: {eval_precent:.3f}')
@@ -567,8 +574,9 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
 
     # if we are in Distributed mode, then we need to collect the results from
     # all processes:
-    if args.world_size > 1:
+    if is_distributed:
         # tracker.get_list_of_values() gives us list of [tracker.TP_BEFORE, tracker.TN_BEFORE... etc]
+        # make a tensor for all_reduce:
         tensor = torch.tensor(tracker.get_list_of_values(), device=args.device)
         # here we sum up the values from all processes:
         dist.all_reduce(tensor, op=dist.ReduceOp.SUM)

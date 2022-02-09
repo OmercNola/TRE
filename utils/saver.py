@@ -32,8 +32,6 @@ def load_model_checkpoint(args, path_, model, optimizer=None, scheduler=None):
     """
     """
 
-    print('loading checkpoint..')
-
     # load the checkpoint:
 
     checkpoint = torch.load(path_, map_location=torch.device('cpu'))
