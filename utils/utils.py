@@ -309,7 +309,11 @@ class results_tracker:
         self.FN_VAGUE = 0
 
     def get_list_of_values(self):
-
+        """
+        this function is for dist.all_reduce in the eval phase
+        :return: list of all values
+        :rtype:
+        """
         return [
             self.TP_BEFORE, self.TN_BEFORE, self.FP_BEFORE, self.FN_BEFORE,
             self.TP_AFTER, self.TN_AFTER, self.FP_AFTER, self.FN_AFTER,
@@ -318,7 +322,13 @@ class results_tracker:
         ]
 
     def update_values_from_list(self, list):
-
+        """
+        this function is for updating the values after dist.all_reduce
+        :param list: list (or numpy array) of reduced results
+        :type list:
+        :return:
+        :rtype:
+        """
         self.TP_BEFORE, self.TN_BEFORE, self.FP_BEFORE, self.FN_BEFORE,\
         self.TP_AFTER, self.TN_AFTER, self.FP_AFTER, self.FN_AFTER,\
         self.TP_EQUAL, self.TN_EQUAL, self.FP_EQUAL, self.FN_EQUAL,\
