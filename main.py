@@ -563,10 +563,11 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
 
         if batch_counter % args.print_eval_every == 0:
 
-            # get f1 macro and f1 micro results:
-            macro, micro = tracker.f1_macro_and_micro()
-
             if is_master() and (not is_distributed):
+
+                # get f1 macro and f1 micro results:
+                macro, micro = tracker.f1_macro_and_micro()
+
                 eval_precent = (batch_counter / len(test_loader)) * 100
                 print(f'f1 macro: {macro}, f1 micro: {micro}, '
                       f'evaluation percent: {eval_precent:.3f}')
@@ -577,7 +578,8 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
     if is_distributed:
         # tracker.get_list_of_values() gives us list of [tracker.TP_BEFORE, tracker.TN_BEFORE... etc]
         # make a tensor for all_reduce:
-        tensor = torch.tensor(tracker.get_list_of_values(), device=args.device)
+        tensor = torch.tensor(tracker.get_list_of_values(),
+                              dtype=torch.int64, device=args.device)
         # here we sum up the values from all processes:
         dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
         # convert tensor to numpy:
@@ -585,6 +587,7 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
         # update the tracker with reduce results before computing F1 scores:
         tracker.update_values_from_list(list_of_values_after_all_reduce)
 
+        print(tracker.get_list_of_values())
     # F1 scores at the end of the evaluation:
     macro, micro = tracker.f1_macro_and_micro()
 
@@ -730,7 +733,6 @@ def main(args, init_distributed=False):
             world_size=args.world_size,
             rank=args.rank,
         )
-        # dist.all_reduce(torch.zeros(1).cuda())
         args.device = torch.device("cuda", args.rank)
 
     "================================================================================="
@@ -952,7 +954,7 @@ if __name__ == '__main__':
     # not relly sure what it is, needs to check !!!!
     torch.backends.cudnn.deterministic = True
     "================================================================================="
-    # Distributed:
+    """Distributed:"""
 
     # multiple nodes:
     # args.world_size = args.gpus * args.nodes

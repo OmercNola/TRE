@@ -80,7 +80,7 @@ def create_dataloader(args, train_val_test, is_distributed=False):
                 prefetch_factor=args.prefetch_factor,
                 num_workers=args.num_workers,
                 persistent_workers=True,
-                #sampler=sampler,
+                sampler=sampler,
                 pin_memory=True
             )
 

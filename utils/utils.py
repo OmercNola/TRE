@@ -230,7 +230,10 @@ class results_tracker:
         "====================================================================================="
         "EQUAL"
         try:
-            precision_equal = self.TP_EQUAL / (self.TP_EQUAL + self.FP_EQUAL)
+            if self.TP_EQUAL == 0:
+                precision_equal = 0
+            else:
+                precision_equal = self.TP_EQUAL / (self.TP_EQUAL + self.FP_EQUAL)
         except (ZeroDivisionError, RuntimeWarning):
             precision_equal = 0
 
