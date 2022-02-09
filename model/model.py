@@ -89,7 +89,8 @@ def create_pretrained_model_and_tokenizer(args):
 
     # get the config:
     config = AutoConfig.from_pretrained(
-        "allenai/longformer-base-4096"
+        "allenai/longformer-base-4096",
+        local_files_only=True
     )
 
     # change longformer dropout prob, default to 0.1:
@@ -97,7 +98,10 @@ def create_pretrained_model_and_tokenizer(args):
     config.hidden_dropout_prob = args.dropout_p
 
     # load tokenizer, add new tokens:
-    tokenizer = AutoTokenizer.from_pretrained("allenai/longformer-base-4096")
+    tokenizer = AutoTokenizer.from_pretrained(
+        "allenai/longformer-base-4096",
+        local_files_only=True
+    )
     special_tokens_dict = {
         'additional_special_tokens': ['[E1]', '[/E1]', '[E2]', '[/E2]']
     }
@@ -105,7 +109,8 @@ def create_pretrained_model_and_tokenizer(args):
 
     # load the pretrained longformer model:
     pre_trained_model = AutoModel.from_pretrained(
-        "allenai/longformer-base-4096", config=config
+        "allenai/longformer-base-4096", config=config,
+        local_files_only=True
     )
 
     # change embeddings size after adding new tokens:
@@ -159,7 +164,8 @@ def create_baesline_pretrained_model_and_tokenizer(args):
 
     # get the config:
     config = AutoConfig.from_pretrained(
-        "allenai/longformer-base-4096"
+        "allenai/longformer-base-4096",
+        local_files_only=True
     )
 
     # change longformer dropout prob, default to 0.1:
@@ -167,7 +173,10 @@ def create_baesline_pretrained_model_and_tokenizer(args):
     config.hidden_dropout_prob = args.dropout_p
 
     # load tokenizer, add new tokens:
-    tokenizer = AutoTokenizer.from_pretrained("allenai/longformer-base-4096")
+    tokenizer = AutoTokenizer.from_pretrained(
+        "allenai/longformer-base-4096",
+        local_files_only=True
+    )
     special_tokens_dict = {
         'additional_special_tokens': ['[E1]', '[/E1]', '[E2]', '[/E2]']
     }
@@ -175,7 +184,8 @@ def create_baesline_pretrained_model_and_tokenizer(args):
 
     # load the pretrained longformer model:
     pre_trained_model = AutoModel.from_pretrained(
-        "allenai/longformer-base-4096", config=config
+        "allenai/longformer-base-4096",
+        config=config, local_files_only=True
     )
 
     # change embeddings size after adding new tokens:

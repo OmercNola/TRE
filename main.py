@@ -587,7 +587,6 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
         # update the tracker with reduce results before computing F1 scores:
         tracker.update_values_from_list(list_of_values_after_all_reduce)
 
-        print(tracker.get_list_of_values())
     # F1 scores at the end of the evaluation:
     macro, micro = tracker.f1_macro_and_micro()
 

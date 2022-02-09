@@ -238,7 +238,10 @@ class results_tracker:
             precision_equal = 0
 
         try:
-            recall_equal = self.TP_EQUAL / (self.TP_EQUAL + self.FN_EQUAL)
+            if self.TP_EQUAL == 0:
+                recall_equal = 0
+            else:
+                recall_equal = self.TP_EQUAL / (self.TP_EQUAL + self.FN_EQUAL)
         except (ZeroDivisionError, RuntimeWarning):
             recall_equal = 0
 
@@ -249,12 +252,18 @@ class results_tracker:
         "====================================================================================="
         "VAGUE"
         try:
-            precision_vague = self.TP_VAGUE / (self.TP_VAGUE + self.FP_VAGUE)
+            if self.TP_VAGUE == 0:
+                precision_vague = 0
+            else:
+                precision_vague = self.TP_VAGUE / (self.TP_VAGUE + self.FP_VAGUE)
         except (ZeroDivisionError, RuntimeWarning):
             precision_vague = 0
 
         try:
-            recall_vague = self.TP_VAGUE / (self.TP_VAGUE + self.FN_VAGUE)
+            if self.TP_VAGUE == 0:
+                recall_vague = 0
+            else:
+                recall_vague = self.TP_VAGUE / (self.TP_VAGUE + self.FN_VAGUE)
         except (ZeroDivisionError, RuntimeWarning):
             recall_vague = 0
 
