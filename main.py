@@ -192,7 +192,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                     total_loss_for_print = total_loss_for_print / args.print_loss_every
                     # just print:
                     print_training_progress(
-                        args, t0, len(train_loader),
+                        t0, len(train_loader),
                         epoch, batch_counter,
                         total_loss_for_print
                     )
@@ -227,7 +227,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
             else:
                 total_loss_for_print = total_loss_for_print / (batch_counter % args.print_loss_every)
             print_training_progress(
-                args, t0, len(train_loader),
+                t0, len(train_loader),
                 epoch, batch_counter, total_loss_for_print
             )
             # save in wandb:
@@ -393,7 +393,7 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
                 if is_master():
                     # just print:
                     print_training_progress(
-                        args, t0, len(train_loader),
+                        t0, len(train_loader),
                         epoch, batch_counter, total_loss_for_print
                     )
                     # save in wandb:
@@ -426,7 +426,7 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
 
             # just print:
             print_training_progress(
-                args, t0, len(train_loader),
+                t0, len(train_loader),
                 epoch, batch_counter, total_loss_for_print
             )
             # log in wandb:
@@ -464,8 +464,8 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
     # the next line ensures localy evaluation (withot ddp comunication).
     # without this line it will hung forever.
     # see this post: https://discuss.pytorch.org/t/torch-distributed-barrier-hangs-in-ddp/114522
-    if hasattr(model, "module"):
-        model = model.module
+    # if hasattr(model, "module"):
+    #     model = model.module
 
     # evaluation mode:
     model.eval()

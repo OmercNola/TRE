@@ -39,7 +39,7 @@ def train_log(loss, epoch, batches_overall):
     wandb.log({"epoch": epoch, "loss": loss}, step=batches_overall)
 # print the training:
 def print_training_progress(
-        args, start_time, length_of_data_loader, epoch, batch_counter, total_loss):
+        start_time, length_of_data_loader, epoch, batch_counter, total_loss):
     """
     """
     print(f'Epoch:{epoch}, '
