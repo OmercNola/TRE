@@ -520,7 +520,7 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
     tracker.reset()
 
     # create wandb table for traking the rsults:
-    if args.use_wandb_logger:
+    if args.use_wandb_logger and args.save_table_of_results_after_eval:
         table = wandb.Table(
             columns=[
                 'passage', 'passage length',
@@ -652,7 +652,7 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
         print(f'f1 macro: {macro}, f1 micro: {micro}, '
               f'evaluation percent: {eval_precent:.3f}\n')
 
-        if args.save_table_of_results_after_eval:
+        if args.use_wandb_logger and args.save_table_of_results_after_eval:
             wandb.log({f'results table {wandb.run.name}': table})
 def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
 
@@ -958,9 +958,9 @@ if __name__ == '__main__':
     "Hyper-parameters"
     parser.add_argument('--world_size', type=int, default=None,
                         help='if None - will be number of devices')
-    parser.add_argument('--epochs', type=int, default=5,
+    parser.add_argument('--epochs', type=int, default=6,
                         help='number of epochs')
-    parser.add_argument('--batch_size', type=int, default=2,
+    parser.add_argument('--batch_size', type=int, default=8,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
     parser.add_argument('--part_of_train_data', type=float, default=100,  # [10, 20, 50, 100, 150, 200...]
                         help='amount of train instances for training, (between 1 and 12736)')
