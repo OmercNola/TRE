@@ -42,9 +42,10 @@ def print_training_progress(
         args, start_time, length_of_data_loader, epoch, batch_counter, total_loss):
     """
     """
+    delta = timedelta(seconds=time.time() - start_time)
     print(f'[Rank: {args.rank}]: '
           f'epoch: {epoch}, '
           f'loss: {total_loss:.2f}, '
-          f'train time: {timedelta(seconds=time.time() - start_time)}, '
-          f'Epoch percent: {round((batch_counter / length_of_data_loader) * 100, 2)}')
+          f'train time: {delta - timedelta(microseconds=delta.microseconds)}, '
+          f'epoch progress: {round((batch_counter / length_of_data_loader) * 100, 2)}%')
 "============================================================================="

@@ -78,7 +78,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
     # total nuber of batches counter:
     batches_overall = 0
 
-    if is_master():
+    if is_master() and not platform.platform().startswith('Win'):
         epoch_itrator = tqdm(range(epoch_start, args.epochs+1, 1), position=0, leave=True)
     else:
         epoch_itrator = range(epoch_start, args.epochs+1, 1)
@@ -88,7 +88,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
     for epoch in epoch_itrator:
 
         if is_master():
-            print(f'training.., epoch: {epoch}')
+            print(f'training... epoch {epoch}')
 
         if is_distributed:
             train_sampler.set_epoch(epoch)
@@ -639,7 +639,7 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
 
         eval_precent = (batch_counter / len(test_loader)) * 100
         print(f'f1 macro: {macro}, f1 micro: {micro}, '
-              f'evaluation percent: {eval_precent:.3f}')
+              f'evaluation percent: {eval_precent:.3f}\n')
 
         if args.save_table_of_results_after_eval:
             wandb.log({f'results table {wandb.run.name}': table})
@@ -934,7 +934,7 @@ if __name__ == '__main__':
     parser.add_argument('--boolq_pre_trained_model_path', type=str,
                         default='models/pretrained_boolq_with_markers.pt',
                         help='this is a pre trained model on boolq dataset, with acc (0.82)')
-    parser.add_argument('--print_loss_every', type=int, default=50,
+    parser.add_argument('--print_loss_every', type=int, default=25,
                         help='when to print the loss - number of batches')
     parser.add_argument('--print_eval_every', type=int, default=50,
                         help='when to print f1 scores during eval - number of batches')
@@ -994,7 +994,7 @@ if __name__ == '__main__':
     "================================================================================="
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
-    print('Available devices ', torch.cuda.device_count())
+    print(f'Available devices: {torch.cuda.device_count()}\n')
     "================================================================================="
     args = parser.parse_known_args()[0]
     "================================================================================="
