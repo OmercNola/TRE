@@ -927,7 +927,7 @@ if __name__ == '__main__':
                         help='eval mode ? if False then training mode')
     parser.add_argument('--use_baseline_model', type=bool, default=False,
                         help='if True - uses baseline model, else our model')
-    parser.add_argument('--use_wandb_logger', type=bool, default=False,
+    parser.add_argument('--use_wandb_logger', type=bool, default=True,
                         help='use wandb logger ?')
     parser.add_argument('--use_E_markers', type=bool, default=False,
                         help='if True then use ([E1] word1 [/E1]) / ([E2] word2 [/E2]) markers, '
@@ -960,11 +960,11 @@ if __name__ == '__main__':
     "Hyper-parameters"
     parser.add_argument('--world_size', type=int, default=None,
                         help='if None - will be number of devices')
-    parser.add_argument('--epochs', type=int, default=1,
+    parser.add_argument('--epochs', type=int, default=6,
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=8,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
-    parser.add_argument('--part_of_train_data', type=float, default=160,  # [10, 20, 50, 100, 150, 200...]
+    parser.add_argument('--part_of_train_data', type=float, default=100,  # [10, 20, 50, 100, 150, 200...]
                         help='amount of train instances for training, (between 1 and 12736)')
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')
