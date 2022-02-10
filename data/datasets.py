@@ -8,7 +8,7 @@ class TRE_train_dataset(Dataset):
 
     def __init__(self, args):
         super().__init__()
-
+        random.seed(args.seed)
         "=============================================================="
         """TimeBank"""
         TimeBank_folder = Path('./raw_data/TBAQ-cleaned/TimeBank/')
@@ -35,6 +35,8 @@ class TRE_train_dataset(Dataset):
         else:
             self.TRE_training_data_with_markers = \
                 random.sample(self.TRE_training_data_with_markers, args.part_of_train_data)
+            if args.rank == 0:
+                print(self.TRE_training_data_with_markers[0])
         "=============================================================="
 
     def __len__(self):

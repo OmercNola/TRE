@@ -3,17 +3,17 @@ import wandb
 import time
 import random
 import torch
+torch.use_deterministic_algorithms(True)
 import argparse
 import numpy as np
 from torch import nn
 from tqdm import tqdm
 from pathlib import Path
-from sys import platform
+import platform
 from utils.utils import *
 from utils.saver import *
 from model.model import *
 from utils.logger import *
-from data.datasets import *
 import torch.multiprocessing as mp
 from torch import distributed as dist
 from data.dataloaders import create_dataloader
@@ -615,14 +615,14 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
 
         if batch_counter % args.print_eval_every == 0:
 
-            if is_master() and (not is_distributed):
+            # if is_master() and (not is_distributed):
 
-                # get f1 macro and f1 micro results:
-                macro, micro = tracker.f1_macro_and_micro()
+            # get f1 macro and f1 micro results:
+            macro, micro = tracker.f1_macro_and_micro()
 
-                eval_precent = (batch_counter / len(test_loader)) * 100
-                print(f'f1 macro: {macro}, f1 micro: {micro}, '
-                      f'evaluation percent: {eval_precent:.3f}')
+            eval_precent = (batch_counter / len(test_loader)) * 100
+            print(f'[eval Rank: {args.rank}] f1 macro: {macro}, f1 micro: {micro}, '
+                  f'evaluation percent: {eval_precent:.3f}')
 
 
     # if we are in Distributed mode, then we need to collect the results from
@@ -927,7 +927,7 @@ if __name__ == '__main__':
                         help='eval mode ? if False then training mode')
     parser.add_argument('--use_baseline_model', type=bool, default=False,
                         help='if True - uses baseline model, else our model')
-    parser.add_argument('--use_wandb_logger', type=bool, default=True,
+    parser.add_argument('--use_wandb_logger', type=bool, default=False,
                         help='use wandb logger ?')
     parser.add_argument('--use_E_markers', type=bool, default=False,
                         help='if True then use ([E1] word1 [/E1]) / ([E2] word2 [/E2]) markers, '
@@ -960,7 +960,7 @@ if __name__ == '__main__':
     "Hyper-parameters"
     parser.add_argument('--world_size', type=int, default=None,
                         help='if None - will be number of devices')
-    parser.add_argument('--epochs', type=int, default=6,
+    parser.add_argument('--epochs', type=int, default=1,
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=8,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
@@ -1007,6 +1007,7 @@ if __name__ == '__main__':
     "================================================================================="
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
     print(f'Available devices: {torch.cuda.device_count()}\n')
     "================================================================================="
     args = parser.parse_known_args()[0]
@@ -1020,8 +1021,10 @@ if __name__ == '__main__':
         args.seed = random.randint(1, 10000)
     random.seed(args.seed)
     torch.manual_seed(args.seed)
+    torch.cuda.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
     np.random.seed(args.seed)
-    # not relly sure what it is, needs to check !!!!
+    torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
     "================================================================================="
     """Distributed:"""

@@ -43,7 +43,7 @@ def print_training_progress(
     """
     """
     delta = timedelta(seconds=time.time() - start_time)
-    print(f'[Rank: {args.rank}]: '
+    print(f'[train Rank: {args.rank}]: '
           f'epoch: {epoch}, '
           f'loss: {total_loss:.2f}, '
           f'train time: {delta - timedelta(microseconds=delta.microseconds)}, '

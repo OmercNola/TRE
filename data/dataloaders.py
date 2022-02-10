@@ -6,7 +6,15 @@ from data.datasets import \
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from data.sampler import DistributedEvalSampler
+import numpy as np
+import random
+import torch
+
 "=================================================================="
+def seed_worker(worker_id):
+    # worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(1)
+    random.seed(1)
 def create_dataloader(args, train_val_test, is_distributed=False):
     """
     :param args:
@@ -18,6 +26,9 @@ def create_dataloader(args, train_val_test, is_distributed=False):
     """
 
     sampler = None
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
 
     if train_val_test == 'train':
 
@@ -33,6 +44,9 @@ def create_dataloader(args, train_val_test, is_distributed=False):
                 seed=args.seed
             )
 
+            g = torch.Generator()
+            g.manual_seed(1)
+
             dataloader = DataLoader(
                 train_dataset,
                 shuffle=False,
@@ -42,7 +56,9 @@ def create_dataloader(args, train_val_test, is_distributed=False):
                 persistent_workers=True,
                 prefetch_factor=args.prefetch_factor,
                 sampler=sampler,
-                pin_memory=True
+                pin_memory=True,
+                worker_init_fn=seed_worker,
+                generator=g
             )
 
         # not distributed:

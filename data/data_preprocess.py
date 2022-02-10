@@ -7,7 +7,6 @@ import os
 import json
 import torch
 import itertools
-import random
 from pathlib import Path, PureWindowsPath, PurePosixPath
 import platform
 from datetime import datetime
