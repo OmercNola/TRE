@@ -88,7 +88,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
     for epoch in epoch_itrator:
 
         if is_master():
-            print(f'started training, epoch: {epoch}')
+            print(f'training.., epoch: {epoch}')
 
         if is_distributed:
             train_sampler.set_epoch(epoch)
