@@ -9,7 +9,6 @@ from data.sampler import DistributedEvalSampler
 import numpy as np
 import random
 import torch
-
 "=================================================================="
 def seed_worker(worker_id):
     # worker_seed = torch.initial_seed() % 2**32
@@ -26,6 +25,7 @@ def create_dataloader(args, train_val_test, is_distributed=False):
     """
 
     sampler = None
+
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
