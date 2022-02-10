@@ -87,6 +87,9 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
 
     for epoch in epoch_itrator:
 
+        if is_master():
+            print(f'started training, epoch: {epoch}')
+
         if is_distributed:
             train_sampler.set_epoch(epoch)
             dist.barrier()
@@ -516,6 +519,9 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
                 'correct answer'
             ]
         )
+
+    if is_master():
+        print(f'evaluation in progress...')
 
     for batch_counter, instances in enumerate(test_loader, start=1):
 
