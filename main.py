@@ -150,7 +150,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                         # https://discuss.pytorch.org/t/multiprocessing-barrier-blocks-all-processes/80345
                         # we have to keep this lines if we want to use dist.barrier()
                         # otherwise it will hung forever...
-                        signal = torch.tensor([1])
+                        signal = torch.tensor([1], device=args.device)
                         work = dist.all_reduce(signal, async_op=True)
                         work.wait()
                         if signal.item() < args.world_size:
@@ -239,38 +239,39 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                 if args.eval_during_training:
                     eval(model, args, test_loader, tokenizer, batches_overall=batches_overall)
 
-        # at the end of the epoch:
-        if is_master():
 
-            # compute the correct ave loss:
-            if batch_counter < args.print_loss_every:
-                total_loss_for_print = total_loss_for_print / batch_counter
+        # # at the end of the epoch:
 
-            elif batch_counter % args.print_loss_every != 0:
-                total_loss_for_print = total_loss_for_print /\
-                                           (batch_counter % args.print_loss_every)
+        # compute the correct ave loss:
+        if batch_counter < args.print_loss_every:
+            total_loss_for_print = total_loss_for_print / batch_counter
 
-            elif batch_counter % args.print_loss_every == 0:
-                total_loss_for_print = 0
+        elif batch_counter % args.print_loss_every != 0:
+            total_loss_for_print = total_loss_for_print /\
+                                       (batch_counter % args.print_loss_every)
 
-            # if total_loss_for_print == 0 then we dont need to print
-            # because we already did
-            if total_loss_for_print != 0:
-                # print:
-                print_training_progress(
-                    args, t0, len(train_loader),
-                    epoch, batch_counter, total_loss_for_print
-                )
-                # save in wandb:
-                if args.use_wandb_logger:
-                    train_log(total_loss_for_print, epoch, batches_overall)
-                total_loss_for_print = 0
+        elif batch_counter % args.print_loss_every == 0:
+            total_loss_for_print = 0
+
+        # if total_loss_for_print == 0 then we dont need to print or save
+        # because we already did
+        if total_loss_for_print != 0:
+            # print:
+            print_training_progress(
+                args, t0, len(train_loader),
+                epoch, batch_counter, total_loss_for_print
+            )
+            # save wandb:
+            if is_master() and args.use_wandb_logger:
+                train_log(total_loss_for_print, epoch, batches_overall)
+
+            total_loss_for_print = 0
 
         # see this post for understanding the next lines
         # https://discuss.pytorch.org/t/multiprocessing-barrier-blocks-all-processes/80345
         # we have to keep this lines if we want to use dist.barrier()
         if signal.item() >= args.world_size:
-            dist.all_reduce(torch.tensor([0]))
+            dist.all_reduce(torch.tensor([0], device=args.device))
 
         # ensure that all ranks start evaluation together
         dist.barrier()
@@ -897,6 +898,7 @@ def main(args, init_distributed=False):
     """cleanup"""
     print(f'rank: {args.rank}')
     if is_distributed:
+        dist.barrier()
         dist.destroy_process_group()
 def distributed_main(device_id, args):
     """
@@ -925,7 +927,7 @@ if __name__ == '__main__':
                         help='eval mode ? if False then training mode')
     parser.add_argument('--use_baseline_model', type=bool, default=False,
                         help='if True - uses baseline model, else our model')
-    parser.add_argument('--use_wandb_logger', type=bool, default=False,
+    parser.add_argument('--use_wandb_logger', type=bool, default=True,
                         help='use wandb logger ?')
     parser.add_argument('--use_E_markers', type=bool, default=False,
                         help='if True then use ([E1] word1 [/E1]) / ([E2] word2 [/E2]) markers, '
@@ -962,7 +964,7 @@ if __name__ == '__main__':
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=8,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
-    parser.add_argument('--part_of_train_data', type=float, default=100,  # [10, 20, 50, 100, 150, 200...]
+    parser.add_argument('--part_of_train_data', type=float, default=160,  # [10, 20, 50, 100, 150, 200...]
                         help='amount of train instances for training, (between 1 and 12736)')
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')
