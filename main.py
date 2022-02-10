@@ -79,7 +79,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
     batches_overall = 0
 
     if is_master():
-        epoch_itrator = tqdm(range(epoch_start, args.epochs+1, 1))
+        epoch_itrator = tqdm(range(epoch_start, args.epochs+1, 1), position=0, leave=True)
     else:
         epoch_itrator = range(epoch_start, args.epochs+1, 1)
 
@@ -89,6 +89,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
 
         if is_distributed:
             train_sampler.set_epoch(epoch)
+            dist.barrier()
 
         batch_input_ids = []
         batch_attention_mask = []
@@ -136,6 +137,14 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
 
                     # compute loss and update weights every args.single_rank_batch_size:
                     if len(batch_input_ids) == args.single_rank_batch_size:
+
+                        # see this post for understanding the next lines
+                        # https://discuss.pytorch.org/t/multiprocessing-barrier-blocks-all-processes/80345
+                        signal = torch.tensor([1])
+                        work = dist.all_reduce(signal, async_op=True)
+                        work.wait()
+                        if signal.item() < args.world_size:
+                            continue
 
                         batch_input_ids = torch.tensor(
                             batch_input_ids, requires_grad=False, device=args.device)
@@ -187,19 +196,21 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
             # Print and save progress once in a while...
             if batch_counter % args.print_loss_every == 0:
 
-                if is_master():
+                total_loss_for_print = total_loss_for_print / args.print_loss_every
 
-                    total_loss_for_print = total_loss_for_print / args.print_loss_every
-                    # just print:
-                    print_training_progress(
-                        t0, len(train_loader),
-                        epoch, batch_counter,
-                        total_loss_for_print
-                    )
+                # just print:
+                print_training_progress(
+                    args, t0, len(train_loader),
+                    epoch, batch_counter,
+                    total_loss_for_print
+                )
+
+                if is_master():
                     # save in wandb:
                     if args.use_wandb_logger:
                         train_log(total_loss_for_print, epoch, batches_overall)
-                    total_loss_for_print = 0
+
+                total_loss_for_print = 0
 
             # save the model once in a while:
             if batch_counter % args.save_model_every == 0:
@@ -224,16 +235,31 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
             # just print:
             if batch_counter < args.print_loss_every:
                 total_loss_for_print = total_loss_for_print / batch_counter
-            else:
-                total_loss_for_print = total_loss_for_print / (batch_counter % args.print_loss_every)
-            print_training_progress(
-                t0, len(train_loader),
-                epoch, batch_counter, total_loss_for_print
-            )
-            # save in wandb:
-            if args.use_wandb_logger:
-                train_log(total_loss_for_print, epoch, batches_overall)
-            total_loss_for_print = 0
+
+            elif batch_counter % args.print_loss_every != 0:
+                total_loss_for_print = total_loss_for_print /\
+                                           (batch_counter % args.print_loss_every)
+
+            elif batch_counter % args.print_loss_every == 0:
+                total_loss_for_print = 0
+
+            if total_loss_for_print != 0:
+
+                # print:
+                print_training_progress(
+                    args, t0, len(train_loader),
+                    epoch, batch_counter, total_loss_for_print
+                )
+
+                # save in wandb:
+                if args.use_wandb_logger:
+                    train_log(total_loss_for_print, epoch, batches_overall)
+                total_loss_for_print = 0
+
+        if signal.item() >= args.world_size:
+            dist.all_reduce(torch.tensor([0]))
+
+        dist.barrier()
 
         # evaluate at the end of the epoch:
         if args.eval_during_training:
@@ -393,7 +419,7 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
                 if is_master():
                     # just print:
                     print_training_progress(
-                        t0, len(train_loader),
+                        args, t0, len(train_loader),
                         epoch, batch_counter, total_loss_for_print
                     )
                     # save in wandb:
@@ -426,7 +452,7 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
 
             # just print:
             print_training_progress(
-                t0, len(train_loader),
+                args, t0, len(train_loader),
                 epoch, batch_counter, total_loss_for_print
             )
             # log in wandb:
@@ -917,9 +943,9 @@ if __name__ == '__main__':
                         help='if None - will be number of devices')
     parser.add_argument('--epochs', type=int, default=5,
                         help='number of epochs')
-    parser.add_argument('--batch_size', type=int, default=4,
+    parser.add_argument('--batch_size', type=int, default=2,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
-    parser.add_argument('--part_of_train_data', type=float, default=16,  # [10, 20, 50, 100, 150, 200...]
+    parser.add_argument('--part_of_train_data', type=float, default=100,  # [10, 20, 50, 100, 150, 200...]
                         help='amount of train instances for training, (between 1 and 12736)')
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')

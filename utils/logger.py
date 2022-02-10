@@ -39,11 +39,17 @@ def train_log(loss, epoch, batches_overall):
     wandb.log({"epoch": epoch, "loss": loss}, step=batches_overall)
 # print the training:
 def print_training_progress(
-        start_time, length_of_data_loader, epoch, batch_counter, total_loss):
+        args, start_time, length_of_data_loader, epoch, batch_counter, total_loss):
     """
     """
-    print(f'Epoch:{epoch}, '
-          f'loss:{total_loss:.2f}, '
-          f'Training time:{timedelta(seconds=time.time() - start_time)}, '
-          f'Epoch percent: {round((batch_counter / length_of_data_loader) * 100, 2)}')
+    if args.rank == 0:
+        print(f'[Rank: {args.rank}]: '
+              f'epoch: {epoch}, '
+              f'loss: {total_loss:.2f}, '
+              f'train time: {timedelta(seconds=time.time() - start_time)}, '
+              f'Epoch percent: {round((batch_counter / length_of_data_loader) * 100, 2)}')
+    else:
+        print(f'[Rank: {args.rank}]: '
+              f'epoch: {epoch}, '
+              f'loss: {total_loss:.2f}]')
 "============================================================================="

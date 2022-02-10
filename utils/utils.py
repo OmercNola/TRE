@@ -672,3 +672,12 @@ def get_label_for_baseline(label):
         res = [3]
 
     return res
+# for multiprocess:
+def all_equal(list_of_mp_values):
+    """
+    :param list_of_mp_values:
+    :type list_of_mp_values:
+    :return:
+    :rtype:
+    """
+    return all([i.value == list_of_mp_values[0].value for i in list_of_mp_values])
