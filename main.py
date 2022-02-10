@@ -79,6 +79,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
     batches_overall = 0
 
     if is_master() and not platform.platform().startswith('Win'):
+        # the progress bar doesnt work very good in Windows and pycharm
         epoch_itrator = tqdm(range(epoch_start, args.epochs+1, 1), position=0, leave=True)
     else:
         epoch_itrator = range(epoch_start, args.epochs+1, 1)
@@ -91,7 +92,11 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
             print(f'training... epoch {epoch}')
 
         if is_distributed:
+            # the next line is for shuffling the data every epoch (if shuffle is True)
+            # it has tp be before creating the dataloaer
             train_sampler.set_epoch(epoch)
+            # the next line is to ensure that all ranks start
+            # the epoch together after evaluation
             dist.barrier()
 
         batch_input_ids = []
@@ -143,6 +148,8 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
 
                         # see this post for understanding the next lines
                         # https://discuss.pytorch.org/t/multiprocessing-barrier-blocks-all-processes/80345
+                        # we have to keep this lines if we want to use dist.barrier()
+                        # otherwise it will hung forever...
                         signal = torch.tensor([1])
                         work = dist.all_reduce(signal, async_op=True)
                         work.wait()
@@ -235,7 +242,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
         # at the end of the epoch:
         if is_master():
 
-            # just print:
+            # compute the correct ave loss:
             if batch_counter < args.print_loss_every:
                 total_loss_for_print = total_loss_for_print / batch_counter
 
@@ -246,22 +253,26 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
             elif batch_counter % args.print_loss_every == 0:
                 total_loss_for_print = 0
 
+            # if total_loss_for_print == 0 then we dont need to print
+            # because we already did
             if total_loss_for_print != 0:
-
                 # print:
                 print_training_progress(
                     args, t0, len(train_loader),
                     epoch, batch_counter, total_loss_for_print
                 )
-
                 # save in wandb:
                 if args.use_wandb_logger:
                     train_log(total_loss_for_print, epoch, batches_overall)
                 total_loss_for_print = 0
 
+        # see this post for understanding the next lines
+        # https://discuss.pytorch.org/t/multiprocessing-barrier-blocks-all-processes/80345
+        # we have to keep this lines if we want to use dist.barrier()
         if signal.item() >= args.world_size:
             dist.all_reduce(torch.tensor([0]))
 
+        # ensure that all ranks start evaluation together
         dist.barrier()
 
         # evaluate at the end of the epoch:
