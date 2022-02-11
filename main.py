@@ -810,6 +810,12 @@ def main(args, init_distributed=False):
         config_for_wandb = create_config_for_wandb(args, 'MTRES')
         # tell wandb to get started:
         wandb.init(project="tre", entity='omerc', config=config_for_wandb)
+        # change the run name:
+        if args.run_name is not None:
+            args.run_name = args.run_name + f' {args.part_of_train_data}'
+            wandb.run.name = args.run_name
+            wandb.run.save()
+        # update general info of the run:
         wandb.config.update(args)
     "================================================================================="
     if args.use_baseline_model:
@@ -929,6 +935,9 @@ if __name__ == '__main__':
                         help='if True - uses baseline model, else our model')
     parser.add_argument('--use_wandb_logger', type=bool, default=True,
                         help='use wandb logger ?')
+    parser.add_argument('--run_name', type=str, default='ours',
+                        help='if None then wandb random name,'
+                             ' else itself + args.part_of_train_data')
     parser.add_argument('--use_E_markers', type=bool, default=False,
                         help='if True then use ([E1] word1 [/E1]) / ([E2] word2 [/E2]) markers, '
                              'else use (@ word @) markers')
@@ -964,7 +973,7 @@ if __name__ == '__main__':
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=8,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
-    parser.add_argument('--part_of_train_data', type=float, default=100,  # [10, 20, 50, 100, 150, 200...]
+    parser.add_argument('--part_of_train_data', type=float, default=150,  # [10, 20, 50, 100, 150, 200...]
                         help='amount of train instances for training, (between 1 and 12736)')
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')
