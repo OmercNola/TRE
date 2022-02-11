@@ -235,11 +235,6 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                         )
                         total_loss_for_save = 0
 
-                # evaluate:
-                if args.eval_during_training:
-                    eval(model, args, test_loader, tokenizer, batches_overall=batches_overall)
-
-
         # # at the end of the epoch:
 
         # compute the correct ave loss:
@@ -278,7 +273,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
 
         # evaluate at the end of the epoch:
         if args.eval_during_training:
-            eval(model, args, test_loader, tokenizer, batches_overall=batches_overall)
+            eval(model, args, test_loader, tokenizer, epoch=epoch)
 def train_baseline(model, args, train_loader, train_sampler, test_loader, tokenizer,):
     """
     :param model:
@@ -336,23 +331,32 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
     # total nuber of batches counter:
     batches_overall = 0
 
-    if is_master():
-        epoch_itrator = tqdm(range(epoch_start, args.epochs+1, 1))
+    if is_master() and not platform.platform().startswith('Win'):
+        # the progress bar doesnt work very good in Windows and pycharm
+        epoch_itrator = tqdm(range(epoch_start, args.epochs + 1, 1), position=0, leave=True)
     else:
-        epoch_itrator = range(epoch_start, args.epochs+1, 1)
+        epoch_itrator = range(epoch_start, args.epochs + 1, 1)
 
     is_distributed = args.world_size > 1
 
     for epoch in epoch_itrator:
 
-        if is_distributed:
-            train_sampler.set_epoch(epoch)
+        if is_master():
+            print(f'training... epoch {epoch}')
 
-        batch_input_ids = []
-        batch_attention_mask = []
-        batch_labels = []
+        if is_distributed:
+            # the next line is for shuffling the data every epoch (if shuffle is True)
+            # it has tp be before creating the dataloaer
+            train_sampler.set_epoch(epoch)
+            # the next line is to ensure that all ranks start
+            # the epoch together after evaluation
+            dist.barrier()
 
         for batch_counter, instances in enumerate(train_loader, start=1):
+
+            batch_input_ids = []
+            batch_attention_mask = []
+            batch_labels = []
 
             batches_overall += 1
 
@@ -378,109 +382,139 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
                 batch_attention_mask.append(attention_mask)
                 batch_labels.append(label)
 
-                # compute loss and update weights every args.single_rank_batch_size:
-                if len(batch_input_ids) == args.single_rank_batch_size:
+            # see this post for understanding the next lines
+            # https://discuss.pytorch.org/t/multiprocessing-barrier-blocks-all-processes/80345
+            # we have to keep this lines if we want to use dist.barrier()
+            # otherwise it will hung forever...
+            signal = torch.tensor([1], device=args.device)
+            work = dist.all_reduce(signal, async_op=True)
+            work.wait()
+            if signal.item() < args.world_size:
+                continue
 
-                    batch_input_ids = torch.tensor(
-                        batch_input_ids, requires_grad=False, device=args.device)
-                    batch_attention_mask = torch.tensor(
-                        batch_attention_mask, requires_grad=False, device=args.device)
-                    batch_labels = torch.tensor(
-                        batch_labels, requires_grad=False, device=args.device)
+            batch_input_ids = torch.tensor(
+                batch_input_ids, requires_grad=False, device=args.device)
+            batch_attention_mask = torch.tensor(
+                batch_attention_mask, requires_grad=False, device=args.device)
+            batch_labels = torch.tensor(
+                batch_labels, requires_grad=False, device=args.device)
 
-                    # zero gradients before update:
-                    #optimizer.zero_grad(set_to_none=True)
-                    optimizer.zero_grad()
+            # zero gradients before update:
+            #optimizer.zero_grad(set_to_none=True)
+            optimizer.zero_grad()
 
-                    # forward pass:
-                    try:
-                        outputs = model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
-                    except RuntimeError as exception:
-                        if "out of memory" in str(exception):
-                            print("WARNING: out of memory")
-                            if hasattr(torch.cuda, 'empty_cache'):
-                                torch.cuda.empty_cache()
-                        else:
-                            raise exception
+            # forward pass:
+            try:
+                outputs = model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
+            except RuntimeError as exception:
+                if "out of memory" in str(exception):
+                    print("WARNING: out of memory")
+                    if hasattr(torch.cuda, 'empty_cache'):
+                        torch.cuda.empty_cache()
+                else:
+                    raise exception
 
-                    # extract loss
-                    loss = criterion(outputs, batch_labels.squeeze(1))
+            # extract loss
+            loss = criterion(outputs, batch_labels.squeeze(1))
 
-                    # compute gradients:
-                    loss.backward()
+            # compute gradients:
+            loss.backward()
 
-                    # This is to help prevent the "exploding gradients" problem:
-                    if args.use_clip_grad_norm:
-                        nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+            # This is to help prevent the "exploding gradients" problem:
+            if args.use_clip_grad_norm:
+                nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
 
-                    # update parameters
-                    optimizer.step()
+            # update parameters
+            optimizer.step()
 
-                    # Update the learning rate.
-                    if (args.use_scheduler) and (scheduler is not None):
-                        scheduler.step()
+            # Update the learning rate.
+            if (args.use_scheduler) and (scheduler is not None):
+                scheduler.step()
 
-                    # save training loss:
-                    total_loss_for_print += loss.item()
-                    total_loss_for_save += loss.item()
+            # save training loss:
+            total_loss_for_print += loss.item()
+            total_loss_for_save += loss.item()
 
-                    batch_input_ids = []
-                    batch_attention_mask = []
-                    batch_labels = []
+
 
             # Print and save progress once in a while...
             if batch_counter % args.print_loss_every == 0:
 
+                total_loss_for_print = total_loss_for_print / args.print_loss_every
+
+                # just print:
+                print_training_progress(
+                    args, t0, len(train_loader),
+                    epoch, batch_counter,
+                    total_loss_for_print
+                )
+
                 if is_master():
-                    # just print:
-                    print_training_progress(
-                        args, t0, len(train_loader),
-                        epoch, batch_counter, total_loss_for_print
-                    )
                     # save in wandb:
                     if args.use_wandb_logger:
                         train_log(total_loss_for_print, epoch, batches_overall)
-                    total_loss_for_print = 0
+
+                total_loss_for_print = 0
 
             # save the model once in a while:
             if batch_counter % args.save_model_every == 0:
 
                 if is_master():
-
                     if args.save_model_during_training:
-                            save_model_checkpoint(
-                                args, model, optimizer,
-                                scheduler, len(train_loader),
-                                batch_counter, epoch,
-                                total_loss_for_save
-                            )
-                            total_loss_for_save = 0
+                        save_model_checkpoint(
+                            args, model, optimizer,
+                            scheduler, len(train_loader),
+                            batch_counter, epoch,
+                            total_loss_for_save
+                        )
+                        total_loss_for_save = 0
 
                 # evaluate:
                 if args.eval_during_training:
-                    eval_baseline(
-                        model, args, test_loader, tokenizer, batches_overall=batches_overall
-                    )
+                    eval(model, args, test_loader, tokenizer, batches_overall=batches_overall)
 
-        # print and log at the end of the epoch:
-        if is_master():
+        # # at the end of the epoch:
 
-            # just print:
+        # compute the correct ave loss:
+        if batch_counter < args.print_loss_every:
+            total_loss_for_print = total_loss_for_print / batch_counter
+
+        elif batch_counter % args.print_loss_every != 0:
+            total_loss_for_print = total_loss_for_print / \
+                                   (batch_counter % args.print_loss_every)
+
+        elif batch_counter % args.print_loss_every == 0:
+            total_loss_for_print = 0
+
+        # if total_loss_for_print == 0 then we dont need to print or save
+        # because we already did
+        if total_loss_for_print != 0:
+            # print:
             print_training_progress(
                 args, t0, len(train_loader),
                 epoch, batch_counter, total_loss_for_print
             )
-            # log in wandb:
-            if args.use_wandb_logger:
+            # save wandb:
+            if is_master() and args.use_wandb_logger:
                 train_log(total_loss_for_print, epoch, batches_overall)
+
             total_loss_for_print = 0
+
+        # see this post for understanding the next lines
+        # https://discuss.pytorch.org/t/multiprocessing-barrier-blocks-all-processes/80345
+        # we have to keep this lines if we want to use dist.barrier()
+        if signal.item() >= args.world_size:
+            dist.all_reduce(torch.tensor([0], device=args.device))
+
+        # ensure that all ranks start evaluation together
+        dist.barrier()
 
         # evaluate at the end of the epoch:
         if args.eval_during_training:
             eval_baseline(
                 model, args, test_loader, tokenizer, batches_overall=batches_overall
             )
-def eval(model, args, test_loader, tokenizer, batches_overall=None):
+def eval(model, args, test_loader, tokenizer, epoch=None):
 
     """
     :param model:
@@ -646,12 +680,9 @@ def eval(model, args, test_loader, tokenizer, batches_overall=None):
     if is_master():
 
         if args.use_wandb_logger:
-            wandb.log({"batches_overall": batches_overall,
-                       "f1 macro": macro, "f1 micro": micro})
+            eval_log(args, macro, micro, epoch)
 
-        eval_precent = (batch_counter / len(test_loader)) * 100
-        print(f'f1 macro: {macro}, f1 micro: {micro}, '
-              f'evaluation percent: {eval_precent:.3f}\n')
+        print_eval_results(macro, micro, batch_counter, len(test_loader))
 
         if args.use_wandb_logger and args.save_table_of_results_after_eval:
             wandb.log({f'results table {wandb.run.name}': table})
@@ -973,7 +1004,7 @@ if __name__ == '__main__':
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=8,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
-    parser.add_argument('--part_of_train_data', type=float, default=150,  # [10, 20, 50, 100, 150, 200...]
+    parser.add_argument('--part_of_train_data', type=float, default=200,  # [10, 20, 50, 100, 150, 200...]
                         help='amount of train instances for training, (between 1 and 12736)')
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')
