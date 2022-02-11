@@ -218,7 +218,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                 if is_master():
                     # save in wandb:
                     if args.use_wandb_logger:
-                        train_log(total_loss_for_print, epoch, batches_overall)
+                        train_log(args, total_loss_for_print, epoch, batches_overall)
 
                 total_loss_for_print = 0
 
@@ -258,7 +258,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
             )
             # save wandb:
             if is_master() and args.use_wandb_logger:
-                train_log(total_loss_for_print, epoch, batches_overall)
+                train_log(args, total_loss_for_print, epoch, batches_overall)
 
             total_loss_for_print = 0
 
@@ -452,7 +452,7 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
                 if is_master():
                     # save in wandb:
                     if args.use_wandb_logger:
-                        train_log(total_loss_for_print, epoch, batches_overall)
+                        train_log(args, total_loss_for_print, epoch, batches_overall)
 
                 total_loss_for_print = 0
 
@@ -496,7 +496,7 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
             )
             # save wandb:
             if is_master() and args.use_wandb_logger:
-                train_log(total_loss_for_print, epoch, batches_overall)
+                train_log(args, total_loss_for_print, epoch, batches_overall)
 
             total_loss_for_print = 0
 
@@ -844,8 +844,11 @@ def main(args, init_distributed=False):
         # change the run name:
         if args.run_name is not None:
             args.run_name = args.run_name + f' {args.part_of_train_data}'
-            wandb.run.name = args.run_name
-            wandb.run.save()
+            try:
+                wandb.run.name = args.run_name
+                wandb.run.save()
+            except:
+                pass
         # update general info of the run:
         wandb.config.update(args)
     "================================================================================="
@@ -1004,7 +1007,7 @@ if __name__ == '__main__':
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=8,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
-    parser.add_argument('--part_of_train_data', type=float, default=200,  # [10, 20, 50, 100, 150, 200...]
+    parser.add_argument('--part_of_train_data', type=float, default=250,  # [10, 20, 50, 100, 150, 200...]
                         help='amount of train instances for training, (between 1 and 12736)')
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')

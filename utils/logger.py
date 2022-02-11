@@ -25,7 +25,7 @@ def create_config_for_wandb(args, dataset):
 
     return config
 # log traing statistics
-def train_log(loss, epoch, batches_overall):
+def train_log(args, loss, epoch, batches_overall):
     """
     :param loss:
     :type loss:
@@ -36,7 +36,10 @@ def train_log(loss, epoch, batches_overall):
     :return:
     :rtype:
     """
-    wandb.log({"epoch": epoch, "loss": loss}, step=batches_overall)
+    if args.eval_during_training:
+        wandb.log({"epoch": epoch, "loss": loss})
+    else:
+        wandb.log({"epoch": epoch, "loss": loss}, step=batches_overall)
 # log eval statistics
 def eval_log(args, macro, micro, epoch):
     """
