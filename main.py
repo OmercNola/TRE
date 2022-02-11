@@ -62,6 +62,8 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
     if is_master() and args.use_wandb_logger:
         wandb.watch(model, criterion, log="all", log_freq=50, log_graph=(False))
 
+    best_f1_macro, best_f1_micro = 0, 0
+
     # loss progress counters
     total_loss_for_print = 0
     total_loss_for_save = 0
@@ -273,7 +275,13 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
 
         # evaluate at the end of the epoch:
         if args.eval_during_training:
-            eval(model, args, test_loader, tokenizer, epoch=epoch)
+            macro, micro = eval(model, args, test_loader, tokenizer, epoch=epoch)
+
+        best_f1_macro = max(macro, best_f1_macro)
+        best_f1_micro = max(micro, best_f1_micro)
+
+    if is_master() and args.use_wandb_logger and args.eval_during_training:
+        wandb.log({"best_f1_macro": best_f1_macro, "best_f1_micro": best_f1_micro})
 def train_baseline(model, args, train_loader, train_sampler, test_loader, tokenizer,):
     """
     :param model:
@@ -686,6 +694,8 @@ def eval(model, args, test_loader, tokenizer, epoch=None):
 
         if args.use_wandb_logger and args.save_table_of_results_after_eval:
             wandb.log({f'results table {wandb.run.name}': table})
+
+    return macro, micro
 def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
 
     """
@@ -969,6 +979,8 @@ if __name__ == '__main__':
                         help='if True - uses baseline model, else our model')
     parser.add_argument('--use_wandb_logger', type=bool, default=True,
                         help='use wandb logger ?')
+    parser.add_argument('--wandb_log_training_data', type=bool, default=False,
+                        help='for correct comparsion between runs with diff size of train data')
     parser.add_argument('--run_name', type=str, default='ours',
                         help='if None then wandb random name,'
                              ' else itself + args.part_of_train_data')
@@ -1007,7 +1019,7 @@ if __name__ == '__main__':
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=8,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
-    parser.add_argument('--part_of_train_data', type=float, default=250,  # [10, 20, 50, 100, 150, 200...]
+    parser.add_argument('--part_of_train_data', type=float, default=150,  # [10, 20, 50, 100, 150, 200...]
                         help='amount of train instances for training, (between 1 and 12736)')
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')

@@ -36,10 +36,12 @@ def train_log(args, loss, epoch, batches_overall):
     :return:
     :rtype:
     """
-    if args.eval_during_training:
-        wandb.log({"epoch": epoch, "loss": loss})
-    else:
-        wandb.log({"epoch": epoch, "loss": loss}, step=batches_overall)
+    if args.wandb_log_training_data:
+
+        if args.eval_during_training:
+            wandb.log({"epoch": epoch, "loss": loss})
+        else:
+            wandb.log({"epoch": epoch, "loss": loss}, step=batches_overall)
 # log eval statistics
 def eval_log(args, macro, micro, epoch):
     """
@@ -56,12 +58,12 @@ def eval_log(args, macro, micro, epoch):
     :return:
     :rtype:
     """
-
     if epoch is None:
         wandb.log({"f1 macro": macro, "f1 micro": micro})
-
-    elif args.eval_during_training:
+    elif not args.wandb_log_training_data:
         wandb.log({"f1 macro": macro, "f1 micro": micro}, step=epoch)
+    else:
+        wandb.log({"f1 macro": macro, "f1 micro": micro})
 # print the training:
 def print_training_progress(
         args, start_time, length_of_data_loader, epoch, batch_counter, total_loss):
