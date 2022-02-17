@@ -1087,7 +1087,7 @@ if __name__ == '__main__':
     os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
-    os.environ['MASTER_ADDR'] = '192.168.1.246'
+    os.environ['MASTER_ADDR'] = '192.168.1.102'
     os.environ['MASTER_PORT'] = '19546'
     print(f'Available devices: {torch.cuda.device_count()}\n')
     "================================================================================="
