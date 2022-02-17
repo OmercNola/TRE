@@ -835,6 +835,19 @@ def main(args, init_distributed=False):
         torch.cuda.init()
         args.device = torch.device("cuda")
 
+    if args.rank == 0:
+        time.sleep(10)
+        print(args.rank)
+        if init_distributed:
+            dist.init_process_group(
+                backend=args.backend,
+                init_method=args.init_method,
+                world_size=args.world_size,
+                rank=args.rank,
+                timeout=timedelta(seconds=60)
+            )
+            args.device = torch.device("cuda", args.rank)
+
     if args.rank != 0:
         print(args.rank)
         if init_distributed:
@@ -843,23 +856,11 @@ def main(args, init_distributed=False):
                 init_method=args.init_method,
                 world_size=args.world_size,
                 rank=args.rank,
-                timeout=timedelta(seconds=30)
+                timeout=timedelta(seconds=60)
             )
             args.device = torch.device("cuda", args.rank)
 
-    if args.rank == 0:
-        print(args.rank)
-        if init_distributed:
-            dist.init_process_group(
-                backend=args.backend,
-                init_method=args.init_method,
-                world_size=args.world_size,
-                rank=args.rank,
-                timeout=timedelta(seconds=30)
-            )
-            args.device = torch.device("cuda", args.rank)
-        # time.sleep(20)
-    print('after init')
+    print(f'rank: {args.rank} after init')
     "================================================================================="
     if is_master() and args.use_wandb_logger:
         # config for the experiment:
@@ -1029,9 +1030,9 @@ if __name__ == '__main__':
                              'if set to None then ignor checkpoint')
     "================================================================================="
     "Hyper-parameters"
-    parser.add_argument('--world_size', type=int, default=3,
+    parser.add_argument('--world_size', type=int, default=5,
                         help='if None - will be number of devices')
-    parser.add_argument('--start_rank', default=0, type=int,
+    parser.add_argument('--start_rank', default=1, type=int,
                         help='we need to pass diff values if we are using multiple machines')
     parser.add_argument("--local_rank", type=int)
     parser.add_argument('--epochs', type=int, default=6,
@@ -1083,11 +1084,11 @@ if __name__ == '__main__':
     "================================================================================="
     args = parser.parse_known_args()[0]
     "================================================================================="
-    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8' # ':4096:8' for linux ? ':4096:2' for windows ?
+    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
-    os.environ['MASTER_ADDR'] = '10.100.102.17'
-    os.environ['MASTER_PORT'] = '12345'
+    os.environ['MASTER_ADDR'] = '192.168.1.246'
+    os.environ['MASTER_PORT'] = '19546'
     print(f'Available devices: {torch.cuda.device_count()}\n')
     "================================================================================="
     # Ensure deterministic behavior
@@ -1108,7 +1109,7 @@ if __name__ == '__main__':
     # args.world_size = args.gpus * args.nodes
 
     # single node:
-    if (args.world_size is None) and (args.number_of_nodes == 1):
+    if (args.world_size is None):
         args.world_size = torch.cuda.device_count()
 
     # check platform:
@@ -1141,9 +1142,9 @@ if __name__ == '__main__':
 
             args.single_rank_batch_size = int(args.batch_size / args.local_world_size)
 
-            # port = random.randint(10000, 20000)
-            # args.init_method = f'tcp://127.0.0.1:{port}'
-            # args.init_method = f'tcp://10.100.102.17:{port}'
+            port = random.randint(10000, 20000)
+            #args.init_method = f'tcp://127.0.0.1:{port}'
+            # args.init_method = f'tcp://192.168.1.246:{port}'
             args.init_method = 'env://'
 
             # we will set the rank in distributed main function
