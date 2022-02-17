@@ -829,14 +829,13 @@ def main(args, init_distributed=False):
     :rtype:
     """
     "================================================================================="
-    if torch.cuda.is_available():
-        torch.cuda.set_device(args.device_id)
-        torch.cuda.empty_cache()
-        torch.cuda.init()
-        args.device = torch.device("cuda")
+    # if torch.cuda.is_available():
+    #     torch.cuda.set_device(args.device_id)
+    #     torch.cuda.empty_cache()
+    #     torch.cuda.init()
+    #     args.device = torch.device("cuda")
 
-    if args.rank == 0:
-        time.sleep(10)
+    try:
         print(args.rank)
         if init_distributed:
             dist.init_process_group(
@@ -844,21 +843,23 @@ def main(args, init_distributed=False):
                 init_method=args.init_method,
                 world_size=args.world_size,
                 rank=args.rank,
-                timeout=timedelta(seconds=60)
+                timeout=timedelta(seconds=30)
             )
             args.device = torch.device("cuda", args.rank)
+    except Exception as e:
+        print(e)
 
-    if args.rank != 0:
-        print(args.rank)
-        if init_distributed:
-            dist.init_process_group(
-                backend=args.backend,
-                init_method=args.init_method,
-                world_size=args.world_size,
-                rank=args.rank,
-                timeout=timedelta(seconds=60)
-            )
-            args.device = torch.device("cuda", args.rank)
+    # if args.rank != 0:
+    #     print(args.rank)
+    #     if init_distributed:
+    #         dist.init_process_group(
+    #             backend=args.backend,
+    #             init_method=args.init_method,
+    #             world_size=args.world_size,
+    #             rank=args.rank,
+    #             timeout=timedelta(seconds=60)
+    #         )
+    #         args.device = torch.device("cuda", args.rank)
 
     print(f'rank: {args.rank} after init')
     "================================================================================="
@@ -1030,9 +1031,9 @@ if __name__ == '__main__':
                              'if set to None then ignor checkpoint')
     "================================================================================="
     "Hyper-parameters"
-    parser.add_argument('--world_size', type=int, default=3,
+    parser.add_argument('--world_size', type=int, default=2,
                         help='if None - will be number of devices')
-    parser.add_argument('--start_rank', default=1, type=int,
+    parser.add_argument('--start_rank', default=0, type=int,
                         help='we need to pass diff values if we are using multiple machines')
     parser.add_argument("--local_rank", type=int)
     parser.add_argument('--epochs', type=int, default=6,
@@ -1087,8 +1088,11 @@ if __name__ == '__main__':
     os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
-    os.environ['MASTER_ADDR'] = '192.168.1.102'
-    os.environ['MASTER_PORT'] = '19546'
+    os.environ['MASTER_ADDR'] = '127.0.0.1' #'192.168.1.102'
+    os.environ['MASTER_PORT'] = '20546'
+    # os.environ[
+    #     "TORCH_DISTRIBUTED_DEBUG"
+    # ] = "DETAIL"  # set to DETAIL for runtime logging
     print(f'Available devices: {torch.cuda.device_count()}\n')
     "================================================================================="
     # Ensure deterministic behavior
@@ -1135,7 +1139,7 @@ if __name__ == '__main__':
         # DDP for multiple GPU'S:
         elif args.world_size > 1:
 
-            args.local_world_size = torch.cuda.device_count()
+            args.local_world_size = 1 #torch.cuda.device_count()
 
             # for nvidia 3090 or titan rtx (24GB each)
             args.batch_size = args.local_world_size * 2
