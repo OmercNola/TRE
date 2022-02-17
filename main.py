@@ -1030,7 +1030,7 @@ if __name__ == '__main__':
                              'if set to None then ignor checkpoint')
     "================================================================================="
     "Hyper-parameters"
-    parser.add_argument('--world_size', type=int, default=5,
+    parser.add_argument('--world_size', type=int, default=3,
                         help='if None - will be number of devices')
     parser.add_argument('--start_rank', default=1, type=int,
                         help='we need to pass diff values if we are using multiple machines')
@@ -1042,7 +1042,7 @@ if __name__ == '__main__':
     parser.add_argument('--part_of_train_data', type=float, default=None,
                         help='amount of train instances for training, (between 1 and 12736)')
     parser.add_argument("--parts_of_train_data", nargs="+",
-                        default=[8500, 9000, 9500, 10000, 10500, 11000, 11500, 12000, 12500, 12736])
+                        default=[11000, 11500, 12000, 12500, 12736])
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')
     parser.add_argument('--dropout_p', type=float, default=0.25,
