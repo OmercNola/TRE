@@ -681,3 +681,5 @@ def all_equal(list_of_mp_values):
     :rtype:
     """
     return all([i.value == list_of_mp_values[0].value for i in list_of_mp_values])
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)

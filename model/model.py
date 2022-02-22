@@ -3,6 +3,7 @@ from torch import nn
 from transformers import \
     (AutoTokenizer, AutoModel, AutoModelForQuestionAnswering, BertTokenizer)
 from transformers import RobertaTokenizer, AutoConfig
+from utils.utils import count_parameters
 class Longformer(nn.Module):
 
     def __init__(self, longformer_, Output_size, Dropout_prob, size_of_longformer, Max_len):
@@ -62,7 +63,6 @@ class Longformer(nn.Module):
         self.BN = nn.BatchNorm1d(num_features=self.max_len)
         self.Dropout = nn.Dropout(p=Dropout_prob, inplace=False)
 
-
     def forward(self, input_ids, attention_mask):
         """
         :param input_ids:
@@ -113,6 +113,9 @@ def create_pretrained_model_and_tokenizer(args):
         local_files_only=True
     )
 
+    # print(f'number of model params before adding linear layer: '
+    #       f'{count_parameters(pre_trained_model)}')
+
     # change embeddings size after adding new tokens:
     pre_trained_model.resize_token_embeddings(len(tokenizer))
 
@@ -120,6 +123,9 @@ def create_pretrained_model_and_tokenizer(args):
         pre_trained_model, args.output_size, args.dropout_p,
         args.Size_of_longfor, args.Max_Len
     )
+
+    # print(f'number of model params after adding linear layer: '
+    #       f'{count_parameters(model)}')
 
     return model, tokenizer
 # baseline model:

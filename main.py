@@ -836,7 +836,7 @@ def main(args, init_distributed=False):
     #     args.device = torch.device("cuda")
 
     try:
-        print(args.rank)
+        print(f'rank: {args.rank}')
         if init_distributed:
             dist.init_process_group(
                 backend=args.backend,
@@ -1031,7 +1031,7 @@ if __name__ == '__main__':
                              'if set to None then ignor checkpoint')
     "================================================================================="
     "Hyper-parameters"
-    parser.add_argument('--world_size', type=int, default=2,
+    parser.add_argument('--world_size', type=int, default=None,
                         help='if None - will be number of devices')
     parser.add_argument('--start_rank', default=0, type=int,
                         help='we need to pass diff values if we are using multiple machines')
@@ -1043,7 +1043,7 @@ if __name__ == '__main__':
     parser.add_argument('--part_of_train_data', type=float, default=None,
                         help='amount of train instances for training, (between 1 and 12736)')
     parser.add_argument("--parts_of_train_data", nargs="+",
-                        default=[11000, 11500, 12000, 12500, 12736])
+                        default=[12736])
     parser.add_argument('--learning_rate', type=float, default=0.00001,
                         help='learning rate (default: 0.00001) took from longformer paper')
     parser.add_argument('--dropout_p', type=float, default=0.25,
@@ -1088,11 +1088,12 @@ if __name__ == '__main__':
     os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
-    os.environ['MASTER_ADDR'] = '127.0.0.1' #'192.168.1.102'
+    os.environ['MASTER_ADDR'] = '127.0.0.1' # '192.168.1.102' #'127.0.0.1'
     os.environ['MASTER_PORT'] = '20546'
-    # os.environ[
-    #     "TORCH_DISTRIBUTED_DEBUG"
-    # ] = "DETAIL"  # set to DETAIL for runtime logging
+    # os.environ['GLOO_SOCKET_IFNAME'] = 'Wi-Fi'
+    os.environ[
+        "TORCH_DISTRIBUTED_DEBUG"
+    ] = "DETAIL"  # set to DETAIL for runtime logging
     print(f'Available devices: {torch.cuda.device_count()}\n')
     "================================================================================="
     # Ensure deterministic behavior
@@ -1139,7 +1140,8 @@ if __name__ == '__main__':
         # DDP for multiple GPU'S:
         elif args.world_size > 1:
 
-            args.local_world_size = 1 #torch.cuda.device_count()
+            print(f'world_size: {args.world_size}')
+            args.local_world_size = torch.cuda.device_count()
 
             # for nvidia 3090 or titan rtx (24GB each)
             args.batch_size = args.local_world_size * 2
@@ -1147,8 +1149,8 @@ if __name__ == '__main__':
             args.single_rank_batch_size = int(args.batch_size / args.local_world_size)
 
             port = random.randint(10000, 20000)
-            #args.init_method = f'tcp://127.0.0.1:{port}'
-            # args.init_method = f'tcp://192.168.1.246:{port}'
+            # args.init_method = f'tcp://127.0.0.1:{port}'
+            # args.init_method = f'tcp://192.168.1.102:{port}'
             args.init_method = 'env://'
 
             # we will set the rank in distributed main function
