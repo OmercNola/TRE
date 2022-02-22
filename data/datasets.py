@@ -35,8 +35,8 @@ class TRE_train_dataset(Dataset):
         else:
             self.TRE_training_data_with_markers = \
                 random.sample(self.TRE_training_data_with_markers, args.part_of_train_data)
-            if args.rank == 0:
-                print(self.TRE_training_data_with_markers[0])
+            # if args.rank == 0:
+            #     print(self.TRE_training_data_with_markers[0])
         "=============================================================="
 
     def __len__(self):

@@ -1070,7 +1070,7 @@ if __name__ == '__main__':
                         help='shuffle')
     parser.add_argument('--num_workers', type=int, default=6,
                         help='number of workers in dataloader')
-    parser.add_argument('--prefetch_factor', type=int, default=3,
+    parser.add_argument('--prefetch_factor', type=int, default=4,
                         help='prefetch factor in dataloader')
     parser.add_argument('--seed', type=int, default=1,
                         help='random seed (default: 1)')
@@ -1088,12 +1088,14 @@ if __name__ == '__main__':
     os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
-    os.environ['MASTER_ADDR'] = '127.0.0.1' # '192.168.1.102' #'127.0.0.1'
-    os.environ['MASTER_PORT'] = '20546'
+
+    # os.environ['MASTER_ADDR'] = '192.168.1.102' #'127.0.0.1'#
+    # os.environ['MASTER_PORT'] = '20546'
     # os.environ['GLOO_SOCKET_IFNAME'] = 'Wi-Fi'
-    os.environ[
-        "TORCH_DISTRIBUTED_DEBUG"
-    ] = "DETAIL"  # set to DETAIL for runtime logging
+    # os.environ[
+    #     "TORCH_DISTRIBUTED_DEBUG"
+    # ] = "DETAIL"  # set to DETAIL for runtime logging
+
     print(f'Available devices: {torch.cuda.device_count()}\n')
     "================================================================================="
     # Ensure deterministic behavior
@@ -1141,6 +1143,7 @@ if __name__ == '__main__':
         elif args.world_size > 1:
 
             print(f'world_size: {args.world_size}')
+
             args.local_world_size = torch.cuda.device_count()
 
             # for nvidia 3090 or titan rtx (24GB each)
@@ -1149,9 +1152,9 @@ if __name__ == '__main__':
             args.single_rank_batch_size = int(args.batch_size / args.local_world_size)
 
             port = random.randint(10000, 20000)
-            # args.init_method = f'tcp://127.0.0.1:{port}'
+            args.init_method = f'tcp://127.0.0.1:{port}'
             # args.init_method = f'tcp://192.168.1.102:{port}'
-            args.init_method = 'env://'
+            # args.init_method = 'env://'
 
             # we will set the rank in distributed main function
             args.rank = None
