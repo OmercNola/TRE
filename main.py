@@ -829,11 +829,11 @@ def main(args, init_distributed=False):
     :rtype:
     """
     "================================================================================="
-    # if torch.cuda.is_available():
-    #     torch.cuda.set_device(args.device_id)
-    #     torch.cuda.empty_cache()
-    #     torch.cuda.init()
-    #     args.device = torch.device("cuda")
+    if torch.cuda.is_available():
+        torch.cuda.set_device(args.device_id)
+        torch.cuda.empty_cache()
+        torch.cuda.init()
+        args.device = torch.device("cuda")
 
     try:
         print(f'rank: {args.rank}')
@@ -995,7 +995,7 @@ if __name__ == '__main__':
                         help='eval mode ? if False then training mode')
     parser.add_argument('--use_baseline_model', type=bool, default=False,
                         help='if True - uses baseline model, else our model')
-    parser.add_argument('--use_wandb_logger', type=bool, default=False,
+    parser.add_argument('--use_wandb_logger', type=bool, default=True,
                         help='use wandb logger ?')
     parser.add_argument('--wandb_log_training_data', type=bool, default=False,
                         help='for correct comparsion between runs with diff size of train data')
@@ -1036,7 +1036,7 @@ if __name__ == '__main__':
     parser.add_argument('--start_rank', default=0, type=int,
                         help='we need to pass diff values if we are using multiple machines')
     parser.add_argument("--local_rank", type=int)
-    parser.add_argument('--epochs', type=int, default=6,
+    parser.add_argument('--epochs', type=int, default=3,
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=8,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
@@ -1091,7 +1091,7 @@ if __name__ == '__main__':
 
     # os.environ['MASTER_ADDR'] = '192.168.1.102' #'127.0.0.1'#
     # os.environ['MASTER_PORT'] = '20546'
-    # os.environ['GLOO_SOCKET_IFNAME'] = 'Wi-Fi'
+    os.environ['GLOO_SOCKET_IFNAME'] = 'Wi-Fi 4'
     # os.environ[
     #     "TORCH_DISTRIBUTED_DEBUG"
     # ] = "DETAIL"  # set to DETAIL for runtime logging
