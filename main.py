@@ -843,23 +843,11 @@ def main(args, init_distributed=False):
                 init_method=args.init_method,
                 world_size=args.world_size,
                 rank=args.rank,
-                timeout=timedelta(seconds=30)
+                timeout=timedelta(seconds=60)
             )
             args.device = torch.device("cuda", args.rank)
     except Exception as e:
         print(e)
-
-    # if args.rank != 0:
-    #     print(args.rank)
-    #     if init_distributed:
-    #         dist.init_process_group(
-    #             backend=args.backend,
-    #             init_method=args.init_method,
-    #             world_size=args.world_size,
-    #             rank=args.rank,
-    #             timeout=timedelta(seconds=60)
-    #         )
-    #         args.device = torch.device("cuda", args.rank)
 
     print(f'rank: {args.rank} after init')
     "================================================================================="
@@ -903,6 +891,7 @@ def main(args, init_distributed=False):
                 None, None
             )
         model.to(args.device)
+    print(f'rank: {args.rank}')
     "================================================================================="
     """Parallel"""
     is_distributed = args.world_size > 1
@@ -991,12 +980,14 @@ if __name__ == '__main__':
                         help='device type')
     "================================================================================="
     "Train settings 1"
-    parser.add_argument('--eval', type=bool, default=False,
+    parser.add_argument('--eval', type=bool, default=True,
                         help='eval mode ? if False then training mode')
     parser.add_argument('--use_baseline_model', type=bool, default=False,
                         help='if True - uses baseline model, else our model')
     parser.add_argument('--use_wandb_logger', type=bool, default=True,
                         help='use wandb logger ?')
+    parser.add_argument('--save_table_of_results_after_eval', type=bool, default=True,
+                        help='save table of results (with text) after eval ?')
     parser.add_argument('--wandb_log_training_data', type=bool, default=False,
                         help='for correct comparsion between runs with diff size of train data')
     parser.add_argument('--run_name', type=str, default='ours',
@@ -1009,8 +1000,6 @@ if __name__ == '__main__':
                         help='eval during training ?')
     parser.add_argument('--save_model_during_training', type=bool, default=False,
                         help='save model during training ? ')
-    parser.add_argument('--save_table_of_results_after_eval', type=bool, default=False,
-                        help='save table of results (with text) after eval ?')
     parser.add_argument('--save_model_every', type=int, default=600,
                         help='when to save the model - number of batches')
     parser.add_argument('--ignor_vague_lable_in_training', type=bool, default=True,
@@ -1025,18 +1014,18 @@ if __name__ == '__main__':
     parser.add_argument('--print_eval_every', type=int, default=50,
                         help='when to print f1 scores during eval - number of batches')
     parser.add_argument('--checkpoint_path', type=str,
-                        default=None,
+                        default='models/fluent-rain-249_epoch_3_iter_1200_.pt', #None,
                         #'models/fluent-rain-249_epoch_3_iter_1200_.pt', #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
                         help='checkpoint path for evaluation or proceed training ,'
                              'if set to None then ignor checkpoint')
     "================================================================================="
     "Hyper-parameters"
-    parser.add_argument('--world_size', type=int, default=None,
+    parser.add_argument('--world_size', type=int, default=2,
                         help='if None - will be number of devices')
     parser.add_argument('--start_rank', default=0, type=int,
                         help='we need to pass diff values if we are using multiple machines')
     parser.add_argument("--local_rank", type=int)
-    parser.add_argument('--epochs', type=int, default=3,
+    parser.add_argument('--epochs', type=int, default=6,
                         help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=8,
                         help='batch size')  # every 2 instances are using 1 "3090 GPU"
@@ -1091,7 +1080,7 @@ if __name__ == '__main__':
 
     # os.environ['MASTER_ADDR'] = '192.168.1.102' #'127.0.0.1'#
     # os.environ['MASTER_PORT'] = '20546'
-    os.environ['GLOO_SOCKET_IFNAME'] = 'Wi-Fi 4'
+    # os.environ['GLOO_SOCKET_IFNAME'] = 'Wi-Fi'
     # os.environ[
     #     "TORCH_DISTRIBUTED_DEBUG"
     # ] = "DETAIL"  # set to DETAIL for runtime logging
