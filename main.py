@@ -833,7 +833,7 @@ def main(args, init_distributed=False):
         torch.cuda.set_device(args.device_id)
         torch.cuda.empty_cache()
         torch.cuda.init()
-        args.device = torch.device("cuda")
+        args.device = torch.device("cuda", args.device_id)
 
     try:
         print(f'rank: {args.rank}')
@@ -843,9 +843,8 @@ def main(args, init_distributed=False):
                 init_method=args.init_method,
                 world_size=args.world_size,
                 rank=args.rank,
-                timeout=timedelta(seconds=60)
+                timeout=timedelta(seconds=120)
             )
-            args.device = torch.device("cuda", args.rank)
     except Exception as e:
         print(e)
 
@@ -904,8 +903,8 @@ def main(args, init_distributed=False):
 
             model = DDP(
                 model,
-                device_ids=[args.rank],
-                output_device=args.rank,
+                device_ids=[args.device_id],
+                output_device=args.device_id,
                 find_unused_parameters=True,
                 broadcast_buffers=False
             )
@@ -980,11 +979,11 @@ if __name__ == '__main__':
                         help='device type')
     "================================================================================="
     "Train settings 1"
-    parser.add_argument('--eval', type=bool, default=True,
+    parser.add_argument('--eval', type=bool, default=False,
                         help='eval mode ? if False then training mode')
     parser.add_argument('--use_baseline_model', type=bool, default=False,
                         help='if True - uses baseline model, else our model')
-    parser.add_argument('--use_wandb_logger', type=bool, default=True,
+    parser.add_argument('--use_wandb_logger', type=bool, default=False,
                         help='use wandb logger ?')
     parser.add_argument('--save_table_of_results_after_eval', type=bool, default=True,
                         help='save table of results (with text) after eval ?')
@@ -1014,7 +1013,7 @@ if __name__ == '__main__':
     parser.add_argument('--print_eval_every', type=int, default=50,
                         help='when to print f1 scores during eval - number of batches')
     parser.add_argument('--checkpoint_path', type=str,
-                        default='models/fluent-rain-249_epoch_3_iter_1200_.pt', #None,
+                        default=None, #'models/fluent-rain-249_epoch_3_iter_1200_.pt', #None,
                         #'models/fluent-rain-249_epoch_3_iter_1200_.pt', #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
                         help='checkpoint path for evaluation or proceed training ,'
                              'if set to None then ignor checkpoint')
@@ -1078,7 +1077,7 @@ if __name__ == '__main__':
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-    # os.environ['MASTER_ADDR'] = '192.168.1.102' #'127.0.0.1'#
+    # os.environ['MASTER_ADDR'] = '192.168.1.101' #'127.0.0.1'#
     # os.environ['MASTER_PORT'] = '20546'
     # os.environ['GLOO_SOCKET_IFNAME'] = 'Wi-Fi'
     # os.environ[
@@ -1142,7 +1141,7 @@ if __name__ == '__main__':
 
             port = random.randint(10000, 20000)
             args.init_method = f'tcp://127.0.0.1:{port}'
-            # args.init_method = f'tcp://192.168.1.102:{port}'
+            # args.init_method = f'tcp://192.168.1.101:{port}'
             # args.init_method = 'env://'
 
             # we will set the rank in distributed main function

@@ -153,7 +153,6 @@ class Longformer_baseline(nn.Module):
 
     def forward(self, input_ids, attention_mask):
 
-
         Output = self.model(input_ids=input_ids, attention_mask=attention_mask)
 
         # all the hidden states from the last layer:
