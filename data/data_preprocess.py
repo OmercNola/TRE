@@ -13,6 +13,8 @@ from datetime import datetime
 from collections import namedtuple
 import xml
 "================================================================================="
+
+
 def process_data(tml_folder_path, annotation_file_path):
     """
     :param tml_folder_path:
@@ -26,11 +28,13 @@ def process_data(tml_folder_path, annotation_file_path):
     texts = {}
     for file in annotations.keys():
         # file is like ABC19980114.1830.0611
-        Text_elements, eiid_to_eid_map,  = \
-            get_text_and_eiid_to_eid_map_from_tml_file(os.path.join(tml_folder_path, file + ".tml"))
+        Text_elements, eiid_to_eid_map, = get_text_and_eiid_to_eid_map_from_tml_file(
+            os.path.join(tml_folder_path, file + ".tml"))
         texts[file] = {"Text_elements": Text_elements,
                        "eiid_to_eid_map": eiid_to_eid_map}
     return annotations, texts
+
+
 def read_labeled_data_file(filepath):
     """"
     THIS FILE IS WITH eiid AND NOT eid.
@@ -45,6 +49,8 @@ def read_labeled_data_file(filepath):
             line_comp = line.split("\t")
             annotations[line_comp[0]].append(line_comp[1:])
     return annotations
+
+
 def get_text_and_eiid_to_eid_map_from_tml_file(filepath):
     """
     Read specific tml file and process it,
@@ -61,7 +67,10 @@ def get_text_and_eiid_to_eid_map_from_tml_file(filepath):
     elements = mydoc.getElementsByTagName("TEXT")
 
     return elements, ei_e_map
-def new_context_with_markers_from_tokens_and_two_eids(args, elements_, eid1_, eid2_):
+
+
+def new_context_with_markers_from_tokens_and_two_eids(
+        args, elements_, eid1_, eid2_):
     """
     :param elements_:
     :type elements_:
@@ -80,7 +89,7 @@ def new_context_with_markers_from_tokens_and_two_eids(args, elements_, eid1_, ei
     for index, child in enumerate(elements_[0].childNodes):
 
         # e1:
-        if type(child) is minidom.Element and child.nodeName == "EVENT" and \
+        if isinstance(child, minidom.Element) and child.nodeName == "EVENT" and \
                 child.attributes["eid"].value == eid1_:
             if args.use_E_markers:
                 new_context_ += f'[E1] {child.firstChild.data} [/E1]'
@@ -88,24 +97,27 @@ def new_context_with_markers_from_tokens_and_two_eids(args, elements_, eid1_, ei
                 new_context_ += f'@ {child.firstChild.data} @'
 
         # e2:
-        elif type(child) is minidom.Element and child.nodeName == "EVENT" and \
+        elif isinstance(child, minidom.Element) and child.nodeName == "EVENT" and \
                 child.attributes["eid"].value == eid2_:
             if args.use_E_markers:
                 new_context_ += f'[E2] {child.firstChild.data} [/E2]'
             else:
                 new_context_ += f'@ {child.firstChild.data} @'
 
-        elif type(child) is minidom.Element and (child.nodeName == "TIMEX" or child.nodeName == "TIMEX3"):
+        elif isinstance(child, minidom.Element) and (child.nodeName == "TIMEX" or child.nodeName == "TIMEX3"):
             new_context_ += child.firstChild.data
 
-        elif type(child) is minidom.Element:
+        elif isinstance(child, minidom.Element):
             new_context_ += child.firstChild.data
 
         else:
             new_context_ += child.data
 
     return new_context_
-def new_short_context_with_markers_from_tokens_and_two_eids(args, elements_, eid1_, eid2_):
+
+
+def new_short_context_with_markers_from_tokens_and_two_eids(
+        args, elements_, eid1_, eid2_):
     """
     :param elements_:
     :type elements_:
@@ -125,15 +137,15 @@ def new_short_context_with_markers_from_tokens_and_two_eids(args, elements_, eid
     for index, child in enumerate(elements_[0].childNodes):
 
         # e1:
-        if type(child) is minidom.Element and child.nodeName == "EVENT" and \
+        if isinstance(child, minidom.Element) and child.nodeName == "EVENT" and \
                 child.attributes["eid"].value == eid1_:
             if args.use_E_markers:
                 new_short_context += f'[E1] {child.firstChild.data} [/E1]'
-            else: # use @ markers
+            else:  # use @ markers
                 new_short_context += f'@ {child.firstChild.data} @'
 
         # e2:
-        elif type(child) is minidom.Element and child.nodeName == "EVENT" and \
+        elif isinstance(child, minidom.Element) and child.nodeName == "EVENT" and \
                 child.attributes["eid"].value == eid2_:
             if args.use_E_markers:
                 new_short_context += f'[E2] {child.firstChild.data} [/E2]'
@@ -141,17 +153,19 @@ def new_short_context_with_markers_from_tokens_and_two_eids(args, elements_, eid
                 new_short_context += f'@ {child.firstChild.data} @'
             e2_was_found = True
 
-        elif type(child) is minidom.Element and (child.nodeName == "TIMEX" or child.nodeName == "TIMEX3"):
+        elif isinstance(child, minidom.Element) and (child.nodeName == "TIMEX" or child.nodeName == "TIMEX3"):
             if e2_was_found:
                 if "." in child.firstChild.data:
-                    new_short_context += child.firstChild.data.split(".")[0] + "."
+                    new_short_context += child.firstChild.data.split(".")[
+                        0] + "."
                     break
             new_short_context += child.firstChild.data
 
-        elif type(child) is minidom.Element:
+        elif isinstance(child, minidom.Element):
             if e2_was_found:
                 if "." in child.firstChild.data:
-                    new_short_context += child.firstChild.data.split(".")[0] + "."
+                    new_short_context += child.firstChild.data.split(".")[
+                        0] + "."
                     break
             new_short_context += child.firstChild.data
 
@@ -164,6 +178,8 @@ def new_short_context_with_markers_from_tokens_and_two_eids(args, elements_, eid
             new_short_context += child.data
 
     return new_short_context
+
+
 def final_data_process_for_markers(args, folder_path, labeled_data_path):
     """
     :param folder_path:
@@ -185,7 +201,8 @@ def final_data_process_for_markers(args, folder_path, labeled_data_path):
 
         for instance in TimeBank_labeled_data[key]:
 
-            # instance is like: ['predicted', 'tried', '415', '417', 'BEFORE\n']
+            # instance is like: ['predicted', 'tried', '415', '417',
+            # 'BEFORE\n']
 
             eiid1 = instance[2]
             eiid2 = instance[3]
@@ -195,25 +212,28 @@ def final_data_process_for_markers(args, folder_path, labeled_data_path):
                 eid2 = Map[f'ei{eiid2}']
 
                 if args.short_passage:
-                    # here we get passage with markers and cut it just after the first "." after [E2]:
+                    # here we get passage with markers and cut it just after
+                    # the first "." after [E2]:
                     passage = new_short_context_with_markers_from_tokens_and_two_eids(
-                        args, text_elements, eid1, eid2
-                    )
+                        args, text_elements, eid1, eid2)
                 else:
                     # here we get all passage with markers:
                     passage = new_context_with_markers_from_tokens_and_two_eids(
-                        args, text_elements, eid1, eid2
-                    )
+                        args, text_elements, eid1, eid2)
 
                 first_word = instance[0]
                 second_word = instance[1]
                 relation = instance[4]
                 data.append([passage, [first_word, second_word, relation]])
 
-            except:
+            except BaseException:
                 pass
     return data
+
+
 "================================================================================="
+
+
 def get_text_and_labeled_data_from_tml_file_tcr(filepath):
     """
     Read specific tml file and process it,
@@ -237,7 +257,7 @@ def get_text_and_labeled_data_from_tml_file_tcr(filepath):
     for e in tlink_elements:
 
         if ('relatedToEventInstance' not in list(e.attributes.keys())) or \
-            ('eventInstanceID' not in list(e.attributes.keys())):
+                ('eventInstanceID' not in list(e.attributes.keys())):
             continue
 
         eventID_1 = ei_e_map[e.attributes["eventInstanceID"].value]
@@ -245,10 +265,10 @@ def get_text_and_labeled_data_from_tml_file_tcr(filepath):
         relation = e.attributes['relType'].value
 
         for index, child in enumerate(text_elements[0].childNodes):
-            if type(child) is minidom.Element and child.nodeName == "EVENT" and \
+            if isinstance(child, minidom.Element) and child.nodeName == "EVENT" and \
                     child.attributes["eid"].value == eventID_1:
                 word_1 = child.firstChild.data
-            if type(child) is minidom.Element and child.nodeName == "EVENT" and \
+            if isinstance(child, minidom.Element) and child.nodeName == "EVENT" and \
                     child.attributes["eid"].value == eventID_2:
                 word_2 = child.firstChild.data
 
@@ -262,6 +282,8 @@ def get_text_and_labeled_data_from_tml_file_tcr(filepath):
         )
     "=========================================================================="
     return labeled_data
+
+
 def process_TCR_data(args, tml_folder_path):
     """
     :param tml_folder_path:
@@ -284,23 +306,21 @@ def process_TCR_data(args, tml_folder_path):
             modified = datetime.fromtimestamp(item.stat().st_mtime)
             tml_files.append(File(name, path, size, modified))
 
-
     for file in tml_files:
 
-        labeled_data = get_text_and_labeled_data_from_tml_file_tcr(os.path.join(file.path))
+        labeled_data = get_text_and_labeled_data_from_tml_file_tcr(
+            os.path.join(file.path))
 
         for event1, event2, relation, text_elements in labeled_data:
 
             eid1, first_word = event1[0], event1[1]
             eid2, second_word = event2[0], event2[1]
 
-
-
             if args.short_passage:
-                # here we get passage with markers and cut it just after the first "." after [E2]:
+                # here we get passage with markers and cut it just after the
+                # first "." after [E2]:
                 passage = new_short_context_with_markers_from_tokens_and_two_eids(
-                    args, text_elements, eid1, eid2
-                )
+                    args, text_elements, eid1, eid2)
             else:
                 # here we get all passage with markers:
                 passage = new_context_with_markers_from_tokens_and_two_eids(
@@ -310,4 +330,6 @@ def process_TCR_data(args, tml_folder_path):
             data.append([passage, [first_word, second_word, relation]])
 
     return data
+
+
 "================================================================================="

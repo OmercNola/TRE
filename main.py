@@ -18,8 +18,12 @@ from torch import distributed as dist
 from data.dataloaders import create_dataloader
 from torch.nn.parallel import DistributedDataParallel as DDP
 from transformers import get_linear_schedule_with_warmup, AdamW
+
+
 def is_master():
     return not dist.is_initialized() or dist.get_rank() == 0
+
+
 def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
     """
     :param model:
@@ -57,9 +61,15 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
     else:
         scheduler = None
 
-    # Tell wandb to watch what the model gets up to: gradients, weights, and more!
+    # Tell wandb to watch what the model gets up to: gradients, weights, and
+    # more!
     if is_master() and args.use_wandb_logger:
-        wandb.watch(model, criterion, log="all", log_freq=50, log_graph=(False))
+        wandb.watch(
+            model,
+            criterion,
+            log="all",
+            log_freq=50,
+            log_graph=(False))
 
     best_f1_macro, best_f1_micro = 0, 0
 
@@ -81,9 +91,15 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
 
     if is_master() and not platform.platform().startswith('Win'):
         # the progress bar doesnt work very good in Windows and pycharm
-        epoch_itrator = tqdm(range(epoch_start, args.epochs+1, 1), position=0, leave=True)
+        epoch_itrator = tqdm(
+            range(
+                epoch_start,
+                args.epochs + 1,
+                1),
+            position=0,
+            leave=True)
     else:
-        epoch_itrator = range(epoch_start, args.epochs+1, 1)
+        epoch_itrator = range(epoch_start, args.epochs + 1, 1)
 
     is_distributed = args.world_size > 1
 
@@ -120,8 +136,10 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                     if Label.strip() == 'VAGUE':
                         continue
 
-                q_1 = question_1(args, first_word, second_word) + tokenizer.sep_token
-                q_2 = question_2(args, first_word, second_word) + tokenizer.sep_token
+                q_1 = question_1(
+                    args, first_word, second_word) + tokenizer.sep_token
+                q_2 = question_2(
+                    args, first_word, second_word) + tokenizer.sep_token
                 questions_list = [('question_1', q_1), ('question_2', q_2)]
 
                 for question_name, question in questions_list:
@@ -144,7 +162,8 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                     batch_attention_mask.append(attention_mask)
                     batch_labels.append(label)
 
-                    # compute loss and update weights every args.single_rank_batch_size:
+                    # compute loss and update weights every
+                    # args.single_rank_batch_size:
                     if len(batch_input_ids) == args.single_rank_batch_size:
 
                         # see this post for understanding the next lines
@@ -165,12 +184,14 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                             batch_labels, requires_grad=False, device=args.device)
 
                         # zero gradients before update:
-                        #optimizer.zero_grad(set_to_none=True)
+                        # optimizer.zero_grad(set_to_none=True)
                         optimizer.zero_grad()
 
                         # forward pass:
                         try:
-                            outputs = model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
+                            outputs = model(
+                                input_ids=batch_input_ids,
+                                attention_mask=batch_attention_mask)
                         except RuntimeError as exception:
                             if "out of memory" in str(exception):
                                 print("WARNING: out of memory")
@@ -185,9 +206,11 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                         # compute gradients:
                         loss.backward()
 
-                        # This is to help prevent the "exploding gradients" problem:
+                        # This is to help prevent the "exploding gradients"
+                        # problem:
                         if args.use_clip_grad_norm:
-                            nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+                            nn.utils.clip_grad_norm_(
+                                model.parameters(), args.max_grad_norm)
 
                         # update parameters
                         optimizer.step()
@@ -219,7 +242,8 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
                 if is_master():
                     # save in wandb:
                     if args.use_wandb_logger:
-                        train_log(args, total_loss_for_print, epoch, batches_overall)
+                        train_log(
+                            args, total_loss_for_print, epoch, batches_overall)
 
                 total_loss_for_print = 0
 
@@ -244,7 +268,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
 
         elif batch_counter % args.print_loss_every != 0:
             total_loss_for_print = total_loss_for_print /\
-                                       (batch_counter % args.print_loss_every)
+                (batch_counter % args.print_loss_every)
 
         elif batch_counter % args.print_loss_every == 0:
             total_loss_for_print = 0
@@ -274,14 +298,25 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
 
         # evaluate at the end of the epoch:
         if args.eval_during_training:
-            macro, micro = eval(model, args, test_loader, tokenizer, epoch=epoch)
+            macro, micro = eval(
+                model, args, test_loader, tokenizer, epoch=epoch)
 
         best_f1_macro = max(macro, best_f1_macro)
         best_f1_micro = max(micro, best_f1_micro)
 
     if is_master() and args.use_wandb_logger and args.eval_during_training:
-        wandb.log({"best_f1_macro": best_f1_macro, "best_f1_micro": best_f1_micro})
-def train_baseline(model, args, train_loader, train_sampler, test_loader, tokenizer,):
+        wandb.log({"best_f1_macro": best_f1_macro,
+                   "best_f1_micro": best_f1_micro})
+
+
+def train_baseline(
+    model,
+    args,
+    train_loader,
+    train_sampler,
+    test_loader,
+    tokenizer,
+):
     """
     :param model:
     :type model:
@@ -318,9 +353,15 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
     else:
         scheduler = None
 
-    # Tell wandb to watch what the model gets up to: gradients, weights, and more!
+    # Tell wandb to watch what the model gets up to: gradients, weights, and
+    # more!
     if is_master() and args.use_wandb_logger:
-        wandb.watch(model, criterion, log="all", log_freq=50, log_graph=(False))
+        wandb.watch(
+            model,
+            criterion,
+            log="all",
+            log_freq=50,
+            log_graph=(False))
 
     # loss progress counters
     total_loss_for_print = 0
@@ -340,7 +381,13 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
 
     if is_master() and not platform.platform().startswith('Win'):
         # the progress bar doesnt work very good in Windows and pycharm
-        epoch_itrator = tqdm(range(epoch_start, args.epochs + 1, 1), position=0, leave=True)
+        epoch_itrator = tqdm(
+            range(
+                epoch_start,
+                args.epochs + 1,
+                1),
+            position=0,
+            leave=True)
     else:
         epoch_itrator = range(epoch_start, args.epochs + 1, 1)
 
@@ -407,12 +454,14 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
                 batch_labels, requires_grad=False, device=args.device)
 
             # zero gradients before update:
-            #optimizer.zero_grad(set_to_none=True)
+            # optimizer.zero_grad(set_to_none=True)
             optimizer.zero_grad()
 
             # forward pass:
             try:
-                outputs = model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
+                outputs = model(
+                    input_ids=batch_input_ids,
+                    attention_mask=batch_attention_mask)
             except RuntimeError as exception:
                 if "out of memory" in str(exception):
                     print("WARNING: out of memory")
@@ -429,7 +478,8 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
 
             # This is to help prevent the "exploding gradients" problem:
             if args.use_clip_grad_norm:
-                nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+                nn.utils.clip_grad_norm_(
+                    model.parameters(), args.max_grad_norm)
 
             # update parameters
             optimizer.step()
@@ -441,8 +491,6 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
             # save training loss:
             total_loss_for_print += loss.item()
             total_loss_for_save += loss.item()
-
-
 
             # Print and save progress once in a while...
             if batch_counter % args.print_loss_every == 0:
@@ -459,7 +507,8 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
                 if is_master():
                     # save in wandb:
                     if args.use_wandb_logger:
-                        train_log(args, total_loss_for_print, epoch, batches_overall)
+                        train_log(
+                            args, total_loss_for_print, epoch, batches_overall)
 
                 total_loss_for_print = 0
 
@@ -478,7 +527,12 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
 
                 # evaluate:
                 if args.eval_during_training:
-                    eval(model, args, test_loader, tokenizer, batches_overall=batches_overall)
+                    eval(
+                        model,
+                        args,
+                        test_loader,
+                        tokenizer,
+                        batches_overall=batches_overall)
 
         # # at the end of the epoch:
 
@@ -488,7 +542,7 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
 
         elif batch_counter % args.print_loss_every != 0:
             total_loss_for_print = total_loss_for_print / \
-                                   (batch_counter % args.print_loss_every)
+                (batch_counter % args.print_loss_every)
 
         elif batch_counter % args.print_loss_every == 0:
             total_loss_for_print = 0
@@ -518,11 +572,11 @@ def train_baseline(model, args, train_loader, train_sampler, test_loader, tokeni
 
         # evaluate at the end of the epoch:
         if args.eval_during_training:
-            eval_baseline(
-                model, args, test_loader, tokenizer, batches_overall=batches_overall
-            )
-def eval(model, args, test_loader, tokenizer, epoch=None):
+            eval_baseline(model, args, test_loader, tokenizer,
+                          batches_overall=batches_overall)
 
+
+def eval(model, args, test_loader, tokenizer, epoch=None):
     """
     :param model:
     :type model:
@@ -620,7 +674,9 @@ def eval(model, args, test_loader, tokenizer, epoch=None):
                 # ensure no gradients for eval:
                 with torch.no_grad():
 
-                    outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+                    outputs = model(
+                        input_ids=input_ids,
+                        attention_mask=attention_mask)
 
                     # our prediction:
                     pred = torch.argmax(torch.softmax(outputs, dim=1), dim=1)
@@ -662,9 +718,9 @@ def eval(model, args, test_loader, tokenizer, epoch=None):
             macro, micro = tracker.f1_macro_and_micro()
 
             eval_precent = (batch_counter / len(test_loader)) * 100
-            print(f'[eval Rank: {args.rank}] f1 macro: {macro}, f1 micro: {micro}, '
-                  f'evaluation percent: {eval_precent:.3f}')
-
+            print(
+                f'[eval Rank: {args.rank}] f1 macro: {macro}, f1 micro: {micro}, '
+                f'evaluation percent: {eval_precent:.3f}')
 
     # if we are in Distributed mode, then we need to collect the results from
     # all processes:
@@ -695,8 +751,9 @@ def eval(model, args, test_loader, tokenizer, epoch=None):
             wandb.log({f'results table {wandb.run.name}': table})
 
     return macro, micro
-def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
 
+
+def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
     """
     :param model:
     :type model:
@@ -719,7 +776,8 @@ def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
     # the evaluation is currently done only on master (rank 0),
     # the next line ensures localy evaluation (without DDP comunication).
     # without this line it will hung forever.
-    # see this post: https://discuss.pytorch.org/t/torch-distributed-barrier-hangs-in-ddp/114522
+    # see this post:
+    # https://discuss.pytorch.org/t/torch-distributed-barrier-hangs-in-ddp/114522
     if hasattr(model, "module"):
         model = model.module
 
@@ -769,7 +827,9 @@ def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
         # forward pass:
         with torch.no_grad():
 
-            outputs = model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
+            outputs = model(
+                input_ids=batch_input_ids,
+                attention_mask=batch_attention_mask)
 
             # prediction:
             preds = torch.argmax(torch.softmax(outputs, dim=1), dim=1)
@@ -818,8 +878,9 @@ def eval_baseline(model, args, test_loader, tokenizer, batches_overall=None):
         eval_precent = (batch_counter / len(test_loader)) * 100
         print(f'f1 macro: {macro}, f1 micro: {micro}, '
               f'evaluation percent: {eval_precent:.3f}')
-def main(args, init_distributed=False):
 
+
+def main(args, init_distributed=False):
     """
     :param args:
     :type args:
@@ -861,7 +922,7 @@ def main(args, init_distributed=False):
             try:
                 wandb.run.name = args.run_name
                 wandb.run.save()
-            except:
+            except BaseException:
                 pass
         # update general info of the run:
         wandb.config.update(args)
@@ -875,7 +936,8 @@ def main(args, init_distributed=False):
         # create our model and tokenizer (after markers adition):
         model, tokenizer = create_pretrained_model_and_tokenizer(args)
     "================================================================================="
-    # if no checkpoint and not a baseline model - load the pretrained boolq model:
+    # if no checkpoint and not a baseline model - load the pretrained boolq
+    # model:
     if (args.checkpoint_path is None) and (not args.use_baseline_model):
         PATH = Path(args.boolq_pre_trained_model_path)
         checkpoint = torch.load(PATH, map_location=torch.device('cpu'))
@@ -888,7 +950,7 @@ def main(args, init_distributed=False):
             load_model_checkpoint(
                 args, Path(args.checkpoint_path), model,
                 None, None
-            )
+        )
         model.to(args.device)
     print(f'rank: {args.rank}')
     "================================================================================="
@@ -911,7 +973,8 @@ def main(args, init_distributed=False):
             model.to(args.device)
 
             # Dataloaders:
-            train_loader, train_sampler = create_dataloader(args, 'train', is_distributed)
+            train_loader, train_sampler = create_dataloader(
+                args, 'train', is_distributed)
             val_dataloader, _ = create_dataloader(args, 'val', is_distributed)
             test_loader, _ = create_dataloader(args, 'test', is_distributed)
 
@@ -955,6 +1018,8 @@ def main(args, init_distributed=False):
     if is_distributed:
         dist.barrier()
         dist.destroy_process_group()
+
+
 def distributed_main(device_id, args):
     """
     :param device_id:
@@ -969,14 +1034,19 @@ def distributed_main(device_id, args):
         args.rank = args.start_rank + device_id
         args.local_rank = args.rank
     main(args, init_distributed=True)
+
+
 if __name__ == '__main__':
     __file__ = 'main.py'
     "================================================================================="
     parser = argparse.ArgumentParser(description='TRE')
     "================================================================================="
-    parser.add_argument('--device', type=torch.device,
-                        default=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
-                        help='device type')
+    parser.add_argument(
+        '--device',
+        type=torch.device,
+        default=torch.device(
+            'cuda' if torch.cuda.is_available() else 'cpu'),
+        help='device type')
     "================================================================================="
     "Train settings 1"
     parser.add_argument('--eval', type=bool, default=False,
@@ -985,55 +1055,87 @@ if __name__ == '__main__':
                         help='if True - uses baseline model, else our model')
     parser.add_argument('--use_wandb_logger', type=bool, default=False,
                         help='use wandb logger ?')
-    parser.add_argument('--save_table_of_results_after_eval', type=bool, default=True,
-                        help='save table of results (with text) after eval ?')
-    parser.add_argument('--wandb_log_training_data', type=bool, default=False,
-                        help='for correct comparsion between runs with diff size of train data')
+    parser.add_argument(
+        '--save_table_of_results_after_eval',
+        type=bool,
+        default=True,
+        help='save table of results (with text) after eval ?')
+    parser.add_argument(
+        '--wandb_log_training_data',
+        type=bool,
+        default=False,
+        help='for correct comparsion between runs with diff size of train data')
     parser.add_argument('--run_name', type=str, default='ours',
                         help='if None then wandb random name,'
                              ' else itself + args.part_of_train_data')
-    parser.add_argument('--use_E_markers', type=bool, default=False,
-                        help='if True then use ([E1] word1 [/E1]) / ([E2] word2 [/E2]) markers, '
-                             'else use (@ word @) markers')
+    parser.add_argument(
+        '--use_E_markers',
+        type=bool,
+        default=False,
+        help='if True then use ([E1] word1 [/E1]) / ([E2] word2 [/E2]) markers, '
+        'else use (@ word @) markers')
     parser.add_argument('--eval_during_training', type=bool, default=True,
                         help='eval during training ?')
-    parser.add_argument('--save_model_during_training', type=bool, default=False,
-                        help='save model during training ? ')
+    parser.add_argument(
+        '--save_model_during_training',
+        type=bool,
+        default=False,
+        help='save model during training ? ')
     parser.add_argument('--save_model_every', type=int, default=600,
                         help='when to save the model - number of batches')
-    parser.add_argument('--ignor_vague_lable_in_training', type=bool, default=True,
-                        help='if True - ignors vague lable in training')
-    parser.add_argument('--short_passage', type=bool, default=True,
-                        help='if True then cut the passage after the first "." after second verb')
-    parser.add_argument('--boolq_pre_trained_model_path', type=str,
-                        default='models/pretrained_boolq_with_markers.pt',
-                        help='this is a pre trained model on boolq dataset, with acc (0.82)')
+    parser.add_argument(
+        '--ignor_vague_lable_in_training',
+        type=bool,
+        default=True,
+        help='if True - ignors vague lable in training')
+    parser.add_argument(
+        '--short_passage',
+        type=bool,
+        default=True,
+        help='if True then cut the passage after the first "." after second verb')
+    parser.add_argument(
+        '--boolq_pre_trained_model_path',
+        type=str,
+        default='models/pretrained_boolq_with_markers.pt',
+        help='this is a pre trained model on boolq dataset, with acc (0.82)')
     parser.add_argument('--print_loss_every', type=int, default=25,
                         help='when to print the loss - number of batches')
-    parser.add_argument('--print_eval_every', type=int, default=50,
-                        help='when to print f1 scores during eval - number of batches')
+    parser.add_argument(
+        '--print_eval_every',
+        type=int,
+        default=50,
+        help='when to print f1 scores during eval - number of batches')
     parser.add_argument('--checkpoint_path', type=str,
-                        default=None, #'models/fluent-rain-249_epoch_3_iter_1200_.pt', #None,
-                        #'models/fluent-rain-249_epoch_3_iter_1200_.pt', #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
+                        default=None,  # 'models/fluent-rain-249_epoch_3_iter_1200_.pt', #None,
+                        # 'models/fluent-rain-249_epoch_3_iter_1200_.pt', #'models/fast-butterfly-49_epoch_1_iter_3184_.pt',
                         help='checkpoint path for evaluation or proceed training ,'
                              'if set to None then ignor checkpoint')
     "================================================================================="
     "Hyper-parameters"
     parser.add_argument('--world_size', type=int, default=2,
                         help='if None - will be number of devices')
-    parser.add_argument('--start_rank', default=0, type=int,
-                        help='we need to pass diff values if we are using multiple machines')
+    parser.add_argument(
+        '--start_rank',
+        default=0,
+        type=int,
+        help='we need to pass diff values if we are using multiple machines')
     parser.add_argument("--local_rank", type=int)
     parser.add_argument('--epochs', type=int, default=6,
                         help='number of epochs')
-    parser.add_argument('--batch_size', type=int, default=8,
-                        help='batch size')  # every 2 instances are using 1 "3090 GPU"
-    parser.add_argument('--part_of_train_data', type=float, default=None,
-                        help='amount of train instances for training, (between 1 and 12736)')
+    # every 2 instances are using 1 "3090 GPU"
+    parser.add_argument('--batch_size', type=int, default=8, help='batch size')
+    parser.add_argument(
+        '--part_of_train_data',
+        type=float,
+        default=None,
+        help='amount of train instances for training, (between 1 and 12736)')
     parser.add_argument("--parts_of_train_data", nargs="+",
                         default=[12736])
-    parser.add_argument('--learning_rate', type=float, default=0.00001,
-                        help='learning rate (default: 0.00001) took from longformer paper')
+    parser.add_argument(
+        '--learning_rate',
+        type=float,
+        default=0.00001,
+        help='learning rate (default: 0.00001) took from longformer paper')
     parser.add_argument('--dropout_p', type=float, default=0.25,
                         help='dropout_p (default: 0.1)')
     parser.add_argument('--use_scheduler', type=bool, default=False,
@@ -1137,7 +1239,8 @@ if __name__ == '__main__':
             # for nvidia 3090 or titan rtx (24GB each)
             args.batch_size = args.local_world_size * 2
 
-            args.single_rank_batch_size = int(args.batch_size / args.local_world_size)
+            args.single_rank_batch_size = int(
+                args.batch_size / args.local_world_size)
 
             port = random.randint(10000, 20000)
             args.init_method = f'tcp://127.0.0.1:{port}'
@@ -1151,7 +1254,9 @@ if __name__ == '__main__':
             args.backend = 'gloo' if IsWindows else 'nccl'
 
             # open args.local_world_size new process in each node:
-            mp.spawn(fn=distributed_main, args=(args,), nprocs=args.local_world_size,)
+            mp.spawn(
+                fn=distributed_main, args=(
+                    args,), nprocs=args.local_world_size,)
 
         else:
             args.device = torch.device("cpu")

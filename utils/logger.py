@@ -3,6 +3,8 @@ import wandb
 from datetime import datetime, timedelta
 import time
 # create config dict from args:
+
+
 def create_config_for_wandb(args, dataset):
     """
     :param args:
@@ -25,6 +27,8 @@ def create_config_for_wandb(args, dataset):
 
     return config
 # log traing statistics
+
+
 def train_log(args, loss, epoch, batches_overall):
     """
     :param loss:
@@ -43,6 +47,8 @@ def train_log(args, loss, epoch, batches_overall):
         else:
             wandb.log({"epoch": epoch, "loss": loss}, step=batches_overall)
 # log eval statistics
+
+
 def eval_log(args, macro, micro, epoch):
     """
     :param args:
@@ -65,16 +71,26 @@ def eval_log(args, macro, micro, epoch):
     else:
         wandb.log({"f1 macro": macro, "f1 micro": micro})
 # print the training:
+
+
 def print_training_progress(
-        args, start_time, length_of_data_loader, epoch, batch_counter, total_loss):
+        args,
+        start_time,
+        length_of_data_loader,
+        epoch,
+        batch_counter,
+        total_loss):
     """
     """
     delta = timedelta(seconds=time.time() - start_time)
-    print(f'[train Rank: {args.rank}]: '
-          f'epoch: {epoch}, '
-          f'loss: {total_loss:.2f}, '
-          f'train time: {delta - timedelta(microseconds=delta.microseconds)}, '
-          f'epoch progress: {round((batch_counter / length_of_data_loader) * 100, 2)}%')
+    print(
+        f'[train Rank: {args.rank}]: '
+        f'epoch: {epoch}, '
+        f'loss: {total_loss:.2f}, '
+        f'train time: {delta - timedelta(microseconds=delta.microseconds)}, '
+        f'epoch progress: {round((batch_counter / length_of_data_loader) * 100, 2)}%')
+
+
 def print_eval_results(macro, micro, batch_counter, len_test_loader):
     """
     :param macro:
@@ -91,4 +107,6 @@ def print_eval_results(macro, micro, batch_counter, len_test_loader):
     eval_precent = (batch_counter / len_test_loader) * 100
     print(f'f1 macro: {macro}, f1 micro: {micro}, '
           f'evaluation percent: {eval_precent:.3f}\n')
+
+
 "============================================================================="

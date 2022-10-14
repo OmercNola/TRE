@@ -2,6 +2,8 @@ import math
 import torch
 from torch.utils.data import Sampler
 import torch.distributed as dist
+
+
 class DistributedEvalSampler(Sampler):
     r"""
     DistributedEvalSampler is different from DistributedSampler.
@@ -39,14 +41,22 @@ class DistributedEvalSampler(Sampler):
         the same ordering will be always used.
     """
 
-    def __init__(self, dataset, num_replicas=None, rank=None, shuffle=False, seed=0):
+    def __init__(
+            self,
+            dataset,
+            num_replicas=None,
+            rank=None,
+            shuffle=False,
+            seed=0):
         if num_replicas is None:
             if not dist.is_available():
-                raise RuntimeError("Requires distributed package to be available")
+                raise RuntimeError(
+                    "Requires distributed package to be available")
             num_replicas = dist.get_world_size()
         if rank is None:
             if not dist.is_available():
-                raise RuntimeError("Requires distributed package to be available")
+                raise RuntimeError(
+                    "Requires distributed package to be available")
             rank = dist.get_rank()
         self.dataset = dataset
         self.num_replicas = num_replicas
@@ -54,10 +64,12 @@ class DistributedEvalSampler(Sampler):
         self.epoch = 0
         # self.num_samples = int(math.ceil(len(self.dataset) * 1.0 / self.num_replicas))
         # self.total_size = self.num_samples * self.num_replicas
-        self.total_size = len(self.dataset)         # true value without extra samples
+        # true value without extra samples
+        self.total_size = len(self.dataset)
         indices = list(range(self.total_size))
         indices = indices[self.rank:self.total_size:self.num_replicas]
-        self.num_samples = len(indices)             # true value without extra samples
+        # true value without extra samples
+        self.num_samples = len(indices)
 
         self.shuffle = shuffle
         self.seed = seed
@@ -70,7 +82,6 @@ class DistributedEvalSampler(Sampler):
             indices = torch.randperm(len(self.dataset), generator=g).tolist()
         else:
             indices = list(range(len(self.dataset)))
-
 
         # # add extra samples to make it evenly divisible
         # indices += indices[:(self.total_size - len(indices))]

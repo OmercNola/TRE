@@ -10,6 +10,8 @@ def question_1_for_markers(first_word, second_word):
     """
     res = f'Is it possible that [E1] {first_word} [/E1] started before [E2] {second_word} [/E2]?'
     return res
+
+
 def question_2_for_markers(first_word, second_word):
     """
     :param first_word:
@@ -22,6 +24,8 @@ def question_2_for_markers(first_word, second_word):
     res = f'Is it possible that [E2] {second_word} [/E2] started before [E1] {first_word} [/E1]?'
     return res
 # questions for regular markers (@ word @):
+
+
 def question_1_for_regular_markers(first_word, second_word):
     """
     :param first_word:
@@ -33,6 +37,8 @@ def question_1_for_regular_markers(first_word, second_word):
     """
     res = f'Is it possible that @ {first_word} @ started before @ {second_word} @ ?'
     return res
+
+
 def question_2_for_regular_markers(first_word, second_word):
     """
     :param first_word:
@@ -44,7 +50,9 @@ def question_2_for_regular_markers(first_word, second_word):
     """
     res = f'Is it possible that @ {second_word} @ started before @ {first_word} @ ?'
     return res
-#questions:
+# questions:
+
+
 def question_1(args, first_word, second_word):
     """
     :param first_word:
@@ -59,6 +67,8 @@ def question_1(args, first_word, second_word):
     else:
         res = question_1_for_regular_markers(first_word, second_word)
     return res
+
+
 def question_2(args, first_word, second_word):
     """
     :param first_word:
@@ -74,6 +84,8 @@ def question_2(args, first_word, second_word):
         res = question_2_for_regular_markers(first_word, second_word)
     return res
 # class that computes l1 scores (macro and micro):
+
+
 class results_tracker:
 
     def __init__(self):
@@ -102,81 +114,81 @@ class results_tracker:
 
         if label.strip() == 'BEFORE':
 
-            if ans1 == 1 and ans2 == 0: # BEFORE
+            if ans1 == 1 and ans2 == 0:  # BEFORE
                 self.TP_BEFORE += 1
                 res = 'BEFORE'
 
-            if ans1 == 0 and ans2 == 1: # AFTER
+            if ans1 == 0 and ans2 == 1:  # AFTER
                 self.FP_AFTER += 1
                 self.FN_BEFORE += 1
                 res = 'AFTER'
 
-            if ans1 == 1 and ans2 == 1: # VAGUE
+            if ans1 == 1 and ans2 == 1:  # VAGUE
                 self.TP_BEFORE += 1
                 res = 'BEFORE'
 
-            if ans1 == 0 and ans2 == 0: # EQUAL
+            if ans1 == 0 and ans2 == 0:  # EQUAL
                 self.FP_EQUAL += 1
                 self.FN_BEFORE += 1
                 res = 'EQUAL'
 
         elif label.strip() == 'AFTER':
 
-            if ans1 == 1 and ans2 == 0: # BEFORE
+            if ans1 == 1 and ans2 == 0:  # BEFORE
                 self.FP_BEFORE += 1
                 self.FN_AFTER += 1
                 res = 'BEFORE'
 
-            if ans1 == 0 and ans2 == 1: # AFTER
+            if ans1 == 0 and ans2 == 1:  # AFTER
                 self.TP_AFTER += 1
                 res = 'AFTER'
 
-            if ans1 == 1 and ans2 == 1: # VAGUE
+            if ans1 == 1 and ans2 == 1:  # VAGUE
                 self.FP_BEFORE += 1
                 self.FN_AFTER += 1
                 res = 'BEFORE'
 
-            if ans1 == 0 and ans2 == 0: # EQUAL
+            if ans1 == 0 and ans2 == 0:  # EQUAL
                 self.FP_EQUAL += 1
                 self.FN_AFTER += 1
                 res = 'EQUAL'
 
         elif (label.strip() == 'EQUAL') or (label.strip() == 'SIMULTANEOUS'):
 
-            if ans1 == 1 and ans2 == 0: # BEFORE
+            if ans1 == 1 and ans2 == 0:  # BEFORE
                 self.FP_BEFORE += 1
                 self.FN_EQUAL += 1
                 res = 'BEFORE'
 
-            if ans1 == 0 and ans2 == 1: # AFTER
+            if ans1 == 0 and ans2 == 1:  # AFTER
                 self.FP_AFTER += 1
                 self.FN_EQUAL += 1
                 res = 'AFTER'
 
-            if ans1 == 1 and ans2 == 1: # VAGUE
+            if ans1 == 1 and ans2 == 1:  # VAGUE
                 self.FP_BEFORE += 1
                 self.FN_EQUAL += 1
                 res = 'BEFORE'
 
-            if ans1 == 0 and ans2 == 0: # EQUAL
+            if ans1 == 0 and ans2 == 0:  # EQUAL
                 self.TP_EQUAL += 1
                 res = 'EQUAL'
 
         elif label.strip() == 'VAGUE':
 
-            if ans1 == 1 and ans2 == 0: # BEFORE
+            if ans1 == 1 and ans2 == 0:  # BEFORE
                 self.TP_VAGUE += 1
                 res = 'VAGUE'
 
-            if ans1 == 0 and ans2 == 1: # AFTER
+            if ans1 == 0 and ans2 == 1:  # AFTER
                 self.TP_VAGUE += 1
                 res = 'VAGUE'
 
-            if ans1 == 1 and ans2 == 1: # VAGUE
+            if ans1 == 1 and ans2 == 1:  # VAGUE
                 self.TP_BEFORE += 1
                 res = 'VAGUE'
 
-            if ans1 == 0 and ans2 == 0: # EQUAL
+            if ans1 == 0 and ans2 == 0:  # EQUAL
                 self.FP_EQUAL += 1
                 self.FN_VAGUE += 1
                 res = 'EQUAL'
@@ -200,7 +212,8 @@ class results_tracker:
         "====================================================================================="
         "BEFORE"
         try:
-            precision_before = self.TP_BEFORE / (self.TP_BEFORE + self.FP_BEFORE)
+            precision_before = self.TP_BEFORE / \
+                (self.TP_BEFORE + self.FP_BEFORE)
         except (ZeroDivisionError, RuntimeWarning):
             precision_before = 0
         try:
@@ -208,7 +221,8 @@ class results_tracker:
         except (ZeroDivisionError, RuntimeWarning):
             recall_before = 0
         try:
-            f1_before = 2 * (precision_before * recall_before) / (precision_before + recall_before)
+            f1_before = 2 * (precision_before * recall_before) / \
+                (precision_before + recall_before)
         except (ZeroDivisionError, RuntimeWarning):
             f1_before = 0
         "====================================================================================="
@@ -224,7 +238,8 @@ class results_tracker:
             recall_after = 0
 
         try:
-            f1_after = 2 * (precision_after * recall_after) / (precision_after + recall_after)
+            f1_after = 2 * (precision_after * recall_after) / \
+                (precision_after + recall_after)
         except (ZeroDivisionError, RuntimeWarning):
             f1_after = 0
         "====================================================================================="
@@ -233,7 +248,8 @@ class results_tracker:
             if self.TP_EQUAL == 0:
                 precision_equal = 0
             else:
-                precision_equal = self.TP_EQUAL / (self.TP_EQUAL + self.FP_EQUAL)
+                precision_equal = self.TP_EQUAL / \
+                    (self.TP_EQUAL + self.FP_EQUAL)
         except (ZeroDivisionError, RuntimeWarning):
             precision_equal = 0
 
@@ -246,16 +262,18 @@ class results_tracker:
             recall_equal = 0
 
         try:
-            f1_equal = 2 * (precision_equal * recall_equal) / (precision_equal + recall_equal)
+            f1_equal = 2 * (precision_equal * recall_equal) / \
+                (precision_equal + recall_equal)
         except (ZeroDivisionError, RuntimeWarning):
-            f1_equal= 0
+            f1_equal = 0
         "====================================================================================="
         "VAGUE"
         try:
             if self.TP_VAGUE == 0:
                 precision_vague = 0
             else:
-                precision_vague = self.TP_VAGUE / (self.TP_VAGUE + self.FP_VAGUE)
+                precision_vague = self.TP_VAGUE / \
+                    (self.TP_VAGUE + self.FP_VAGUE)
         except (ZeroDivisionError, RuntimeWarning):
             precision_vague = 0
 
@@ -268,7 +286,8 @@ class results_tracker:
             recall_vague = 0
 
         try:
-            f1_vague = 2 * (precision_vague * recall_vague) / (precision_vague + recall_vague)
+            f1_vague = 2 * (precision_vague * recall_vague) / \
+                (precision_vague + recall_vague)
         except (ZeroDivisionError, RuntimeWarning):
             f1_vague = 0
         "====================================================================================="
@@ -278,21 +297,26 @@ class results_tracker:
         macro_f1 = (f1_before + f1_after + f1_equal + f1_vague) / 4
 
         # micro f1
-        TP_sum_all_classes = self.TP_BEFORE + self.TP_AFTER + self.TP_EQUAL + self.TP_VAGUE
-        FP_sum_all_classes = self.FP_BEFORE + self.FP_AFTER + self.FP_EQUAL + self.FP_VAGUE
-        FN_sum_all_classes = self.FN_BEFORE + self.FN_AFTER + self.FN_EQUAL + self.FN_VAGUE
-
+        TP_sum_all_classes = self.TP_BEFORE + \
+            self.TP_AFTER + self.TP_EQUAL + self.TP_VAGUE
+        FP_sum_all_classes = self.FP_BEFORE + \
+            self.FP_AFTER + self.FP_EQUAL + self.FP_VAGUE
+        FN_sum_all_classes = self.FN_BEFORE + \
+            self.FN_AFTER + self.FN_EQUAL + self.FN_VAGUE
 
         try:
-            micro_precision = TP_sum_all_classes / (TP_sum_all_classes + FP_sum_all_classes)
+            micro_precision = TP_sum_all_classes / \
+                (TP_sum_all_classes + FP_sum_all_classes)
         except (ZeroDivisionError, RuntimeWarning):
             micro_precision = 0
         try:
-            micro_recall = TP_sum_all_classes/(TP_sum_all_classes + FN_sum_all_classes)
+            micro_recall = TP_sum_all_classes / \
+                (TP_sum_all_classes + FN_sum_all_classes)
         except (ZeroDivisionError, RuntimeWarning):
             micro_recall = 0
         try:
-            micro_f1 = 2 * (micro_precision * micro_recall) / (micro_precision + micro_recall)
+            micro_f1 = 2 * (micro_precision * micro_recall) / \
+                (micro_precision + micro_recall)
         except (ZeroDivisionError, RuntimeWarning):
             micro_f1 = 0
 
@@ -342,9 +366,11 @@ class results_tracker:
         :rtype:
         """
         self.TP_BEFORE, self.TN_BEFORE, self.FP_BEFORE, self.FN_BEFORE,\
-        self.TP_AFTER, self.TN_AFTER, self.FP_AFTER, self.FN_AFTER,\
-        self.TP_EQUAL, self.TN_EQUAL, self.FP_EQUAL, self.FN_EQUAL,\
-        self.TP_VAGUE, self.TN_VAGUE, self.FP_VAGUE, self.FN_VAGUE = list
+            self.TP_AFTER, self.TN_AFTER, self.FP_AFTER, self.FN_AFTER,\
+            self.TP_EQUAL, self.TN_EQUAL, self.FP_EQUAL, self.FN_EQUAL,\
+            self.TP_VAGUE, self.TN_VAGUE, self.FP_VAGUE, self.FN_VAGUE = list
+
+
 class baseline_results_tracker:
 
     def __init__(self):
@@ -381,81 +407,81 @@ class baseline_results_tracker:
 
         if label.strip() == 'BEFORE':
 
-            if pred == 0: # BEFORE
+            if pred == 0:  # BEFORE
                 self.TP_BEFORE += 1
                 res = 'BEFORE'
 
-            if pred == 1: # AFTER
+            if pred == 1:  # AFTER
                 self.FP_AFTER += 1
                 self.FN_BEFORE += 1
                 res = 'AFTER'
 
-            if pred == 2: # VAGUE
+            if pred == 2:  # VAGUE
                 self.TP_BEFORE += 1
                 res = 'BEFORE'
 
-            if pred == 3: # EQUAL
+            if pred == 3:  # EQUAL
                 self.FP_EQUAL += 1
                 self.FN_BEFORE += 1
                 res = 'EQUAL'
 
         elif label.strip() == 'AFTER':
 
-            if pred == 0: # BEFORE
+            if pred == 0:  # BEFORE
                 self.FP_BEFORE += 1
                 self.FN_AFTER += 1
                 res = 'BEFORE'
 
-            if pred == 1: # AFTER
+            if pred == 1:  # AFTER
                 self.TP_AFTER += 1
                 res = 'AFTER'
 
-            if pred == 2: # VAGUE
+            if pred == 2:  # VAGUE
                 self.FP_BEFORE += 1
                 self.FN_AFTER += 1
                 res = 'BEFORE'
 
-            if pred == 3: # EQUAL
+            if pred == 3:  # EQUAL
                 self.FP_EQUAL += 1
                 self.FN_AFTER += 1
                 res = 'EQUAL'
 
         elif (label.strip() == 'EQUAL') or (label.strip() == 'SIMULTANEOUS'):
 
-            if pred == 0: # BEFORE
+            if pred == 0:  # BEFORE
                 self.FP_BEFORE += 1
                 self.FN_EQUAL += 1
                 res = 'BEFORE'
 
-            if pred == 1: # AFTER
+            if pred == 1:  # AFTER
                 self.FP_AFTER += 1
                 self.FN_EQUAL += 1
                 res = 'AFTER'
 
-            if pred == 2: # VAGUE
+            if pred == 2:  # VAGUE
                 self.FP_BEFORE += 1
                 self.FN_EQUAL += 1
                 res = 'BEFORE'
 
-            if pred == 3: # EQUAL
+            if pred == 3:  # EQUAL
                 self.TP_EQUAL += 1
                 res = 'EQUAL'
 
         elif label.strip() == 'VAGUE':
 
-            if pred == 0: # BEFORE
+            if pred == 0:  # BEFORE
                 self.TP_VAGUE += 1
                 res = 'VAGUE'
 
-            if pred == 1: # AFTER
+            if pred == 1:  # AFTER
                 self.TP_VAGUE += 1
                 res = 'VAGUE'
 
-            if pred == 2: # VAGUE
+            if pred == 2:  # VAGUE
                 self.TP_BEFORE += 1
                 res = 'VAGUE'
 
-            if pred == 3: # EQUAL
+            if pred == 3:  # EQUAL
                 self.FP_EQUAL += 1
                 self.FN_VAGUE += 1
                 res = 'EQUAL'
@@ -479,7 +505,8 @@ class baseline_results_tracker:
         "====================================================================================="
         "BEFORE"
         try:
-            precision_before = self.TP_BEFORE / (self.TP_BEFORE + self.FP_BEFORE)
+            precision_before = self.TP_BEFORE / \
+                (self.TP_BEFORE + self.FP_BEFORE)
         except (ZeroDivisionError, RuntimeWarning):
             precision_before = 0
         try:
@@ -487,7 +514,8 @@ class baseline_results_tracker:
         except (ZeroDivisionError, RuntimeWarning):
             recall_before = 0
         try:
-            f1_before = 2 * (precision_before * recall_before) / (precision_before + recall_before)
+            f1_before = 2 * (precision_before * recall_before) / \
+                (precision_before + recall_before)
         except (ZeroDivisionError, RuntimeWarning):
             f1_before = 0
         "====================================================================================="
@@ -503,7 +531,8 @@ class baseline_results_tracker:
             recall_after = 0
 
         try:
-            f1_after = 2 * (precision_after * recall_after) / (precision_after + recall_after)
+            f1_after = 2 * (precision_after * recall_after) / \
+                (precision_after + recall_after)
         except (ZeroDivisionError, RuntimeWarning):
             f1_after = 0
         "====================================================================================="
@@ -512,7 +541,8 @@ class baseline_results_tracker:
             if self.TP_EQUAL == 0:
                 precision_equal = 0
             else:
-                precision_equal = self.TP_EQUAL / (self.TP_EQUAL + self.FP_EQUAL)
+                precision_equal = self.TP_EQUAL / \
+                    (self.TP_EQUAL + self.FP_EQUAL)
         except (ZeroDivisionError, RuntimeWarning):
             precision_equal = 0
 
@@ -525,7 +555,8 @@ class baseline_results_tracker:
             recall_equal = 0
 
         try:
-            f1_equal = 2 * (precision_equal * recall_equal) / (precision_equal + recall_equal)
+            f1_equal = 2 * (precision_equal * recall_equal) / \
+                (precision_equal + recall_equal)
         except (ZeroDivisionError, RuntimeWarning):
             f1_equal = 0
         "====================================================================================="
@@ -534,7 +565,8 @@ class baseline_results_tracker:
             if self.TP_VAGUE == 0:
                 precision_vague = 0
             else:
-                precision_vague = self.TP_VAGUE / (self.TP_VAGUE + self.FP_VAGUE)
+                precision_vague = self.TP_VAGUE / \
+                    (self.TP_VAGUE + self.FP_VAGUE)
         except (ZeroDivisionError, RuntimeWarning):
             precision_vague = 0
 
@@ -547,7 +579,8 @@ class baseline_results_tracker:
             recall_vague = 0
 
         try:
-            f1_vague = 2 * (precision_vague * recall_vague) / (precision_vague + recall_vague)
+            f1_vague = 2 * (precision_vague * recall_vague) / \
+                (precision_vague + recall_vague)
         except (ZeroDivisionError, RuntimeWarning):
             f1_vague = 0
         "====================================================================================="
@@ -557,20 +590,26 @@ class baseline_results_tracker:
         macro_f1 = (f1_before + f1_after + f1_equal + f1_vague) / 4
 
         # micro f1
-        TP_sum_all_classes = self.TP_BEFORE + self.TP_AFTER + self.TP_EQUAL + self.TP_VAGUE
-        FP_sum_all_classes = self.FP_BEFORE + self.FP_AFTER + self.FP_EQUAL + self.FP_VAGUE
-        FN_sum_all_classes = self.FN_BEFORE + self.FN_AFTER + self.FN_EQUAL + self.FN_VAGUE
+        TP_sum_all_classes = self.TP_BEFORE + \
+            self.TP_AFTER + self.TP_EQUAL + self.TP_VAGUE
+        FP_sum_all_classes = self.FP_BEFORE + \
+            self.FP_AFTER + self.FP_EQUAL + self.FP_VAGUE
+        FN_sum_all_classes = self.FN_BEFORE + \
+            self.FN_AFTER + self.FN_EQUAL + self.FN_VAGUE
 
         try:
-            micro_precision = TP_sum_all_classes / (TP_sum_all_classes + FP_sum_all_classes)
+            micro_precision = TP_sum_all_classes / \
+                (TP_sum_all_classes + FP_sum_all_classes)
         except (ZeroDivisionError, RuntimeWarning):
             micro_precision = 0
         try:
-            micro_recall = TP_sum_all_classes / (TP_sum_all_classes + FN_sum_all_classes)
+            micro_recall = TP_sum_all_classes / \
+                (TP_sum_all_classes + FN_sum_all_classes)
         except (ZeroDivisionError, RuntimeWarning):
             micro_recall = 0
         try:
-            micro_f1 = 2 * (micro_precision * micro_recall) / (micro_precision + micro_recall)
+            micro_f1 = 2 * (micro_precision * micro_recall) / \
+                (micro_precision + micro_recall)
         except (ZeroDivisionError, RuntimeWarning):
             micro_f1 = 0
 
@@ -620,10 +659,12 @@ class baseline_results_tracker:
         :rtype:
         """
         self.TP_BEFORE, self.TN_BEFORE, self.FP_BEFORE, self.FN_BEFORE,\
-        self.TP_AFTER, self.TN_AFTER, self.FP_AFTER, self.FN_AFTER,\
-        self.TP_EQUAL, self.TN_EQUAL, self.FP_EQUAL, self.FN_EQUAL,\
-        self.TP_VAGUE, self.TN_VAGUE, self.FP_VAGUE, self.FN_VAGUE = list
+            self.TP_AFTER, self.TN_AFTER, self.FP_AFTER, self.FN_AFTER,\
+            self.TP_EQUAL, self.TN_EQUAL, self.FP_EQUAL, self.FN_EQUAL,\
+            self.TP_VAGUE, self.TN_VAGUE, self.FP_VAGUE, self.FN_VAGUE = list
 # get the label (number) from label string:
+
+
 def get_label(question_name, label):
     """
     :param question_name:
@@ -654,6 +695,8 @@ def get_label(question_name, label):
             res = 0
 
     return res
+
+
 def get_label_for_baseline(label):
     """
     :param label:
@@ -673,6 +716,8 @@ def get_label_for_baseline(label):
 
     return res
 # for multiprocess:
+
+
 def all_equal(list_of_mp_values):
     """
     :param list_of_mp_values:
@@ -681,5 +726,7 @@ def all_equal(list_of_mp_values):
     :rtype:
     """
     return all([i.value == list_of_mp_values[0].value for i in list_of_mp_values])
+
+
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)

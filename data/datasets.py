@@ -4,6 +4,8 @@ from data.data_preprocess import *
 from torch.utils.data import Dataset
 import random
 from pathlib import Path, PureWindowsPath, PurePosixPath
+
+
 class TRE_train_dataset(Dataset):
 
     def __init__(self, args):
@@ -33,8 +35,8 @@ class TRE_train_dataset(Dataset):
         if args.part_of_train_data == 0:
             self.TRE_training_data_with_markers = []
         else:
-            self.TRE_training_data_with_markers = \
-                random.sample(self.TRE_training_data_with_markers, args.part_of_train_data)
+            self.TRE_training_data_with_markers = random.sample(
+                self.TRE_training_data_with_markers, args.part_of_train_data)
             # if args.rank == 0:
             #     print(self.TRE_training_data_with_markers[0])
         "=============================================================="
@@ -45,6 +47,8 @@ class TRE_train_dataset(Dataset):
     def __getitem__(self, idx):
         res = self.TRE_training_data_with_markers[idx]
         return res
+
+
 class TRE_val_dataset(Dataset):
 
     def __init__(self, args):
@@ -53,7 +57,8 @@ class TRE_val_dataset(Dataset):
         "=============================================================="
         """TCR (val raw_data)"""
         TCR_folder = Path('./raw_data/TBAQ-cleaned/TemporalPart/')
-        self.TRE_validation_data_with_markers = process_TCR_data(args, TCR_folder)
+        self.TRE_validation_data_with_markers = process_TCR_data(
+            args, TCR_folder)
         "=============================================================="
 
     def __len__(self):
@@ -62,6 +67,8 @@ class TRE_val_dataset(Dataset):
     def __getitem__(self, idx):
         res = self.TRE_validation_data_with_markers[idx]
         return res
+
+
 class TRE_test_dataset(Dataset):
 
     def __init__(self, args):

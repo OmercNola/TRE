@@ -4,16 +4,23 @@ from transformers import \
     (AutoTokenizer, AutoModel, AutoModelForQuestionAnswering, BertTokenizer)
 from transformers import RobertaTokenizer, AutoConfig
 from utils.utils import count_parameters
+
+
 class Longformer(nn.Module):
 
-    def __init__(self, longformer_, Output_size, Dropout_prob, size_of_longformer, Max_len):
+    def __init__(
+            self,
+            longformer_,
+            Output_size,
+            Dropout_prob,
+            size_of_longformer,
+            Max_len):
         super().__init__()
 
         self.model = longformer_
 
         # Get all of the model's parameters as a list of tuples.
         self.params = list(self.model.named_parameters())
-
 
         # print('longformer model has {:} different'
         #       ' named parameters.\n'.format(len(self.params)))
@@ -78,9 +85,12 @@ class Longformer(nn.Module):
         # all the hidden states from the last layer:
         last_hidden_state = Output.last_hidden_state
 
-        output = self.out(last_hidden_state.view(-1, self.max_len * self.hidden_size))
+        output = self.out(
+            last_hidden_state.view(-1, self.max_len * self.hidden_size))
 
         return output
+
+
 def create_pretrained_model_and_tokenizer(args):
     """
     :return:
@@ -129,6 +139,8 @@ def create_pretrained_model_and_tokenizer(args):
 
     return model, tokenizer
 # baseline model:
+
+
 class Longformer_baseline(nn.Module):
 
     def __init__(self, longformer_, Output_size, size_of_longformer, Max_len):
@@ -158,9 +170,12 @@ class Longformer_baseline(nn.Module):
         # all the hidden states from the last layer:
         last_hidden_state = Output.last_hidden_state
 
-        output = self.out(last_hidden_state.view(-1, self.max_len * self.hidden_size))
+        output = self.out(
+            last_hidden_state.view(-1, self.max_len * self.hidden_size))
 
         return output
+
+
 def create_baesline_pretrained_model_and_tokenizer(args):
     """
     :return:
