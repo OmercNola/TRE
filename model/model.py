@@ -2,9 +2,9 @@ from __future__ import absolute_import, division, print_function
 from torch import nn
 from transformers import \
     (AutoTokenizer, AutoModel, AutoModelForQuestionAnswering, BertTokenizer)
-from transformers import RobertaTokenizer, AutoConfig
+from transformers import RobertaTokenizer, AutoConfig, RobertaModel
 from utils.utils import count_parameters
-
+from ipdb import set_trace
 
 class Longformer(nn.Module):
 
@@ -91,6 +91,86 @@ class Longformer(nn.Module):
         return output
 
 
+class Longformer_for_roberta(nn.Module):
+
+    def __init__(
+            self,
+            roberta,
+            Output_size,
+            Dropout_prob,
+            size_of_longformer,
+            Max_len):
+        super().__init__()
+
+        self.model = roberta
+
+        # Get all of the model's parameters as a list of tuples.
+        self.params = list(self.model.named_parameters())
+
+        # print('longformer model has {:} different'
+        #       ' named parameters.\n'.format(len(self.params)))
+        #
+        # print('==== Embedding Layer ====\n')
+        # for p in self.params[0:5]:
+        #     print("{:<55} {:>12}".format(p[0], str(tuple(p[1].size()))))
+        #
+        # for i in range(12):
+        #     try:
+        #         print(f'\n==== {i} Transformer ====\n')
+        #
+        #         for p in self.params[5:][i * 22:(i * 22) + 22]:
+        #             print("{:<55} {:>12}".format(p[0], str(tuple(p[1].size()))))
+        #     except Exception:
+        #         print(Exception)
+        #
+        # print('\n==== Output Layer ====\n')
+        # for p in self.params[-2:]:
+        #     print("{:<55} {:>12}".format(p[0], str(tuple(p[1].size()))))
+
+        # adjusting layers for training:
+        # freeze_model_up_to_this_layer = 0
+        # for p in self.params[0:5 + (freeze_model_up_to_this_layer * 22)]:
+        #     p[1].requires_grad = False
+        #
+        # print(f'\n All longformer params are frozen except'
+        #       f' {12 - freeze_model_up_to_this_layer} last Transformers,'
+        #       f' and Output Layer \n')
+
+        # define the linear layer:
+
+        # size:
+        self.hidden_size = 1024
+
+        # linear layer:
+        self.output_size = Output_size
+        # self.max_len = Max_len
+        self.out = nn.Linear(self.hidden_size, self.output_size)
+
+        #self.BN = nn.BatchNorm1d(num_features=self.max_len)
+        self.Dropout = nn.Dropout(p=Dropout_prob, inplace=False)
+
+    def forward(self, input_ids, attention_mask):
+        """
+        :param input_ids:
+        :type input_ids:
+        :param attention_mask:
+        :type attention_mask:
+        :return:
+        :rtype:
+        """
+        Output = self.model(input_ids=input_ids, attention_mask=attention_mask)
+
+        # first hidden state from the last layer:
+        last_hidden_state = Output.last_hidden_state[:,0,:]
+
+        output = self.out(
+            last_hidden_state.view(-1, self.hidden_size))
+
+        return output
+
+
+
+
 def create_pretrained_model_and_tokenizer(args):
     """
     :return:
@@ -122,7 +202,6 @@ def create_pretrained_model_and_tokenizer(args):
         "allenai/longformer-base-4096", config=config,
         local_files_only=True
     )
-
     # print(f'number of model params before adding linear layer: '
     #       f'{count_parameters(pre_trained_model)}')
 
@@ -139,6 +218,26 @@ def create_pretrained_model_and_tokenizer(args):
 
     return model, tokenizer
 # baseline model:
+
+
+def create_roberta_pretrained_model_and_tokenizer(args):
+    """
+    :return:
+    :rtype:
+    """
+
+    tokenizer = RobertaTokenizer.from_pretrained('roberta-large')
+    pre_trained_model = RobertaModel.from_pretrained('roberta-large')
+    model = Longformer_for_roberta(
+        pre_trained_model, args.output_size, args.dropout_p,
+        args.Size_of_longfor, args.Max_Len
+    )
+
+    print(f'number of model params after adding linear layer: '
+          f'{count_parameters(model)}')
+
+    return model, tokenizer
+
 
 
 class Longformer_baseline(nn.Module):
