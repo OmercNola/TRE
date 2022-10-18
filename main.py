@@ -1130,6 +1130,7 @@ if __name__ == '__main__':
                         help='number of epochs')
     # every 2 instances are using 1 "3090 GPU"
     parser.add_argument('--batch_size', type=int, default=8, help='batch size')
+    parser.add_argument('--data_augmentation', action='store_true', default=True)
     parser.add_argument(
         '--part_of_train_data',
         type=float,

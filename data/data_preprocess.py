@@ -123,7 +123,7 @@ def new_context_with_markers_from_tokens_and_two_eids(
 
 
 def new_short_context_with_markers_from_tokens_and_two_eids(
-        args, elements_, eid1_, eid2_):
+        args, elements_, eid1_, eid2_, data_aug):
     """
     :param elements_:
     :type elements_:
@@ -193,12 +193,14 @@ def new_short_context_with_markers_from_tokens_and_two_eids(
             new_short_context += child.data
     
 
-    #new_short_context = aug_data(new_short_context) 
-    if '@ raided @ two homes' in new_short_context:
-        print(new_short_context)
-        set_trace()
+
+    #if '@ raided @ two homes' in new_short_context:
+    #    print(new_short_context)
+    #    set_trace()
     
     new_short_context = make_the_data_even_shorter(new_short_context, first_word)
+    if data_aug:
+        new_short_context = aug_data(new_short_context) 
     return [new_short_context]
 
 
@@ -228,15 +230,15 @@ def make_the_data_even_shorter(passage: str, first_word) -> str:
     while (new_passage[0] == " ") or (new_passage[0] == ','):
         new_passage = new_passage[1:]
 
-    print('===========================')
-    print(first_word)
-    print(new_passage)
+    #print('===========================')
+    #print(first_word)
+    #print(new_passage)
     return new_passage
 
 
 def aug_data(passage):
 
-    bag_of_augmentations = ['char', 'char', 'char', 'word', 'sentence']
+    bag_of_augmentations = ['char', 'sentence']
     aug_method = random.choice(bag_of_augmentations)
     print(aug_method)
     #set_trace()
@@ -297,7 +299,7 @@ def aug_data(passage):
     return new_aug_sentence
 
 
-def final_data_process_for_markers(args, folder_path, labeled_data_path):
+def final_data_process_for_markers(args, folder_path, labeled_data_path, data_aug=False):
     """
     :param folder_path:
     :type folder_path:
@@ -332,7 +334,7 @@ def final_data_process_for_markers(args, folder_path, labeled_data_path):
                     # here we get passage with markers and cut it just after
                     # the first "." after [E2]:
                     passages = new_short_context_with_markers_from_tokens_and_two_eids(
-                        args, text_elements, eid1, eid2)
+                        args, text_elements, eid1, eid2, data_aug)
                     max_passage_length = max(max_passage_length, len(passages[0].split(" ")))
                 else:
                     # here we get all passage with markers:
@@ -441,7 +443,7 @@ def process_TCR_data(args, tml_folder_path):
                 # here we get passage with markers and cut it just after the
                 # first "." after [E2]:
                 passage = new_short_context_with_markers_from_tokens_and_two_eids(
-                    args, text_elements, eid1, eid2)
+                    args, text_elements, eid1, eid2, False)
             else:
                 # here we get all passage with markers:
                 passage = new_context_with_markers_from_tokens_and_two_eids(

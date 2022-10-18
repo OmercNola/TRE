@@ -16,27 +16,32 @@ class TRE_train_dataset(Dataset):
         TimeBank_folder = Path('./raw_data/TBAQ-cleaned/TimeBank/')
         TimeBank_labeled_data = Path('./raw_data/timebank.txt')
         TimeBank_data_with_markers = final_data_process_for_markers(
-            args, TimeBank_folder, TimeBank_labeled_data
+            args, TimeBank_folder, TimeBank_labeled_data, data_aug=args.data_augmentation
         )
         "=============================================================="
         """Aquaint"""
         Aq_folder = Path('./raw_data/TBAQ-cleaned/AQUAINT/')
         Aq_labeled_data = Path('./raw_data/aquaint.txt')
         Aq_data_with_markers = final_data_process_for_markers(
-            args, Aq_folder, Aq_labeled_data
+            args, Aq_folder, Aq_labeled_data, data_aug=args.data_augmentation
         )
         "=============================================================="
         """Aquaint and Timebank with markers (train raw_data)"""
         self.TRE_training_data_with_markers = \
             Aq_data_with_markers + TimeBank_data_with_markers
+        self.len = len(self.TRE_training_data_with_markers)
 
         # take sample without replacment:
         assert (0 <= args.part_of_train_data <= 12736)
         if args.part_of_train_data == 0:
             self.TRE_training_data_with_markers = []
         else:
-            self.TRE_training_data_with_markers = random.sample(
-                self.TRE_training_data_with_markers, args.part_of_train_data)
+            if self.len > 12720:
+                pass
+            else:
+                print(f'len of data is: {len(self.TRE_training_data_with_markers)}')
+                self.TRE_training_data_with_markers = random.sample(
+                    self.TRE_training_data_with_markers, args.part_of_train_data)
             # if args.rank == 0:
             #     print(self.TRE_training_data_with_markers[0])
         "=============================================================="
