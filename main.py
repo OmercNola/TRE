@@ -18,7 +18,7 @@ from torch import distributed as dist
 from data.dataloaders import create_dataloader
 from torch.nn.parallel import DistributedDataParallel as DDP
 from transformers import get_linear_schedule_with_warmup, AdamW
-
+from ipdb import set_trace
 
 def is_master():
     return not dist.is_initialized() or dist.get_rank() == 0
@@ -128,7 +128,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
             first_words = instances[1][0]
             second_words = instances[1][1]
             word_labels = instances[1][2]
-
+            
             zip_object = zip(passages, first_words, second_words, word_labels)
             for passage, first_word, second_word, Label in zip_object:
 
@@ -898,14 +898,13 @@ def main(args, init_distributed=False):
 
     try:
         print(f'rank: {args.rank}')
-        if init_distributed:
-            dist.init_process_group(
-                backend=args.backend,
-                init_method=args.init_method,
-                world_size=args.world_size,
-                rank=args.rank,
-                timeout=timedelta(seconds=120)
-            )
+        dist.init_process_group(
+            backend=args.backend,
+            init_method=args.init_method,
+            world_size=args.world_size,
+            rank=args.rank,
+            timeout=timedelta(seconds=120)
+        )
     except Exception as e:
         print(e)
 
@@ -934,24 +933,31 @@ def main(args, init_distributed=False):
         model.to(args.device)
     else:
         # create our model and tokenizer (after markers adition):
-        model, tokenizer = create_pretrained_model_and_tokenizer(args)
+        model, tokenizer = create_roberta_pretrained_model_and_tokenizer(args)
+        model.to(args.device)
     "================================================================================="
     # if no checkpoint and not a baseline model - load the pretrained boolq
     # model:
-    if (args.checkpoint_path is None) and (not args.use_baseline_model):
-        PATH = Path(args.boolq_pre_trained_model_path)
-        checkpoint = torch.load(PATH, map_location=torch.device('cpu'))
-        model.load_state_dict(checkpoint['model_state_dict'])
-        model.to(args.device)
+    #if (args.checkpoint_path is None) and (not args.use_baseline_model):
+    #    try:
+    #        PATH = Path(args.boolq_pre_trained_model_path)
+    #        checkpoint = torch.load(PATH, map_location=torch.device('cpu'))
+    #        model.load_state_dict(checkpoint['model_state_dict'])
+    #        model.to(args.device)
+    #    except Exception as e:
+    #        print(e)
     "================================================================================="
     # if there is a checkpoint and not a baseline model - load it:
     if (args.checkpoint_path is not None) and (not args.use_baseline_model):
-        (model, _, _, _, _, _) = \
-            load_model_checkpoint(
-                args, Path(args.checkpoint_path), model,
-                None, None
-        )
-        model.to(args.device)
+        try:
+            (model, _, _, _, _, _) = \
+                load_model_checkpoint(
+                    args, Path(args.checkpoint_path), model,
+                    None, None
+                    )
+            model.to(args.device)
+        except Exception as e:
+            print(e)
     print(f'rank: {args.rank}')
     "================================================================================="
     """Parallel"""
@@ -1112,7 +1118,7 @@ if __name__ == '__main__':
                              'if set to None then ignor checkpoint')
     "================================================================================="
     "Hyper-parameters"
-    parser.add_argument('--world_size', type=int, default=2,
+    parser.add_argument('--world_size', type=int, default=None,
                         help='if None - will be number of devices')
     parser.add_argument(
         '--start_rank',
@@ -1168,8 +1174,8 @@ if __name__ == '__main__':
     "Model settings"
     parser.add_argument('--output_size', type=int, default=2,
                         help='output_size (default: 2)')
-    parser.add_argument('--Max_Len', type=int, default=4096,
-                        help='Max_Len (default: 4096)')
+    parser.add_argument('--Max_Len', type=int, default=514,
+                        help='Max_Len (default: 514)')
     parser.add_argument('--Size_of_longfor', type=str, default='base',
                         help='Size_of_longformer (default: "base")')
     "================================================================================="
@@ -1227,6 +1233,12 @@ if __name__ == '__main__':
             args.single_rank_batch_size = 2
             args.device_id = 0
             args.rank = 0
+            port = random.randint(10000, 20000)
+            args.init_method = f'tcp://127.0.0.1:{port}'
+
+            # 'nccl' is the fastest, but doesnt woek in windows.
+            args.backend = 'gloo' if IsWindows else 'nccl'
+
             main(args)
 
         # DDP for multiple GPU'S:
@@ -1237,7 +1249,7 @@ if __name__ == '__main__':
             args.local_world_size = torch.cuda.device_count()
 
             # for nvidia 3090 or titan rtx (24GB each)
-            args.batch_size = args.local_world_size * 2
+            args.batch_size = args.local_world_size * 8 
 
             args.single_rank_batch_size = int(
                 args.batch_size / args.local_world_size)
