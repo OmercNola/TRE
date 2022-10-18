@@ -12,6 +12,12 @@ import platform
 from datetime import datetime
 from collections import namedtuple
 import xml
+from ipdb import set_trace
+import nlpaug.augmenter.char as char_aug
+import nlpaug.augmenter.word as word_aug 
+import nlpaug.augmenter.sentence as sentence_aug
+import random
+from ipdb import set_trace
 "================================================================================="
 
 
@@ -130,9 +136,13 @@ def new_short_context_with_markers_from_tokens_and_two_eids(
     :return:
     :rtype:
     """
-
     e2_was_found = False
     new_short_context = ""
+    words_that_comes_with_dot = [
+        'Jan', 'Feb', 'Mar', 'Apr',
+        'May', 'June', 'Aug', 'Sep',
+        'Oct', 'Nov', 'Dec',
+        'Prof', 'Mr', 'Inc']
 
     for index, child in enumerate(elements_[0].childNodes):
 
@@ -143,6 +153,7 @@ def new_short_context_with_markers_from_tokens_and_two_eids(
                 new_short_context += f'[E1] {child.firstChild.data} [/E1]'
             else:  # use @ markers
                 new_short_context += f'@ {child.firstChild.data} @'
+                first_word = child.firstChild.data
 
         # e2:
         elif isinstance(child, minidom.Element) and child.nodeName == "EVENT" and \
@@ -156,28 +167,134 @@ def new_short_context_with_markers_from_tokens_and_two_eids(
         elif isinstance(child, minidom.Element) and (child.nodeName == "TIMEX" or child.nodeName == "TIMEX3"):
             if e2_was_found:
                 if "." in child.firstChild.data:
-                    new_short_context += child.firstChild.data.split(".")[
-                        0] + "."
-                    break
+                    data_before_the_dot = child.firstChild.data.split(".")[0]
+                    if all(word not in data_before_the_dot for word in words_that_comes_with_dot):
+                        new_short_context += data_before_the_dot + '.'
+                        break
             new_short_context += child.firstChild.data
 
         elif isinstance(child, minidom.Element):
             if e2_was_found:
                 if "." in child.firstChild.data:
-                    new_short_context += child.firstChild.data.split(".")[
-                        0] + "."
-                    break
+                    data_before_the_dot = child.firstChild.data.split(".")[0]
+                    if all(word not in data_before_the_dot for word in words_that_comes_with_dot):
+                        new_short_context += data_before_the_dot + '.'
+                        break
             new_short_context += child.firstChild.data
 
         # not a minidom element:
         else:
             if e2_was_found:
                 if "." in child.data:
-                    new_short_context += child.data.split(".")[0] + "."
-                    break
+                    data_before_the_dot = child.data.split(".")[0]
+                    if all(word not in data_before_the_dot for word in words_that_comes_with_dot):
+                        new_short_context += data_before_the_dot + '.'
+                        break
             new_short_context += child.data
+    
 
-    return new_short_context
+    #new_short_context = aug_data(new_short_context) 
+    if '@ raided @ two homes' in new_short_context:
+        print(new_short_context)
+        set_trace()
+    
+    new_short_context = make_the_data_even_shorter(new_short_context, first_word)
+    return [new_short_context]
+
+
+def make_the_data_even_shorter(passage: str, first_word) -> str:
+
+    words_that_comes_with_dot = [
+        'Jan', 'Feb', 'Mar', 'Apr',
+        'May', 'June', 'Aug', 'Sep',
+        'Oct', 'Nov', 'Dec',
+        'Prof', 'Mr', 'Inc']
+
+    ## find first word:
+    first_word_index = passage.find(f'@ {first_word} @')
+    for idx in range(first_word_index, 0, -1):
+        char = passage[idx]
+        if char == '.':
+            last_word_in_sentence_until_dot = passage[:idx+1].split(" ")[-1]
+            if all(word not in last_word_in_sentence_until_dot\
+                   for word in words_that_comes_with_dot):
+
+                break
+    
+    if idx < 5:
+        return passage
+    
+    new_passage = passage[(idx +1):] 
+    while (new_passage[0] == " ") or (new_passage[0] == ','):
+        new_passage = new_passage[1:]
+
+    print('===========================')
+    print(first_word)
+    print(new_passage)
+    return new_passage
+
+
+def aug_data(passage):
+
+    bag_of_augmentations = ['char', 'char', 'char', 'word', 'sentence']
+    aug_method = random.choice(bag_of_augmentations)
+    print(aug_method)
+    #set_trace()
+    split_passage = passage.split('@')
+
+    first_part_of_sentence = split_passage[0]
+    second_part_of_sentence = split_passage[2]
+    third_part_of_sentence = split_passage[4]
+
+    assert len(split_passage)==5, 'number of "@" in the passage should be 4'
+	
+    if aug_method == 'char':
+        
+        aug = char_aug.OcrAug()
+
+        first_part_aug = aug.augment(first_part_of_sentence, n=1)
+        second_part_aug = aug.augment(second_part_of_sentence, n=1)
+        third_part_aug = aug.augment(third_part_of_sentence, n=1)
+
+        new_aug_sentence = "".join(first_part_aug +
+                                   [' @' + split_passage[1] + '@ '] +
+                                   second_part_aug +
+                                   [' @' + split_passage[3] + '@ '] +
+                                   third_part_aug)  
+        #print("Original:")
+        #print(passage)
+        #print("Augmented Texts:")
+        #print(new_aug_sentence)
+ 
+        #aug = char_aug.KeyboardAug()
+        #augmented_text = aug.augment(passage)
+        #print("Original:")
+        #print(passage)
+        #print("Augmented Text:")
+        #print(augmented_text)	
+    
+    elif aug_method == 'word':
+        #set_trace()
+        aug = word_aug.ContextualWordEmbsAug(
+            model_path='bert-base-uncased', action="insert")
+        first_part_aug = aug.augment(first_part_of_sentence, n=1)
+        second_part_aug = aug.augment(second_part_of_sentence, n=1)
+        third_part_aug = aug.augment(third_part_of_sentence, n=1)
+        new_aug_sentence = "".join(first_part_aug +
+                                   [' @' + split_passage[1]+'@ '] +
+                                   second_part_aug +
+                                   [' @' + split_passage[3]+'@ '] +
+                                   third_part_aug)  
+        print("Original:")
+        print(passage)
+        print("Augmented Text:")
+        print(new_aug_sentence)
+        #set_trace()    
+
+    elif aug_method == 'sentence':
+        new_aug_sentence = passage
+
+    return new_aug_sentence
 
 
 def final_data_process_for_markers(args, folder_path, labeled_data_path):
@@ -190,7 +307,7 @@ def final_data_process_for_markers(args, folder_path, labeled_data_path):
     :rtype:
     """
     data = []
-
+    max_passage_length = 0
     TimeBank_labeled_data, TimeBank_Dict_with_Text_elements_and_ei_map = \
         process_data(folder_path, labeled_data_path)
 
@@ -214,8 +331,9 @@ def final_data_process_for_markers(args, folder_path, labeled_data_path):
                 if args.short_passage:
                     # here we get passage with markers and cut it just after
                     # the first "." after [E2]:
-                    passage = new_short_context_with_markers_from_tokens_and_two_eids(
+                    passages = new_short_context_with_markers_from_tokens_and_two_eids(
                         args, text_elements, eid1, eid2)
+                    max_passage_length = max(max_passage_length, len(passages[0].split(" ")))
                 else:
                     # here we get all passage with markers:
                     passage = new_context_with_markers_from_tokens_and_two_eids(
@@ -224,10 +342,13 @@ def final_data_process_for_markers(args, folder_path, labeled_data_path):
                 first_word = instance[0]
                 second_word = instance[1]
                 relation = instance[4]
-                data.append([passage, [first_word, second_word, relation]])
+                for passage in passages:
+
+                    data.append([passage, [first_word, second_word, relation]])
 
             except BaseException:
                 pass
+    print(f'max_passage_length:{max_passage_length}')
     return data
 
 
