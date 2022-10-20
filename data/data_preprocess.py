@@ -230,18 +230,14 @@ def make_the_data_even_shorter(passage: str, first_word) -> str:
     while (new_passage[0] == " ") or (new_passage[0] == ','):
         new_passage = new_passage[1:]
 
-    #print('===========================')
-    #print(first_word)
-    #print(new_passage)
     return new_passage
+
 
 
 def aug_data(passage):
 
     bag_of_augmentations = ['char', 'sentence']
     aug_method = random.choice(bag_of_augmentations)
-    print(aug_method)
-    #set_trace()
     split_passage = passage.split('@')
 
     first_part_of_sentence = split_passage[0]
@@ -263,20 +259,8 @@ def aug_data(passage):
                                    second_part_aug +
                                    [' @' + split_passage[3] + '@ '] +
                                    third_part_aug)  
-        #print("Original:")
-        #print(passage)
-        #print("Augmented Texts:")
-        #print(new_aug_sentence)
- 
-        #aug = char_aug.KeyboardAug()
-        #augmented_text = aug.augment(passage)
-        #print("Original:")
-        #print(passage)
-        #print("Augmented Text:")
-        #print(augmented_text)	
-    
+        
     elif aug_method == 'word':
-        #set_trace()
         aug = word_aug.ContextualWordEmbsAug(
             model_path='bert-base-uncased', action="insert")
         first_part_aug = aug.augment(first_part_of_sentence, n=1)
@@ -287,12 +271,7 @@ def aug_data(passage):
                                    second_part_aug +
                                    [' @' + split_passage[3]+'@ '] +
                                    third_part_aug)  
-        print("Original:")
-        print(passage)
-        print("Augmented Text:")
-        print(new_aug_sentence)
-        #set_trace()    
-
+        
     elif aug_method == 'sentence':
         new_aug_sentence = passage
 
