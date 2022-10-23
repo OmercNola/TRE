@@ -137,3 +137,4 @@ dmypy.json
 /api_key.py
 /utils/cheatsheet.py
 /utils/cheatsheet.py
+wandb/
