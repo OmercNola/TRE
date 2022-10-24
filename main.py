@@ -20,6 +20,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from transformers import get_linear_schedule_with_warmup, AdamW
 from ipdb import set_trace
 
+
 def is_master():
     return not dist.is_initialized() or dist.get_rank() == 0
 
@@ -128,7 +129,7 @@ def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
             first_words = instances[1][0]
             second_words = instances[1][1]
             word_labels = instances[1][2]
-            
+
             zip_object = zip(passages, first_words, second_words, word_labels)
             for passage, first_word, second_word, Label in zip_object:
 
@@ -938,7 +939,7 @@ def main(args, init_distributed=False):
     "================================================================================="
     # if no checkpoint and not a baseline model - load the pretrained boolq
     # model:
-    #if (args.checkpoint_path is None) and (not args.use_baseline_model):
+    # if (args.checkpoint_path is None) and (not args.use_baseline_model):
     #    try:
     #        PATH = Path(args.boolq_pre_trained_model_path)
     #        checkpoint = torch.load(PATH, map_location=torch.device('cpu'))
@@ -954,7 +955,7 @@ def main(args, init_distributed=False):
                 load_model_checkpoint(
                     args, Path(args.checkpoint_path), model,
                     None, None
-                    )
+            )
             model.to(args.device)
         except Exception as e:
             print(e)
@@ -1130,7 +1131,10 @@ if __name__ == '__main__':
                         help='number of epochs')
     # every 2 instances are using 1 "3090 GPU"
     parser.add_argument('--batch_size', type=int, default=8, help='batch size')
-    parser.add_argument('--data_augmentation', action='store_true', default=True)
+    parser.add_argument(
+        '--data_augmentation',
+        action='store_true',
+        default=True)
     parser.add_argument(
         '--part_of_train_data',
         type=float,
@@ -1250,7 +1254,7 @@ if __name__ == '__main__':
             args.local_world_size = torch.cuda.device_count()
 
             # for nvidia 3090 or titan rtx (24GB each)
-            args.batch_size = args.local_world_size * 8 
+            args.batch_size = args.local_world_size * 8
 
             args.single_rank_batch_size = int(
                 args.batch_size / args.local_world_size)
