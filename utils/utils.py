@@ -124,8 +124,9 @@ class results_tracker:
                 res = 'AFTER'
 
             if ans1 == 1 and ans2 == 1:  # VAGUE
-                self.TP_BEFORE += 1
-                res = 'BEFORE'
+                self.FP_VAGUE += 1
+                self.FN_BEFORE += 1
+                res = 'VAGUE'
 
             if ans1 == 0 and ans2 == 0:  # EQUAL
                 self.FP_EQUAL += 1
@@ -144,9 +145,9 @@ class results_tracker:
                 res = 'AFTER'
 
             if ans1 == 1 and ans2 == 1:  # VAGUE
-                self.FP_BEFORE += 1
+                self.FP_VAGUE += 1
                 self.FN_AFTER += 1
-                res = 'BEFORE'
+                res = 'VAGUE'
 
             if ans1 == 0 and ans2 == 0:  # EQUAL
                 self.FP_EQUAL += 1
@@ -166,9 +167,9 @@ class results_tracker:
                 res = 'AFTER'
 
             if ans1 == 1 and ans2 == 1:  # VAGUE
-                self.FP_BEFORE += 1
+                self.FP_VAGUE += 1
                 self.FN_EQUAL += 1
-                res = 'BEFORE'
+                res = 'VAGUE'
 
             if ans1 == 0 and ans2 == 0:  # EQUAL
                 self.TP_EQUAL += 1
@@ -185,14 +186,12 @@ class results_tracker:
                 res = 'VAGUE'
 
             if ans1 == 1 and ans2 == 1:  # VAGUE
-                self.TP_BEFORE += 1
+                self.TP_VAGUE += 1
                 res = 'VAGUE'
 
             if ans1 == 0 and ans2 == 0:  # EQUAL
-                self.FP_EQUAL += 1
-                self.FN_VAGUE += 1
-                res = 'EQUAL'
-
+                self.TP_VAGUE += 1
+                res = 'VAGUE'
         else:
             raise Exception(f'label: {label.strip()} is incorect')
 
