@@ -139,7 +139,7 @@ class Longformer_for_roberta(nn.Module):
         # define the linear layer:
 
         # size:
-        self.hidden_size = 1024
+        self.hidden_size = 768
 
         # linear layer:
         self.output_size = Output_size
@@ -226,8 +226,8 @@ def create_roberta_pretrained_model_and_tokenizer(args):
     :rtype:
     """
 
-    tokenizer = RobertaTokenizer.from_pretrained('roberta-large')
-    pre_trained_model = RobertaModel.from_pretrained('roberta-large')
+    tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+    pre_trained_model = RobertaModel.from_pretrained('roberta-base')
     model = Longformer_for_roberta(
         pre_trained_model, args.output_size, args.dropout_p,
         args.Size_of_longfor, args.Max_Len
