@@ -1,5 +1,8 @@
 FROM pytorch/pytorch:latest
 
+ARG cuda_devices
+ENV CUDA_VISIBLE_DEVICES=$cuda_devices 
+
 RUN apt-get update -y
 RUN DEBIAN_FRONTEND=noninteractive apt-get install wget git vim sudo -y
 RUN apt-get install -y python3-pip
