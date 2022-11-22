@@ -1181,7 +1181,7 @@ if __name__ == '__main__':
                         help='output_size (default: 2)')
     parser.add_argument('--Max_Len', type=int, default=514,
                         help='Max_Len (default: 514)')
-    parser.add_argument('--Size_of_longfor', type=str, default='base',
+    parser.add_argument('--model_size', type=str, default='base',
                         help='Size_of_longformer (default: "base")')
     "================================================================================="
     args = parser.parse_known_args()[0]
