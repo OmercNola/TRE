@@ -1,3 +1,11 @@
+from torch import distributed as dist
+
+
+def is_master():
+    return not dist.is_initialized() or dist.get_rank() == 0
+
+
+
 # questions for markers ([E1] {first_word} [/E1]):
 def question_1_for_markers(first_word, second_word):
     """
@@ -51,6 +59,16 @@ def question_2_for_regular_markers(first_word, second_word):
     res = f'Is it possible that @ {second_word} @ started before @ {first_word} @ ?'
     return res
 # questions:
+
+
+def question_baseline(args, first_word, second_word):
+    
+    res = f'What is the chronological order of the two marked events? \
+           @ {first_word} @ and @ {second_word} @ ?'
+    
+    #res = f'Is @ {first_word} @ happening before, after or at the same time of @ {second_word} @ ?'
+
+    return res
 
 
 def question_1(args, first_word, second_word):
@@ -714,7 +732,6 @@ def get_label_for_baseline(label):
         res = [3]
 
     return res
-# for multiprocess:
 
 
 def all_equal(list_of_mp_values):
