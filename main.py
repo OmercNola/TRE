@@ -13,6 +13,8 @@ from utils.utils import *
 from utils.saver import *
 from model.model import *
 from utils.logger import *
+from train_scripts.train_baseline_with_qa import train_bl_with_qa
+from train_scripts.eval_baseline_with_qa import eval_bl_with_qa
 import torch.multiprocessing as mp
 from torch import distributed as dist
 from data.dataloaders import create_dataloader
@@ -21,8 +23,8 @@ from transformers import get_linear_schedule_with_warmup, AdamW
 from ipdb import set_trace
 
 
-def is_master():
-    return not dist.is_initialized() or dist.get_rank() == 0
+#def is_master():
+#    return not dist.is_initialized() or dist.get_rank() == 0
 
 
 def train(model, args, train_loader, train_sampler, test_loader, tokenizer,):
@@ -575,6 +577,7 @@ def train_baseline(
         if args.eval_during_training:
             eval_baseline(model, args, test_loader, tokenizer,
                           batches_overall=batches_overall)
+
 
 
 def eval(model, args, test_loader, tokenizer, epoch=None):
@@ -1130,7 +1133,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=6,
                         help='number of epochs')
     # every 2 instances are using 1 "3090 GPU"
-    parser.add_argument('--batch_size', type=int, default=8, help='batch size')
+    parser.add_argument('--batch_size', type=int, default=20, help='batch size')
     parser.add_argument(
         '--data_augmentation',
         action='store_true',
@@ -1254,7 +1257,7 @@ if __name__ == '__main__':
             args.local_world_size = torch.cuda.device_count()
 
             # for nvidia 3090 or titan rtx (24GB each)
-            args.batch_size = args.local_world_size * 8
+            args.batch_size = args.local_world_size * 22 
 
             args.single_rank_batch_size = int(
                 args.batch_size / args.local_world_size)
