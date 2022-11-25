@@ -49,10 +49,9 @@ def eval_bl_with_qa(model, args, test_loader, tokenizer, epoch=None):
 
     # reset Tracker:
     tracker.reset()
-    temp_counter = 0
+    
     for batch_counter, instances in enumerate(test_loader, start=1):
         
-        print(f'batch_counter: {batch_counter}')
         batch_input_ids = []
         batch_attention_mask = []
         batch_labels = []
@@ -108,8 +107,6 @@ def eval_bl_with_qa(model, args, test_loader, tokenizer, epoch=None):
 
             for pred, label in zip(preds, batch_labels):
                 tracker.update(pred, label)
-                temp_counter += 1
-                print(f'temp_counter: {temp_counter}')
 
         if batch_counter % args.print_eval_every == 0:
 

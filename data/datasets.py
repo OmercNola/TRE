@@ -36,14 +36,10 @@ class TRE_train_dataset(Dataset):
         if args.part_of_train_data == 0:
             self.TRE_training_data_with_markers = []
         else:
-            if self.len > 12720:
-                pass
-            else:
-                print(f'len of data is: {len(self.TRE_training_data_with_markers)}')
-                self.TRE_training_data_with_markers = random.sample(
-                    self.TRE_training_data_with_markers, args.part_of_train_data)
-            # if args.rank == 0:
-            #     print(self.TRE_training_data_with_markers[0])
+            print(f'len of data is: {len(self.TRE_training_data_with_markers)}')
+            self.TRE_training_data_with_markers = random.sample(
+                self.TRE_training_data_with_markers, args.part_of_train_data)
+            print(f'len of data after sample is: {len(self.TRE_training_data_with_markers)}')
         "=============================================================="
 
     def __len__(self):
