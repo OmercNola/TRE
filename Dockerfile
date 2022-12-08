@@ -24,4 +24,4 @@ RUN pip3 install -r /tmp/requirements.txt -qq
 COPY configs/.vimrc /root/.vimrc
 RUN git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
 
-
+USER user
