@@ -18,8 +18,10 @@ RUN chmod -R a+rwx /home/user
 
 USER root
 
-COPY requirements.txt /tmp
+COPY TRE/requirements.txt /tmp
 RUN pip3 install -r /tmp/requirements.txt -qq
 
-USER user
+COPY TRE/configs/.vimrc /root/.vimrc
+RUN git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
+
 
