@@ -983,26 +983,26 @@ def main(args, init_distributed=False):
             model.to(args.device)
 
             # Dataloaders:
-            train_loader, train_sampler = create_dataloader(
-                args, 'train', is_distributed)
-            val_dataloader, _ = create_dataloader(args, 'val', is_distributed)
-            test_loader, _ = create_dataloader(args, 'test', is_distributed)
+            train_loader, train_sampler = create_dataloader(args, 'train', is_distributed, dataset=args.dataset)
+            val_dataloader, _ = create_dataloader(args, 'val', is_distributed, dataset=args.dataset)
+            test_loader, _ = create_dataloader(args, 'test', is_distributed, dataset=args.dataset)
 
         # if we have just 1 gpu:
         elif args.world_size == 1:
             model = model.to(args.device)
 
             # Dataloaders:
-            train_loader, train_sampler = create_dataloader(args, 'train')
-            val_dataloader, _ = create_dataloader(args, 'val')
-            test_loader, _ = create_dataloader(args, 'test')
+            train_loader, train_sampler = create_dataloader(args, 'train', dataset=args.dataset)
+            val_dataloader, _ = create_dataloader(args, 'val', dataset=args.dataset)
+            test_loader, _ = create_dataloader(args, 'test', dataset=args.dataset)
 
     else:
         # Dataloaders:
-        train_loader, train_sampler = create_dataloader(args, 'train')
-        val_dataloader, _ = create_dataloader(args, 'val')
-        test_loader, _ = create_dataloader(args, 'test')
+        train_loader, train_sampler = create_dataloader(args, 'train', dataset=args.dataset)
+        val_dataloader, _ = create_dataloader(args, 'val', dataset=args.dataset)
+        test_loader, _ = create_dataloader(args, 'test', dataset=args.dataset)
 
+    set_trace()
     "================================================================================="
     """Training"""
     if not args.eval:
@@ -1066,6 +1066,8 @@ if __name__ == '__main__':
         help='device type')
     "================================================================================="
     "Train settings 1"
+    parser.add_argument('--dataset', type=str, default='tb_dense',
+                        help='dataset to use, can be matres or tb_dense')
     parser.add_argument('--eval', type=bool, default=False,
                         help='eval mode ? if False then training mode')
     parser.add_argument('--use_baseline_model', type=bool, default=False,

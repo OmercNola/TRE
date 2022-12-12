@@ -11,14 +11,14 @@ class TRE_train_dataset(Dataset):
     def __init__(self, args):
         super().__init__()
         random.seed(args.seed)
-        "=============================================================="
+
         """TimeBank"""
         TimeBank_folder = Path('./raw_data/TBAQ-cleaned/TimeBank/')
         TimeBank_labeled_data = Path('./raw_data/timebank.txt')
         TimeBank_data_with_markers = final_data_process_for_markers(
             args, TimeBank_folder, TimeBank_labeled_data, data_aug=args.data_augmentation
         )
-        "=============================================================="
+
         """Aquaint"""
         Aq_folder = Path('./raw_data/TBAQ-cleaned/AQUAINT/')
         Aq_labeled_data = Path('./raw_data/aquaint.txt')
@@ -26,11 +26,7 @@ class TRE_train_dataset(Dataset):
             args, Aq_folder, Aq_labeled_data, data_aug=args.data_augmentation
         )
 
-        """TB-Dense"""
-        TB_Dense_folder = Path('./raw_data/TimeBank-dense/train/')
-        TB_Dense_data_data_with_markers = process_TCR_data(
-            args, TB_Dense_folder)
-        "=============================================================="
+
         """Aquaint and Timebank with markers (train raw_data)"""
         self.TRE_training_data_with_markers = \
             Aq_data_with_markers + TimeBank_data_with_markers
@@ -95,3 +91,92 @@ class TRE_test_dataset(Dataset):
     def __getitem__(self, idx):
         res = self.TRE_test_data_with_markers[idx]
         return res
+
+
+class TRE_TBDense_train_dataset(Dataset):
+
+    def __init__(self, args):
+        super().__init__()
+        random.seed(args.seed)
+
+        """TB-Dense"""
+        TB_Dense_folder = Path('./raw_data/TimeBank-dense/train/')
+        self.TB_Dense_data_data_with_markers = process_TCR_data(
+            args, TB_Dense_folder)
+
+        ## take sample without replacment:
+        #assert (0 <= args.part_of_train_data <= 12736)
+        #if args.part_of_train_data == 0:
+        #    self.TRE_training_data_with_markers = []
+        #else:
+        #    print(f'len of data is: {len(self.TRE_training_data_with_markers)}')
+        #    self.TRE_training_data_with_markers = random.sample(
+        #        self.TRE_training_data_with_markers, args.part_of_train_data)
+        #    print(f'len of data after sample is: {len(self.TRE_training_data_with_markers)}')
+
+    def __len__(self):
+        return len(self.TB_Dense_data_data_with_markers)
+
+    def __getitem__(self, idx):
+        res = self.TB_Dense_data_data_with_markers[idx]
+        return res
+
+
+class TRE_TBDense_val_dataset(Dataset):
+
+    def __init__(self, args):
+        super().__init__()
+        random.seed(args.seed)
+
+        """TB-Dense"""
+        TB_Dense_folder = Path('./raw_data/TimeBank-dense/dev/')
+        self.TB_Dense_data_data_with_markers = process_TCR_data(
+            args, TB_Dense_folder, use_augmentation=False)
+
+        ## take sample without replacment:
+        #assert (0 <= args.part_of_train_data <= 12736)
+        #if args.part_of_train_data == 0:
+        #    self.TRE_training_data_with_markers = []
+        #else:
+        #    print(f'len of data is: {len(self.TRE_training_data_with_markers)}')
+        #    self.TRE_training_data_with_markers = random.sample(
+        #        self.TRE_training_data_with_markers, args.part_of_train_data)
+        #    print(f'len of data after sample is: {len(self.TRE_training_data_with_markers)}')
+
+    def __len__(self):
+        return len(self.TB_Dense_data_data_with_markers)
+
+    def __getitem__(self, idx):
+        res = self.TB_Dense_data_data_with_markers[idx]
+        return res
+
+
+class TRE_TBDense_test_dataset(Dataset):
+
+    def __init__(self, args):
+        super().__init__()
+        random.seed(args.seed)
+
+        """TB-Dense"""
+        TB_Dense_folder = Path('./raw_data/TimeBank-dense/test/')
+        self.TB_Dense_data_data_with_markers = process_TCR_data(
+            args, TB_Dense_folder, use_augmentation=False)
+
+        ## take sample without replacment:
+        #assert (0 <= args.part_of_train_data <= 12736)
+        #if args.part_of_train_data == 0:
+        #    self.TRE_training_data_with_markers = []
+        #else:
+        #    print(f'len of data is: {len(self.TRE_training_data_with_markers)}')
+        #    self.TRE_training_data_with_markers = random.sample(
+        #        self.TRE_training_data_with_markers, args.part_of_train_data)
+        #    print(f'len of data after sample is: {len(self.TRE_training_data_with_markers)}')
+
+    def __len__(self):
+        return len(self.TB_Dense_data_data_with_markers)
+
+    def __getitem__(self, idx):
+        res = self.TB_Dense_data_data_with_markers[idx]
+        return res
+
+
