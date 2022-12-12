@@ -28,11 +28,8 @@ class TRE_train_dataset(Dataset):
 
         """TB-Dense"""
         TB_Dense_folder = Path('./raw_data/TimeBank-dense/train/')
-        TB_Dense_labeled_data = Path('./raw_data/TimebankDense.T3.txt')
-        TB_Dense_data_data_with_markers = final_data_process_for_markers(
-            args, TB_Dense_folder, TB_Dense_labeled_data, data_aug=args.data_augmentation
-        )
-
+        TB_Dense_data_data_with_markers = process_TCR_data(
+            args, TB_Dense_folder)
         "=============================================================="
         """Aquaint and Timebank with markers (train raw_data)"""
         self.TRE_training_data_with_markers = \
