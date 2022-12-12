@@ -137,6 +137,7 @@ def new_short_context_with_markers_from_tokens_and_two_eids(
     :rtype:
     """
     e2_was_found = False
+    first_word = None
     new_short_context = ""
     words_that_comes_with_dot = [
         'Jan', 'Feb', 'Mar', 'Apr',
@@ -197,7 +198,8 @@ def new_short_context_with_markers_from_tokens_and_two_eids(
     #if '@ raided @ two homes' in new_short_context:
     #    print(new_short_context)
     #    set_trace()
-    
+    if first_word is None:
+        return []  
     new_short_context = make_the_data_even_shorter(new_short_context, first_word)
     if data_aug:
         new_short_context = aug_data(new_short_context) 
@@ -301,7 +303,8 @@ def final_data_process_for_markers(args, folder_path, labeled_data_path, data_au
 
             # instance is like: ['predicted', 'tried', '415', '417',
             # 'BEFORE\n']
-
+            if len(instance) != 5:
+               continue 
             eiid1 = instance[2]
             eiid2 = instance[3]
 
