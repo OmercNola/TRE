@@ -996,6 +996,13 @@ def main(args, init_distributed=False):
             train_loader, train_sampler = create_dataloader(args, 'train')
             val_dataloader, _ = create_dataloader(args, 'val')
             test_loader, _ = create_dataloader(args, 'test')
+
+    else:
+        # Dataloaders:
+        train_loader, train_sampler = create_dataloader(args, 'train')
+        val_dataloader, _ = create_dataloader(args, 'val')
+        test_loader, _ = create_dataloader(args, 'test')
+
     "================================================================================="
     """Training"""
     if not args.eval:
@@ -1281,5 +1288,6 @@ if __name__ == '__main__':
         else:
             args.device = torch.device("cpu")
             args.single_rank_batch_size = args.batch_size
+            args.rank = 0
             main(args)
     "================================================================================="
