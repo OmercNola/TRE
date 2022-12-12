@@ -389,7 +389,7 @@ def get_text_and_labeled_data_from_tml_file_tcr(filepath):
     return labeled_data
 
 
-def process_TCR_data(args, tml_folder_path):
+def process_TCR_data(args, tml_folder_path, use_augmentation=True):
     """
     :param tml_folder_path:
     :type tml_folder_path:
@@ -425,7 +425,7 @@ def process_TCR_data(args, tml_folder_path):
                 # here we get passage with markers and cut it just after the
                 # first "." after [E2]:
                 passage = new_short_context_with_markers_from_tokens_and_two_eids(
-                    args, text_elements, eid1, eid2, False)
+                    args, text_elements, eid1, eid2, use_augmentation)
             else:
                 # here we get all passage with markers:
                 passage = new_context_with_markers_from_tokens_and_two_eids(
@@ -437,4 +437,3 @@ def process_TCR_data(args, tml_folder_path):
     return data
 
 
-"================================================================================="
