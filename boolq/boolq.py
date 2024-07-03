@@ -1,6 +1,11 @@
 from __future__ import absolute_import, division, print_function
-from transformers import (AutoTokenizer, AutoModel, AutoModelForQuestionAnswering,
-                          BertTokenizer, RobertaTokenizer, AdamW)
+from transformers import (
+    AutoTokenizer,
+    AutoModel,
+    AutoModelForQuestionAnswering,
+    BertTokenizer,
+    RobertaTokenizer,
+    AdamW)
 from torch import nn
 import torch
 from transformers import get_linear_schedule_with_warmup
@@ -10,6 +15,8 @@ import datetime as datetime
 import random
 from pathlib import Path
 # BOOLQ dataset
+
+
 def train_boolq(model, args, train_dataloader, tokenizer, num_epochs=1):
     print('training..')
     model.train()
@@ -25,11 +32,12 @@ def train_boolq(model, args, train_dataloader, tokenizer, num_epochs=1):
     print_every = 25
     t = time.time()
 
-    for e in range(1, num_epochs+1, 1):
+    for e in range(1, num_epochs + 1, 1):
 
         LOSS = 0
 
-        for instances_counter, instances in enumerate(train_dataloader, start=1):
+        for instances_counter, instances in enumerate(
+                train_dataloader, start=1):
 
             batch_input_ids = []
             batch_attention_mask = []
@@ -42,13 +50,18 @@ def train_boolq(model, args, train_dataloader, tokenizer, num_epochs=1):
             for question, answer, passage in zip(questions, answers, passages):
 
                 question = question + tokenizer.sep_token
-                assert answer == True or answer == False
+                assert answer or answer == False
 
-                label = 1 if answer == True else 0
+                label = 1 if answer else 0
                 labels.append(label)
 
                 # tokenize question and text as a pair, Roberta
-                encodings = tokenizer(question, passage, max_length=args.Max_Len, padding='max_length', truncation=True)
+                encodings = tokenizer(
+                    question,
+                    passage,
+                    max_length=args.Max_Len,
+                    padding='max_length',
+                    truncation=True)
 
                 input_ids = encodings['input_ids']
                 attention_mask = encodings['attention_mask']
@@ -56,13 +69,21 @@ def train_boolq(model, args, train_dataloader, tokenizer, num_epochs=1):
                 batch_input_ids.append(input_ids)
                 batch_attention_mask.append(attention_mask)
 
-            batch_input_ids = torch.tensor(batch_input_ids, requires_grad=False).to(args.device)
-            batch_attention_mask = torch.tensor(batch_attention_mask, requires_grad=False).to(args.device)
+            batch_input_ids = torch.tensor(
+                batch_input_ids,
+                requires_grad=False).to(
+                args.device)
+            batch_attention_mask = torch.tensor(
+                batch_attention_mask,
+                requires_grad=False).to(
+                args.device)
             labels = torch.tensor(labels, requires_grad=False).to(args.device)
 
             optim.zero_grad()
 
-            outputs = model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
+            outputs = model(
+                input_ids=batch_input_ids,
+                attention_mask=batch_attention_mask)
 
             # extract loss
             loss = 0
@@ -70,8 +91,9 @@ def train_boolq(model, args, train_dataloader, tokenizer, num_epochs=1):
             LOSS += loss.item()
 
             if instances_counter % print_every == 0:
-                print(f'Epoch:{e}, loss:{round(LOSS, 2)}, Training time:{timedelta(seconds=time.time() - t)},'
-                      f' Epoch percent: {round((instances_counter / len(train_dataloader)) * 100, 2)} %')
+                print(
+                    f'Epoch:{e}, loss:{round(LOSS, 2)}, Training time:{timedelta(seconds=time.time() - t)},'
+                    f' Epoch percent: {round((instances_counter / len(train_dataloader)) * 100, 2)} %')
                 LOSS = 0
 
             # calculate loss for every parameter that needs grad update
@@ -87,7 +109,11 @@ def train_boolq(model, args, train_dataloader, tokenizer, num_epochs=1):
             # Update the learning rate.
             scheduler.step()
 
-        torch.save(model.state_dict(), Path(f'models/model_boolq_with_markers_epoch_{e}_.pt'))
+        torch.save(
+            model.state_dict(),
+            Path(f'models/model_boolq_with_markers_epoch_{e}_.pt'))
+
+
 def eval_boolq(model, args, test_dataloader, tokenizer):
 
     model.eval()
@@ -107,13 +133,18 @@ def eval_boolq(model, args, test_dataloader, tokenizer):
 
         for question, answer, passage in zip(questions, answers, passages):
             question = question + tokenizer.sep_token
-            assert answer == True or answer == False
+            assert answer or answer == False
 
-            label = 1 if answer == True else 0
+            label = 1 if answer else 0
             labels.append(label)
 
             # tokenize question and text as a pair, Roberta
-            encodings = tokenizer(question, passage, max_length=args.Max_Len, padding='max_length', truncation=True)
+            encodings = tokenizer(
+                question,
+                passage,
+                max_length=args.Max_Len,
+                padding='max_length',
+                truncation=True)
 
             input_ids = encodings['input_ids']
             attention_mask = encodings['attention_mask']
@@ -121,12 +152,20 @@ def eval_boolq(model, args, test_dataloader, tokenizer):
             batch_input_ids.append(input_ids)
             batch_attention_mask.append(attention_mask)
 
-        batch_input_ids = torch.tensor(batch_input_ids, requires_grad=False).to(args.device)
-        batch_attention_mask = torch.tensor(batch_attention_mask, requires_grad=False).to(args.device)
+        batch_input_ids = torch.tensor(
+            batch_input_ids,
+            requires_grad=False).to(
+            args.device)
+        batch_attention_mask = torch.tensor(
+            batch_attention_mask,
+            requires_grad=False).to(
+            args.device)
         labels = torch.tensor(labels, requires_grad=False).to(args.device)
 
         with torch.no_grad():
-            outputs = model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
+            outputs = model(
+                input_ids=batch_input_ids,
+                attention_mask=batch_attention_mask)
 
         pred_lables = torch.argmax(torch.softmax(outputs, dim=1), dim=1)
 
@@ -139,6 +178,8 @@ def eval_boolq(model, args, test_dataloader, tokenizer):
         # copmute accuracy:
         if instances_counter % print_every == 0:
             print(f'acc): {right / (right + wrong)}\n')
+
+
 "================================================================================="
 "==============================  BOOLQ WITH MARKERS  ============================="
 "================================================================================="

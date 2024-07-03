@@ -12,7 +12,15 @@ import platform
 from datetime import datetime
 from collections import namedtuple
 import xml
+from ipdb import set_trace
+import nlpaug.augmenter.char as char_aug
+import nlpaug.augmenter.word as word_aug 
+import nlpaug.augmenter.sentence as sentence_aug
+import random
+from ipdb import set_trace
 "================================================================================="
+
+
 def process_data(tml_folder_path, annotation_file_path):
     """
     :param tml_folder_path:
@@ -26,11 +34,13 @@ def process_data(tml_folder_path, annotation_file_path):
     texts = {}
     for file in annotations.keys():
         # file is like ABC19980114.1830.0611
-        Text_elements, eiid_to_eid_map,  = \
-            get_text_and_eiid_to_eid_map_from_tml_file(os.path.join(tml_folder_path, file + ".tml"))
+        Text_elements, eiid_to_eid_map, = get_text_and_eiid_to_eid_map_from_tml_file(
+            os.path.join(tml_folder_path, file + ".tml"))
         texts[file] = {"Text_elements": Text_elements,
                        "eiid_to_eid_map": eiid_to_eid_map}
     return annotations, texts
+
+
 def read_labeled_data_file(filepath):
     """"
     THIS FILE IS WITH eiid AND NOT eid.
@@ -45,6 +55,8 @@ def read_labeled_data_file(filepath):
             line_comp = line.split("\t")
             annotations[line_comp[0]].append(line_comp[1:])
     return annotations
+
+
 def get_text_and_eiid_to_eid_map_from_tml_file(filepath):
     """
     Read specific tml file and process it,
@@ -61,7 +73,10 @@ def get_text_and_eiid_to_eid_map_from_tml_file(filepath):
     elements = mydoc.getElementsByTagName("TEXT")
 
     return elements, ei_e_map
-def new_context_with_markers_from_tokens_and_two_eids(args, elements_, eid1_, eid2_):
+
+
+def new_context_with_markers_from_tokens_and_two_eids(
+        args, elements_, eid1_, eid2_):
     """
     :param elements_:
     :type elements_:
@@ -80,7 +95,7 @@ def new_context_with_markers_from_tokens_and_two_eids(args, elements_, eid1_, ei
     for index, child in enumerate(elements_[0].childNodes):
 
         # e1:
-        if type(child) is minidom.Element and child.nodeName == "EVENT" and \
+        if isinstance(child, minidom.Element) and child.nodeName == "EVENT" and \
                 child.attributes["eid"].value == eid1_:
             if args.use_E_markers:
                 new_context_ += f'[E1] {child.firstChild.data} [/E1]'
@@ -88,24 +103,27 @@ def new_context_with_markers_from_tokens_and_two_eids(args, elements_, eid1_, ei
                 new_context_ += f'@ {child.firstChild.data} @'
 
         # e2:
-        elif type(child) is minidom.Element and child.nodeName == "EVENT" and \
+        elif isinstance(child, minidom.Element) and child.nodeName == "EVENT" and \
                 child.attributes["eid"].value == eid2_:
             if args.use_E_markers:
                 new_context_ += f'[E2] {child.firstChild.data} [/E2]'
             else:
                 new_context_ += f'@ {child.firstChild.data} @'
 
-        elif type(child) is minidom.Element and (child.nodeName == "TIMEX" or child.nodeName == "TIMEX3"):
+        elif isinstance(child, minidom.Element) and (child.nodeName == "TIMEX" or child.nodeName == "TIMEX3"):
             new_context_ += child.firstChild.data
 
-        elif type(child) is minidom.Element:
+        elif isinstance(child, minidom.Element):
             new_context_ += child.firstChild.data
 
         else:
             new_context_ += child.data
 
     return new_context_
-def new_short_context_with_markers_from_tokens_and_two_eids(args, elements_, eid1_, eid2_):
+
+
+def new_short_context_with_markers_from_tokens_and_two_eids(
+        args, elements_, eid1_, eid2_, data_aug):
     """
     :param elements_:
     :type elements_:
@@ -118,22 +136,28 @@ def new_short_context_with_markers_from_tokens_and_two_eids(args, elements_, eid
     :return:
     :rtype:
     """
-
     e2_was_found = False
+    first_word = None
     new_short_context = ""
+    words_that_comes_with_dot = [
+        'Jan', 'Feb', 'Mar', 'Apr',
+        'May', 'June', 'Aug', 'Sep',
+        'Oct', 'Nov', 'Dec',
+        'Prof', 'Mr', 'Inc']
 
     for index, child in enumerate(elements_[0].childNodes):
 
         # e1:
-        if type(child) is minidom.Element and child.nodeName == "EVENT" and \
+        if isinstance(child, minidom.Element) and child.nodeName == "EVENT" and \
                 child.attributes["eid"].value == eid1_:
             if args.use_E_markers:
                 new_short_context += f'[E1] {child.firstChild.data} [/E1]'
-            else: # use @ markers
+            else:  # use @ markers
                 new_short_context += f'@ {child.firstChild.data} @'
+                first_word = child.firstChild.data
 
         # e2:
-        elif type(child) is minidom.Element and child.nodeName == "EVENT" and \
+        elif isinstance(child, minidom.Element) and child.nodeName == "EVENT" and \
                 child.attributes["eid"].value == eid2_:
             if args.use_E_markers:
                 new_short_context += f'[E2] {child.firstChild.data} [/E2]'
@@ -141,30 +165,122 @@ def new_short_context_with_markers_from_tokens_and_two_eids(args, elements_, eid
                 new_short_context += f'@ {child.firstChild.data} @'
             e2_was_found = True
 
-        elif type(child) is minidom.Element and (child.nodeName == "TIMEX" or child.nodeName == "TIMEX3"):
+        elif isinstance(child, minidom.Element) and (child.nodeName == "TIMEX" or child.nodeName == "TIMEX3"):
             if e2_was_found:
                 if "." in child.firstChild.data:
-                    new_short_context += child.firstChild.data.split(".")[0] + "."
-                    break
+                    data_before_the_dot = child.firstChild.data.split(".")[0]
+                    if all(word not in data_before_the_dot for word in words_that_comes_with_dot):
+                        new_short_context += data_before_the_dot + '.'
+                        break
             new_short_context += child.firstChild.data
 
-        elif type(child) is minidom.Element:
+        elif isinstance(child, minidom.Element):
             if e2_was_found:
                 if "." in child.firstChild.data:
-                    new_short_context += child.firstChild.data.split(".")[0] + "."
-                    break
+                    data_before_the_dot = child.firstChild.data.split(".")[0]
+                    if all(word not in data_before_the_dot for word in words_that_comes_with_dot):
+                        new_short_context += data_before_the_dot + '.'
+                        break
             new_short_context += child.firstChild.data
 
         # not a minidom element:
         else:
             if e2_was_found:
                 if "." in child.data:
-                    new_short_context += child.data.split(".")[0] + "."
-                    break
+                    data_before_the_dot = child.data.split(".")[0]
+                    if all(word not in data_before_the_dot for word in words_that_comes_with_dot):
+                        new_short_context += data_before_the_dot + '.'
+                        break
             new_short_context += child.data
+    
 
-    return new_short_context
-def final_data_process_for_markers(args, folder_path, labeled_data_path):
+
+    #if '@ raided @ two homes' in new_short_context:
+    #    print(new_short_context)
+    #    set_trace()
+    if first_word is None:
+        return []  
+    new_short_context = make_the_data_even_shorter(new_short_context, first_word)
+    if data_aug:
+        new_short_context = aug_data(new_short_context) 
+    return [new_short_context]
+
+
+def make_the_data_even_shorter(passage: str, first_word) -> str:
+
+    words_that_comes_with_dot = [
+        'Jan', 'Feb', 'Mar', 'Apr',
+        'May', 'June', 'Aug', 'Sep',
+        'Oct', 'Nov', 'Dec',
+        'Prof', 'Mr', 'Inc']
+
+    ## find first word:
+    first_word_index = passage.find(f'@ {first_word} @')
+    for idx in range(first_word_index, 0, -1):
+        char = passage[idx]
+        if char == '.':
+            last_word_in_sentence_until_dot = passage[:idx+1].split(" ")[-1]
+            if all(word not in last_word_in_sentence_until_dot\
+                   for word in words_that_comes_with_dot):
+
+                break
+    
+    if idx < 5:
+        return passage
+    
+    new_passage = passage[(idx +1):] 
+    while (new_passage[0] == " ") or (new_passage[0] == ','):
+        new_passage = new_passage[1:]
+
+    return new_passage
+
+
+
+def aug_data(passage):
+
+    bag_of_augmentations = ['char', 'sentence']
+    aug_method = random.choice(bag_of_augmentations)
+    split_passage = passage.split('@')
+
+    first_part_of_sentence = split_passage[0]
+    second_part_of_sentence = split_passage[2]
+    third_part_of_sentence = split_passage[4]
+
+    assert len(split_passage)==5, 'number of "@" in the passage should be 4'
+	
+    if aug_method == 'char':
+        
+        aug = char_aug.OcrAug()
+
+        first_part_aug = aug.augment(first_part_of_sentence, n=1)
+        second_part_aug = aug.augment(second_part_of_sentence, n=1)
+        third_part_aug = aug.augment(third_part_of_sentence, n=1)
+
+        new_aug_sentence = "".join(first_part_aug +
+                                   [' @' + split_passage[1] + '@ '] +
+                                   second_part_aug +
+                                   [' @' + split_passage[3] + '@ '] +
+                                   third_part_aug)  
+        
+    elif aug_method == 'word':
+        aug = word_aug.ContextualWordEmbsAug(
+            model_path='bert-base-uncased', action="insert")
+        first_part_aug = aug.augment(first_part_of_sentence, n=1)
+        second_part_aug = aug.augment(second_part_of_sentence, n=1)
+        third_part_aug = aug.augment(third_part_of_sentence, n=1)
+        new_aug_sentence = "".join(first_part_aug +
+                                   [' @' + split_passage[1]+'@ '] +
+                                   second_part_aug +
+                                   [' @' + split_passage[3]+'@ '] +
+                                   third_part_aug)  
+        
+    elif aug_method == 'sentence':
+        new_aug_sentence = passage
+
+    return new_aug_sentence
+
+
+def final_data_process_for_markers(args, folder_path, labeled_data_path, data_aug=False):
     """
     :param folder_path:
     :type folder_path:
@@ -174,7 +290,7 @@ def final_data_process_for_markers(args, folder_path, labeled_data_path):
     :rtype:
     """
     data = []
-
+    max_passage_length = 0
     TimeBank_labeled_data, TimeBank_Dict_with_Text_elements_and_ei_map = \
         process_data(folder_path, labeled_data_path)
 
@@ -185,8 +301,10 @@ def final_data_process_for_markers(args, folder_path, labeled_data_path):
 
         for instance in TimeBank_labeled_data[key]:
 
-            # instance is like: ['predicted', 'tried', '415', '417', 'BEFORE\n']
-
+            # instance is like: ['predicted', 'tried', '415', '417',
+            # 'BEFORE\n']
+            if len(instance) != 5:
+               continue 
             eiid1 = instance[2]
             eiid2 = instance[3]
 
@@ -195,25 +313,32 @@ def final_data_process_for_markers(args, folder_path, labeled_data_path):
                 eid2 = Map[f'ei{eiid2}']
 
                 if args.short_passage:
-                    # here we get passage with markers and cut it just after the first "." after [E2]:
-                    passage = new_short_context_with_markers_from_tokens_and_two_eids(
-                        args, text_elements, eid1, eid2
-                    )
+                    # here we get passage with markers and cut it just after
+                    # the first "." after [E2]:
+                    passages = new_short_context_with_markers_from_tokens_and_two_eids(
+                        args, text_elements, eid1, eid2, data_aug)
+                    max_passage_length = max(max_passage_length, len(passages[0].split(" ")))
                 else:
                     # here we get all passage with markers:
                     passage = new_context_with_markers_from_tokens_and_two_eids(
-                        args, text_elements, eid1, eid2
-                    )
+                        args, text_elements, eid1, eid2)
 
                 first_word = instance[0]
                 second_word = instance[1]
                 relation = instance[4]
-                data.append([passage, [first_word, second_word, relation]])
+                for passage in passages:
 
-            except:
+                    data.append([passage, [first_word, second_word, relation]])
+
+            except BaseException:
                 pass
+    print(f'max_passage_length:{max_passage_length}')
     return data
+
+
 "================================================================================="
+
+
 def get_text_and_labeled_data_from_tml_file_tcr(filepath):
     """
     Read specific tml file and process it,
@@ -237,7 +362,7 @@ def get_text_and_labeled_data_from_tml_file_tcr(filepath):
     for e in tlink_elements:
 
         if ('relatedToEventInstance' not in list(e.attributes.keys())) or \
-            ('eventInstanceID' not in list(e.attributes.keys())):
+                ('eventInstanceID' not in list(e.attributes.keys())):
             continue
 
         eventID_1 = ei_e_map[e.attributes["eventInstanceID"].value]
@@ -245,10 +370,10 @@ def get_text_and_labeled_data_from_tml_file_tcr(filepath):
         relation = e.attributes['relType'].value
 
         for index, child in enumerate(text_elements[0].childNodes):
-            if type(child) is minidom.Element and child.nodeName == "EVENT" and \
+            if isinstance(child, minidom.Element) and child.nodeName == "EVENT" and \
                     child.attributes["eid"].value == eventID_1:
                 word_1 = child.firstChild.data
-            if type(child) is minidom.Element and child.nodeName == "EVENT" and \
+            if isinstance(child, minidom.Element) and child.nodeName == "EVENT" and \
                     child.attributes["eid"].value == eventID_2:
                 word_2 = child.firstChild.data
 
@@ -262,7 +387,9 @@ def get_text_and_labeled_data_from_tml_file_tcr(filepath):
         )
     "=========================================================================="
     return labeled_data
-def process_TCR_data(args, tml_folder_path):
+
+
+def process_TCR_data(args, tml_folder_path, use_augmentation=True):
     """
     :param tml_folder_path:
     :type tml_folder_path:
@@ -284,23 +411,21 @@ def process_TCR_data(args, tml_folder_path):
             modified = datetime.fromtimestamp(item.stat().st_mtime)
             tml_files.append(File(name, path, size, modified))
 
-
     for file in tml_files:
 
-        labeled_data = get_text_and_labeled_data_from_tml_file_tcr(os.path.join(file.path))
+        labeled_data = get_text_and_labeled_data_from_tml_file_tcr(
+            os.path.join(file.path))
 
         for event1, event2, relation, text_elements in labeled_data:
 
             eid1, first_word = event1[0], event1[1]
             eid2, second_word = event2[0], event2[1]
 
-
-
             if args.short_passage:
-                # here we get passage with markers and cut it just after the first "." after [E2]:
+                # here we get passage with markers and cut it just after the
+                # first "." after [E2]:
                 passage = new_short_context_with_markers_from_tokens_and_two_eids(
-                    args, text_elements, eid1, eid2
-                )
+                    args, text_elements, eid1, eid2, use_augmentation)
             else:
                 # here we get all passage with markers:
                 passage = new_context_with_markers_from_tokens_and_two_eids(
@@ -310,4 +435,5 @@ def process_TCR_data(args, tml_folder_path):
             data.append([passage, [first_word, second_word, relation]])
 
     return data
-"================================================================================="
+
+

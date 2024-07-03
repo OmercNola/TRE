@@ -1,0 +1,14 @@
+wandb
+nlpaug
+ipdb
+torchsummary 
+numpy
+tqdm
+pathlib
+pandas
+matplotlib
+colorama
+transformers
+dash_table
+dash
+dask
