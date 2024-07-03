@@ -1,11 +1,3 @@
-from torch import distributed as dist
-
-
-def is_master():
-    return not dist.is_initialized() or dist.get_rank() == 0
-
-
-
 # questions for markers ([E1] {first_word} [/E1]):
 def question_1_for_markers(first_word, second_word):
     """
@@ -18,8 +10,6 @@ def question_1_for_markers(first_word, second_word):
     """
     res = f'Is it possible that [E1] {first_word} [/E1] started before [E2] {second_word} [/E2]?'
     return res
-
-
 def question_2_for_markers(first_word, second_word):
     """
     :param first_word:
@@ -32,8 +22,6 @@ def question_2_for_markers(first_word, second_word):
     res = f'Is it possible that [E2] {second_word} [/E2] started before [E1] {first_word} [/E1]?'
     return res
 # questions for regular markers (@ word @):
-
-
 def question_1_for_regular_markers(first_word, second_word):
     """
     :param first_word:
@@ -45,8 +33,6 @@ def question_1_for_regular_markers(first_word, second_word):
     """
     res = f'Is it possible that @ {first_word} @ started before @ {second_word} @ ?'
     return res
-
-
 def question_2_for_regular_markers(first_word, second_word):
     """
     :param first_word:
@@ -58,19 +44,7 @@ def question_2_for_regular_markers(first_word, second_word):
     """
     res = f'Is it possible that @ {second_word} @ started before @ {first_word} @ ?'
     return res
-# questions:
-
-
-def question_baseline(args, first_word, second_word):
-    
-    res = f'What is the chronological order of the two marked events? \
-           @ {first_word} @ and @ {second_word} @ ?'
-    
-    #res = f'Is @ {first_word} @ happening before, after or at the same time of @ {second_word} @ ?'
-
-    return res
-
-
+#questions:
 def question_1(args, first_word, second_word):
     """
     :param first_word:
@@ -85,8 +59,6 @@ def question_1(args, first_word, second_word):
     else:
         res = question_1_for_regular_markers(first_word, second_word)
     return res
-
-
 def question_2(args, first_word, second_word):
     """
     :param first_word:
@@ -101,648 +73,217 @@ def question_2(args, first_word, second_word):
     else:
         res = question_2_for_regular_markers(first_word, second_word)
     return res
-# class that computes l1 scores (macro and micro):
 
-
-class results_tracker:
-
+class BaseTracker:
     def __init__(self):
-
-        self.TP_BEFORE = 0
-        self.TN_BEFORE = 0
-        self.FP_BEFORE = 0
-        self.FN_BEFORE = 0
-
-        self.TP_AFTER = 0
-        self.TN_AFTER = 0
-        self.FP_AFTER = 0
-        self.FN_AFTER = 0
-
-        self.TP_EQUAL = 0
-        self.TN_EQUAL = 0
-        self.FP_EQUAL = 0
-        self.FN_EQUAL = 0
-
-        self.TP_VAGUE = 0
-        self.TN_VAGUE = 0
-        self.FP_VAGUE = 0
-        self.FN_VAGUE = 0
-
-    def update(self, label, ans1, ans2):
-
-        if label.strip() == 'BEFORE':
-
-            if ans1 == 1 and ans2 == 0:  # BEFORE
-                self.TP_BEFORE += 1
-                res = 'BEFORE'
-
-            if ans1 == 0 and ans2 == 1:  # AFTER
-                self.FP_AFTER += 1
-                self.FN_BEFORE += 1
-                res = 'AFTER'
-
-            if ans1 == 1 and ans2 == 1:  # VAGUE
-                self.FP_VAGUE += 1
-                self.FN_BEFORE += 1
-                res = 'VAGUE'
-
-            if ans1 == 0 and ans2 == 0:  # EQUAL
-                self.FP_EQUAL += 1
-                self.FN_BEFORE += 1
-                res = 'EQUAL'
-
-        elif label.strip() == 'AFTER':
-
-            if ans1 == 1 and ans2 == 0:  # BEFORE
-                self.FP_BEFORE += 1
-                self.FN_AFTER += 1
-                res = 'BEFORE'
-
-            if ans1 == 0 and ans2 == 1:  # AFTER
-                self.TP_AFTER += 1
-                res = 'AFTER'
-
-            if ans1 == 1 and ans2 == 1:  # VAGUE
-                self.FP_VAGUE += 1
-                self.FN_AFTER += 1
-                res = 'VAGUE'
-
-            if ans1 == 0 and ans2 == 0:  # EQUAL
-                self.FP_EQUAL += 1
-                self.FN_AFTER += 1
-                res = 'EQUAL'
-
-        elif (label.strip() == 'EQUAL') or (label.strip() == 'SIMULTANEOUS'):
-
-            if ans1 == 1 and ans2 == 0:  # BEFORE
-                self.FP_BEFORE += 1
-                self.FN_EQUAL += 1
-                res = 'BEFORE'
-
-            if ans1 == 0 and ans2 == 1:  # AFTER
-                self.FP_AFTER += 1
-                self.FN_EQUAL += 1
-                res = 'AFTER'
-
-            if ans1 == 1 and ans2 == 1:  # VAGUE
-                self.FP_VAGUE += 1
-                self.FN_EQUAL += 1
-                res = 'VAGUE'
-
-            if ans1 == 0 and ans2 == 0:  # EQUAL
-                self.TP_EQUAL += 1
-                res = 'EQUAL'
-
-        elif label.strip() == 'VAGUE':
-
-            if ans1 == 1 and ans2 == 0:  # BEFORE
-                self.TP_VAGUE += 1
-                res = 'VAGUE'
-
-            if ans1 == 0 and ans2 == 1:  # AFTER
-                self.TP_VAGUE += 1
-                res = 'VAGUE'
-
-            if ans1 == 1 and ans2 == 1:  # VAGUE
-                self.TP_VAGUE += 1
-                res = 'VAGUE'
-
-            if ans1 == 0 and ans2 == 0:  # EQUAL
-                self.TP_VAGUE += 1
-                res = 'VAGUE'
-        else:
-            raise Exception(f'label: {label.strip()} is incorect')
-
-        return res
+        self.labels = ['before', 'after', 'equal', 'vague']
+        self.metrics = ['tp', 'tn', 'fp', 'fn']
+        self.results = {label: {metric: 0 for metric in self.metrics}
+                        for label in self.labels}
 
     def f1_macro_and_micro(self):
         """
-        F1-score = 2 × (precision × recall)/(precision + recall)
-        precision = TP/(TP+FP)
-        recall = TP/(TP+FN)
+        Calculate the macro and micro F1 scores.
 
-        F1_micro = 2 × (micro_precision × micro_recall)/(micro_precision + micro_recall)
-        micro_precision = TP_sum_all_classes/(TP_sum_all_classes + FP_sum_all_classes)
-        micro_recall = TP_sum_all_classes/(TP_sum_all_classes + FN_sum_all_classes)
+        :return: Tuple of macro F1 and micro F1 scores
         """
+        macro_f1 = sum(self._calculate_f1(label) for label in self.labels) / len(self.labels)
 
-        "====================================================================================="
-        "BEFORE"
-        try:
-            precision_before = self.TP_BEFORE / \
-                (self.TP_BEFORE + self.FP_BEFORE)
-        except (ZeroDivisionError, RuntimeWarning):
-            precision_before = 0
-        try:
-            recall_before = self.TP_BEFORE / (self.TP_BEFORE + self.FN_BEFORE)
-        except (ZeroDivisionError, RuntimeWarning):
-            recall_before = 0
-        try:
-            f1_before = 2 * (precision_before * recall_before) / \
-                (precision_before + recall_before)
-        except (ZeroDivisionError, RuntimeWarning):
-            f1_before = 0
-        "====================================================================================="
-        "AFTER"
-        try:
-            precision_after = self.TP_AFTER / (self.TP_AFTER + self.FP_AFTER)
-        except (ZeroDivisionError, RuntimeWarning):
-            precision_after = 0
+        tp_sum = sum(self.results[label]['tp'] for label in self.labels)
+        fp_sum = sum(self.results[label]['fp'] for label in self.labels)
+        fn_sum = sum(self.results[label]['fn'] for label in self.labels)
 
-        try:
-            recall_after = self.TP_AFTER / (self.TP_AFTER + self.FN_AFTER)
-        except (ZeroDivisionError, RuntimeWarning):
-            recall_after = 0
+        micro_precision = self._safe_divide(tp_sum, tp_sum + fp_sum)
+        micro_recall = self._safe_divide(tp_sum, tp_sum + fn_sum)
+        micro_f1 = self._calculate_f1_score(micro_precision, micro_recall)
 
-        try:
-            f1_after = 2 * (precision_after * recall_after) / \
-                (precision_after + recall_after)
-        except (ZeroDivisionError, RuntimeWarning):
-            f1_after = 0
-        "====================================================================================="
-        "EQUAL"
-        try:
-            if self.TP_EQUAL == 0:
-                precision_equal = 0
-            else:
-                precision_equal = self.TP_EQUAL / \
-                    (self.TP_EQUAL + self.FP_EQUAL)
-        except (ZeroDivisionError, RuntimeWarning):
-            precision_equal = 0
+        return float(f'{macro_f1:.4f}'), float(f'{micro_f1:.4f}')
 
-        try:
-            if self.TP_EQUAL == 0:
-                recall_equal = 0
-            else:
-                recall_equal = self.TP_EQUAL / (self.TP_EQUAL + self.FN_EQUAL)
-        except (ZeroDivisionError, RuntimeWarning):
-            recall_equal = 0
+    def _calculate_f1(self, label):
+        """
+        Calculate the F1 score for a specific label.
 
-        try:
-            f1_equal = 2 * (precision_equal * recall_equal) / \
-                (precision_equal + recall_equal)
-        except (ZeroDivisionError, RuntimeWarning):
-            f1_equal = 0
-        "====================================================================================="
-        "VAGUE"
-        try:
-            if self.TP_VAGUE == 0:
-                precision_vague = 0
-            else:
-                precision_vague = self.TP_VAGUE / \
-                    (self.TP_VAGUE + self.FP_VAGUE)
-        except (ZeroDivisionError, RuntimeWarning):
-            precision_vague = 0
+        :param label: The label to calculate F1 score for
+        :return: The F1 score
+        """
+        precision = self._safe_divide(self.results[label]['tp'],
+                                      self.results[label]['tp'] +
+                                      self.results[label]['fp'])
+        recall = self._safe_divide(self.results[label]['tp'],
+                                   self.results[label]['tp'] +
+                                   self.results[label]['fn'])
+        return self._calculate_f1_score(precision, recall)
 
-        try:
-            if self.TP_VAGUE == 0:
-                recall_vague = 0
-            else:
-                recall_vague = self.TP_VAGUE / (self.TP_VAGUE + self.FN_VAGUE)
-        except (ZeroDivisionError, RuntimeWarning):
-            recall_vague = 0
+    @staticmethod
+    def _calculate_f1_score(precision, recall):
+        """
+        Calculate the F1 score from precision and recall.
 
-        try:
-            f1_vague = 2 * (precision_vague * recall_vague) / \
-                (precision_vague + recall_vague)
-        except (ZeroDivisionError, RuntimeWarning):
-            f1_vague = 0
-        "====================================================================================="
-        "F1, MACRO, MICRO"
+        :param precision: The precision value
+        :param recall: The recall value
+        :return: The F1 score
+        """
+        return BaseTracker._safe_divide(2 * precision * recall,
+                                        precision + recall)
 
-        # macro f1, just the everage:
-        macro_f1 = (f1_before + f1_after + f1_equal + f1_vague) / 4
+    @staticmethod
+    def _safe_divide(numerator, denominator):
+        """
+        Safely divide two numbers, returning 0 if denominator is 0.
 
-        # micro f1
-        TP_sum_all_classes = self.TP_BEFORE + \
-            self.TP_AFTER + self.TP_EQUAL + self.TP_VAGUE
-        FP_sum_all_classes = self.FP_BEFORE + \
-            self.FP_AFTER + self.FP_EQUAL + self.FP_VAGUE
-        FN_sum_all_classes = self.FN_BEFORE + \
-            self.FN_AFTER + self.FN_EQUAL + self.FN_VAGUE
-
-        try:
-            micro_precision = TP_sum_all_classes / \
-                (TP_sum_all_classes + FP_sum_all_classes)
-        except (ZeroDivisionError, RuntimeWarning):
-            micro_precision = 0
-        try:
-            micro_recall = TP_sum_all_classes / \
-                (TP_sum_all_classes + FN_sum_all_classes)
-        except (ZeroDivisionError, RuntimeWarning):
-            micro_recall = 0
-        try:
-            micro_f1 = 2 * (micro_precision * micro_recall) / \
-                (micro_precision + micro_recall)
-        except (ZeroDivisionError, RuntimeWarning):
-            micro_f1 = 0
-
-        return (float(f'{macro_f1:.4f}'), float(f'{micro_f1:.4f}'))
+        :param numerator: The numerator
+        :param denominator: The denominator
+        :return: The result of the division or 0 if denominator is 0
+        """
+        return numerator / denominator if denominator != 0 else 0
 
     def reset(self):
-
-        self.TP_BEFORE = 0
-        self.TN_BEFORE = 0
-        self.FP_BEFORE = 0
-        self.FN_BEFORE = 0
-
-        self.TP_AFTER = 0
-        self.TN_AFTER = 0
-        self.FP_AFTER = 0
-        self.FN_AFTER = 0
-
-        self.TP_EQUAL = 0
-        self.TN_EQUAL = 0
-        self.FP_EQUAL = 0
-        self.FN_EQUAL = 0
-
-        self.TP_VAGUE = 0
-        self.TN_VAGUE = 0
-        self.FP_VAGUE = 0
-        self.FN_VAGUE = 0
+        """Reset all results to zero."""
+        for label in self.results:
+            for metric in self.results[label]:
+                self.results[label][metric] = 0
 
     def get_list_of_values(self):
         """
-        this function is for dist.all_reduce in the eval phase
-        :return: list of all values
-        :rtype:
+        Get a list of all metric values.
+
+        :return: List of all metric values
         """
-        return [
-            self.TP_BEFORE, self.TN_BEFORE, self.FP_BEFORE, self.FN_BEFORE,
-            self.TP_AFTER, self.TN_AFTER, self.FP_AFTER, self.FN_AFTER,
-            self.TP_EQUAL, self.TN_EQUAL, self.FP_EQUAL, self.FN_EQUAL,
-            self.TP_VAGUE, self.TN_VAGUE, self.FP_VAGUE, self.FN_VAGUE
-        ]
+        return [self.results[label][metric] for label in self.results
+                for metric in self.metrics]
 
-    def update_values_from_list(self, list):
+    def update_values_from_list(self, values):
         """
-        this function is for updating the values after dist.all_reduce
-        :param list: list (or numpy array) of reduced results
-        :type list:
-        :return:
-        :rtype:
+        Update the results from a list of values.
+
+        :param values: List of metric values
         """
-        self.TP_BEFORE, self.TN_BEFORE, self.FP_BEFORE, self.FN_BEFORE,\
-            self.TP_AFTER, self.TN_AFTER, self.FP_AFTER, self.FN_AFTER,\
-            self.TP_EQUAL, self.TN_EQUAL, self.FP_EQUAL, self.FN_EQUAL,\
-            self.TP_VAGUE, self.TN_VAGUE, self.FP_VAGUE, self.FN_VAGUE = list
+        i = 0
+        for label in self.results:
+            for metric in self.metrics:
+                self.results[label][metric] = values[i]
+                i += 1
 
-
-class baseline_results_tracker:
-
+class ResultsTracker(BaseTracker):
     def __init__(self):
+        """Initialize the results tracker with default values."""
+        super().__init__()
 
-        self.TP_BEFORE = 0
-        self.TN_BEFORE = 0
-        self.FP_BEFORE = 0
-        self.FN_BEFORE = 0
+    def update(self, label, ans1, ans2):
+        """
+        Update the results based on the provided label and answers.
 
-        self.TP_AFTER = 0
-        self.TN_AFTER = 0
-        self.FP_AFTER = 0
-        self.FN_AFTER = 0
+        :param label: The true label of the result
+        :param ans1: The first answer
+        :param ans2: The second answer
+        :return: The updated result label
+        """
+        label = label.strip().lower()
+        if label not in self.labels:
+            raise ValueError(f"Incorrect label: {label}")
 
-        self.TP_EQUAL = 0
-        self.TN_EQUAL = 0
-        self.FP_EQUAL = 0
-        self.FN_EQUAL = 0
+        return self._update_result(label, ans1, ans2)
 
-        self.TP_VAGUE = 0
-        self.TN_VAGUE = 0
-        self.FP_VAGUE = 0
-        self.FN_VAGUE = 0
+    def _update_result(self, true_label, ans1, ans2):
+        """
+        Update the result for a specific label.
+
+        :param true_label: The true label
+        :param ans1: The first answer
+        :param ans2: The second answer
+        :return: The updated result label
+        """
+        outcomes = {
+            (1, 0): 'tp',
+            (0, 1): 'fp',
+            (1, 1): 'tp',
+            (0, 0): 'fp'
+        }
+        if (ans1, ans2) in outcomes:
+            self.results[true_label][outcomes[(ans1, ans2)]] += 1
+            if (ans1, ans2) == (0, 1):
+                self.results[self._opposite_label(true_label)]['fn'] += 1
+            if (ans1, ans2) == (0, 0):
+                self.results[self._opposite_label(true_label)]['fn'] += 1
+        return true_label
+
+    @staticmethod
+    def _opposite_label(label):
+        """
+        Get the opposite label for updating false negatives.
+
+        :param label: The true label
+        :return: The opposite label
+        """
+        opposites = {
+            'before': 'after',
+            'after': 'before',
+            'equal': 'equal',
+            'vague': 'equal'
+        }
+        return opposites[label]
+
+class BaselineResultsTracker(BaseTracker):
+    def __init__(self):
+        """Initialize the baseline results tracker with default values."""
+        super().__init__()
 
     def update(self, pred, label):
         """
-        :param pred: number between 0 to 3, (0-before), (1-after), (2-vague), (3-equal)
-        :type pred: int
-        :param label: the lable, like: 'BEFORE' etc
-        :type label: str
-        :return:
-        :rtype:
+        Update the baseline results based on the prediction and label.
+
+        :param pred: The predicted label index
+        :param label: The true label
+        :return: The updated result label
         """
+        label = label.strip().lower()
+        if label not in self.labels:
+            raise ValueError(f"Incorrect label: {label}")
 
-        if label.strip() == 'BEFORE':
-
-            if pred == 0:  # BEFORE
-                self.TP_BEFORE += 1
-                res = 'BEFORE'
-
-            if pred == 1:  # AFTER
-                self.FP_AFTER += 1
-                self.FN_BEFORE += 1
-                res = 'AFTER'
-
-            if pred == 2:  # VAGUE
-                self.FP_VAGUE += 1
-                self.FN_BEFORE += 1
-                res = 'VAGUE'
-
-            if pred == 3:  # EQUAL
-                self.FP_EQUAL += 1
-                self.FN_BEFORE += 1
-                res = 'EQUAL'
-
-        elif label.strip() == 'AFTER':
-
-            if pred == 0:  # BEFORE
-                self.FP_BEFORE += 1
-                self.FN_AFTER += 1
-                res = 'BEFORE'
-
-            if pred == 1:  # AFTER
-                self.TP_AFTER += 1
-                res = 'AFTER'
-
-            if pred == 2:  # VAGUE
-                self.FP_VAGUE += 1
-                self.FN_AFTER += 1
-                res = 'VAGUE'
-
-            if pred == 3:  # EQUAL
-                self.FP_EQUAL += 1
-                self.FN_AFTER += 1
-                res = 'EQUAL'
-
-        elif (label.strip() == 'EQUAL') or (label.strip() == 'SIMULTANEOUS'):
-
-            if pred == 0:  # BEFORE
-                self.FP_BEFORE += 1
-                self.FN_EQUAL += 1
-                res = 'BEFORE'
-
-            if pred == 1:  # AFTER
-                self.FP_AFTER += 1
-                self.FN_EQUAL += 1
-                res = 'AFTER'
-
-            if pred == 2:  # VAGUE
-                self.FP_VAGUE += 1
-                self.FN_EQUAL += 1
-                res = 'VAGUE'
-
-            if pred == 3:  # EQUAL
-                self.TP_EQUAL += 1
-                res = 'EQUAL'
-
-        elif label.strip() == 'VAGUE':
-
-            if pred == 0:  # BEFORE
-                self.TP_VAGUE += 1
-                res = 'VAGUE'
-
-            if pred == 1:  # AFTER
-                self.TP_VAGUE += 1
-                res = 'VAGUE'
-
-            if pred == 2:  # VAGUE
-                self.TP_BEFORE += 1
-                res = 'VAGUE'
-
-            if pred == 3:  # EQUAL
-                self.TP_VAGUE += 1
-                res = 'VAGUE'
-
+        pred_labels = ['before', 'after', 'vague', 'equal']
+        true_label = pred_labels[pred]
+        if label == true_label:
+            self.results[true_label]['tp'] += 1
         else:
-            raise Exception(f'label: {label.strip()} is incorect')
+            self.results[true_label]['fp'] += 1
+            self.results[label]['fn'] += 1
 
-        return res
-
-    def f1_macro_and_micro(self):
-        """
-        F1-score = 2 × (precision × recall)/(precision + recall)
-        precision = TP/(TP+FP)
-        recall = TP/(TP+FN)
-
-        F1_micro = 2 × (micro_precision × micro_recall)/(micro_precision + micro_recall)
-        micro_precision = TP_sum_all_classes/(TP_sum_all_classes + FP_sum_all_classes)
-        micro_recall = TP_sum_all_classes/(TP_sum_all_classes + FN_sum_all_classes)
-        """
-
-        "====================================================================================="
-        "BEFORE"
-        try:
-            precision_before = self.TP_BEFORE / \
-                (self.TP_BEFORE + self.FP_BEFORE)
-        except (ZeroDivisionError, RuntimeWarning):
-            precision_before = 0
-        try:
-            recall_before = self.TP_BEFORE / (self.TP_BEFORE + self.FN_BEFORE)
-        except (ZeroDivisionError, RuntimeWarning):
-            recall_before = 0
-        try:
-            f1_before = 2 * (precision_before * recall_before) / \
-                (precision_before + recall_before)
-        except (ZeroDivisionError, RuntimeWarning):
-            f1_before = 0
-        "====================================================================================="
-        "AFTER"
-        try:
-            precision_after = self.TP_AFTER / (self.TP_AFTER + self.FP_AFTER)
-        except (ZeroDivisionError, RuntimeWarning):
-            precision_after = 0
-
-        try:
-            recall_after = self.TP_AFTER / (self.TP_AFTER + self.FN_AFTER)
-        except (ZeroDivisionError, RuntimeWarning):
-            recall_after = 0
-
-        try:
-            f1_after = 2 * (precision_after * recall_after) / \
-                (precision_after + recall_after)
-        except (ZeroDivisionError, RuntimeWarning):
-            f1_after = 0
-        "====================================================================================="
-        "EQUAL"
-        try:
-            if self.TP_EQUAL == 0:
-                precision_equal = 0
-            else:
-                precision_equal = self.TP_EQUAL / \
-                    (self.TP_EQUAL + self.FP_EQUAL)
-        except (ZeroDivisionError, RuntimeWarning):
-            precision_equal = 0
-
-        try:
-            if self.TP_EQUAL == 0:
-                recall_equal = 0
-            else:
-                recall_equal = self.TP_EQUAL / (self.TP_EQUAL + self.FN_EQUAL)
-        except (ZeroDivisionError, RuntimeWarning):
-            recall_equal = 0
-
-        try:
-            f1_equal = 2 * (precision_equal * recall_equal) / \
-                (precision_equal + recall_equal)
-        except (ZeroDivisionError, RuntimeWarning):
-            f1_equal = 0
-        "====================================================================================="
-        "VAGUE"
-        try:
-            if self.TP_VAGUE == 0:
-                precision_vague = 0
-            else:
-                precision_vague = self.TP_VAGUE / \
-                    (self.TP_VAGUE + self.FP_VAGUE)
-        except (ZeroDivisionError, RuntimeWarning):
-            precision_vague = 0
-
-        try:
-            if self.TP_VAGUE == 0:
-                recall_vague = 0
-            else:
-                recall_vague = self.TP_VAGUE / (self.TP_VAGUE + self.FN_VAGUE)
-        except (ZeroDivisionError, RuntimeWarning):
-            recall_vague = 0
-
-        try:
-            f1_vague = 2 * (precision_vague * recall_vague) / \
-                (precision_vague + recall_vague)
-        except (ZeroDivisionError, RuntimeWarning):
-            f1_vague = 0
-        "====================================================================================="
-        "F1, MACRO, MICRO"
-
-        # macro f1, just the everage:
-        macro_f1 = (f1_before + f1_after + f1_equal + f1_vague) / 4
-
-        # micro f1
-        TP_sum_all_classes = self.TP_BEFORE + \
-            self.TP_AFTER + self.TP_EQUAL + self.TP_VAGUE
-        FP_sum_all_classes = self.FP_BEFORE + \
-            self.FP_AFTER + self.FP_EQUAL + self.FP_VAGUE
-        FN_sum_all_classes = self.FN_BEFORE + \
-            self.FN_AFTER + self.FN_EQUAL + self.FN_VAGUE
-
-        try:
-            micro_precision = TP_sum_all_classes / \
-                (TP_sum_all_classes + FP_sum_all_classes)
-        except (ZeroDivisionError, RuntimeWarning):
-            micro_precision = 0
-        try:
-            micro_recall = TP_sum_all_classes / \
-                (TP_sum_all_classes + FN_sum_all_classes)
-        except (ZeroDivisionError, RuntimeWarning):
-            micro_recall = 0
-        try:
-            micro_f1 = 2 * (micro_precision * micro_recall) / \
-                (micro_precision + micro_recall)
-        except (ZeroDivisionError, RuntimeWarning):
-            micro_f1 = 0
-
-        return (float(f'{macro_f1:.4f}'), float(f'{micro_f1:.4f}'))
-
-    def reset(self):
-
-        self.TP_BEFORE = 0
-        self.TN_BEFORE = 0
-        self.FP_BEFORE = 0
-        self.FN_BEFORE = 0
-
-        self.TP_AFTER = 0
-        self.TN_AFTER = 0
-        self.FP_AFTER = 0
-        self.FN_AFTER = 0
-
-        self.TP_EQUAL = 0
-        self.TN_EQUAL = 0
-        self.FP_EQUAL = 0
-        self.FN_EQUAL = 0
-
-        self.TP_VAGUE = 0
-        self.TN_VAGUE = 0
-        self.FP_VAGUE = 0
-        self.FN_VAGUE = 0
-
-    def get_list_of_values(self):
-        """
-        this function is for dist.all_reduce in the eval phase
-        :return: list of all values
-        :rtype:
-        """
-        return [
-            self.TP_BEFORE, self.TN_BEFORE, self.FP_BEFORE, self.FN_BEFORE,
-            self.TP_AFTER, self.TN_AFTER, self.FP_AFTER, self.FN_AFTER,
-            self.TP_EQUAL, self.TN_EQUAL, self.FP_EQUAL, self.FN_EQUAL,
-            self.TP_VAGUE, self.TN_VAGUE, self.FP_VAGUE, self.FN_VAGUE
-        ]
-
-    def update_values_from_list(self, list):
-        """
-        this function is for updating the values after dist.all_reduce
-        :param list: list (or numpy array) of reduced results
-        :type list:
-        :return:
-        :rtype:
-        """
-        self.TP_BEFORE, self.TN_BEFORE, self.FP_BEFORE, self.FN_BEFORE,\
-            self.TP_AFTER, self.TN_AFTER, self.FP_AFTER, self.FN_AFTER,\
-            self.TP_EQUAL, self.TN_EQUAL, self.FP_EQUAL, self.FN_EQUAL,\
-            self.TP_VAGUE, self.TN_VAGUE, self.FP_VAGUE, self.FN_VAGUE = list
-# get the label (number) from label string:
+        return true_label
 
 
 def get_label(question_name, label):
     """
-    :param question_name:
-    :type question_name:
-    :param label:
-    :type label:
-    :return:
-    :rtype:
+    Get the numerical label for a given question and label.
+
+    :param question_name: The name of the question
+    :param label: The label string
+    :return: The numerical label
     """
-    if question_name == 'question_1':
-        if label.strip() == 'BEFORE':
-            res = 1
-        elif label.strip() == 'AFTER':
-            res = 0
-        elif label.strip() == 'VAGUE':
-            res = 1
-        elif label.strip() == 'EQUAL':
-            res = 0
-
-    elif question_name == 'question_2':
-        if label.strip() == 'BEFORE':
-            res = 0
-        elif label.strip() == 'AFTER':
-            res = 1
-        elif label.strip() == 'VAGUE':
-            res = 1
-        elif label.strip() == 'EQUAL':
-            res = 0
-
-    return res
+    label = label.strip().lower()
+    mapping = {
+        'question_1': {'before': 1, 'after': 0, 'vague': 1, 'equal': 0},
+        'question_2': {'before': 0, 'after': 1, 'vague': 1, 'equal': 0},
+    }
+    return mapping.get(question_name, {}).get(label)
 
 
 def get_label_for_baseline(label):
     """
-    :param label:
-    :type label:
-    :return:
-    :rtype:
+    Get the numerical label for baseline comparison.
+
+    :param label: The label string
+    :return: The numerical label as a list
     """
-
-    if label.strip() == 'BEFORE':
-        res = [0]
-    elif label.strip() == 'AFTER':
-        res = [1]
-    elif label.strip() == 'VAGUE':
-        res = [2]
-    elif label.strip() == 'EQUAL':
-        res = [3]
-
-    return res
+    label = label.strip().lower()
+    mapping = {'before': 0, 'after': 1, 'vague': 2, 'equal': 3}
+    return [mapping.get(label)]
 
 
 def all_equal(list_of_mp_values):
     """
-    :param list_of_mp_values:
-    :type list_of_mp_values:
-    :return:
-    :rtype:
+    Check if all values in a list are equal.
+
+    :param list_of_mp_values: List of values
+    :return: True if all values are equal, False otherwise
     """
-    return all([i.value == list_of_mp_values[0].value for i in list_of_mp_values])
-
-
-def count_parameters(model):
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+    return all(val.value == list_of_mp_values[0].value for val in list_of_mp_values)
